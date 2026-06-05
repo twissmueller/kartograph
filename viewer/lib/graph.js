@@ -7,6 +7,7 @@ export function buildGraph(k) {
     context: c.context,
     maturity: effectiveMaturity(c),
     featureCount: c.derived?.featureCount ?? 0,
+    scenarioCount: c.derived?.scenarioCount ?? 0,
   }));
   const contexts = Object.entries(k.contexts || {}).map(([slug, c]) => ({
     slug, name: c.name, color: c.color ?? '#666666',

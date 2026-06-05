@@ -20,3 +20,17 @@ test('buildGraph turns the seed map into one node, one context, no edges', async
 test('nodeSize grows with feature count', () => {
   assert.ok(nodeSize(10) > nodeSize(0));
 });
+
+test('buildGraph carries featureCount and scenarioCount onto the node', () => {
+  const g = buildGraph({
+    capabilities: { foo: { name: 'Foo', context: 'c', derived: { featureCount: 3, scenarioCount: 9 } } },
+    contexts: { c: { name: 'C' } },
+  });
+  assert.equal(g.nodes[0].featureCount, 3);
+  assert.equal(g.nodes[0].scenarioCount, 9);
+});
+
+test('buildGraph defaults a missing context color to a neutral grey', () => {
+  const g = buildGraph({ capabilities: {}, contexts: { c: { name: 'C' } } });
+  assert.equal(g.contexts[0].color, '#666666');
+});

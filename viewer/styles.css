@@ -5,14 +5,19 @@ body { margin: 0; background: var(--bg); color: var(--ink);
 header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: baseline; }
 header h1 { font-size: 18px; margin: 0; }
 header .stats { color: var(--muted); font-size: 13px; }
+.header-right { display: flex; align-items: center; gap: 14px; }
+.reset { background: var(--panel); color: var(--muted); border: 1px solid #ffffff1f;
+  border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+.reset:hover { color: var(--ink); border-color: #ffffff33; }
 #canvas { position: relative; height: 70vh; margin: 0 16px; border-radius: 10px;
   background: #15171b; overflow: hidden; }
-/* .context-region / .context-label: ready for context-boundary rendering in a future milestone */
-.context-region { position: absolute; border: 1px solid #ffffff22; border-radius: 12px;
-  background: #ffffff08; }
-.context-label { position: absolute; color: var(--muted); font-size: 12px; padding: 4px 8px; }
+.context-region { position: absolute; border: 1px solid #ffffff22; border-radius: 14px;
+  background: #ffffff08; pointer-events: none; }
+.context-label { position: absolute; color: var(--ink); opacity: 0.7; font-size: 12px;
+  font-weight: 600; letter-spacing: 0.02em; pointer-events: none; }
 .node { position: absolute; transform: translate(-50%, -50%); border-radius: 10px;
-  padding: 8px 12px; cursor: grab; color: #fff; user-select: none; white-space: nowrap; }
+  padding: 8px 12px; cursor: grab; color: #fff; user-select: none; white-space: nowrap;
+  z-index: 2; box-shadow: 0 1px 3px #0006; }
 .node small { display: block; opacity: 0.8; font-size: 11px; }
 svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .edges line { stroke: #ffffff33; stroke-width: 1; }
@@ -23,3 +28,26 @@ svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-eve
 .bar > div { height: 100%; background: #6cc070; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; }
+
+/* Capability detail panel (opens on node click, replaces the panel row) */
+.detail { margin: 16px; }
+.detail .back { display: inline-block; color: #6ea8ff; cursor: pointer; font-size: 13px; margin-bottom: 10px; }
+.detail .back:hover { text-decoration: underline; }
+.detail .detail-title { font-size: 20px; text-transform: none; color: var(--ink); margin: 0 0 6px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.detail-def { color: var(--ink); opacity: 0.85; margin: 0 0 16px; max-width: 70ch; }
+.badge { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; color: #fff; }
+.badge.ctx { background: #ffffff1c; color: var(--ink); }
+.badge.mat-vision { background: #6d6f78; }
+.badge.mat-sketched { background: #c0529b; }
+.badge.mat-building { background: #e2683c; }
+.badge.mat-usable { background: #4f9dd6; }
+.badge.mat-stable { background: #5bb26b; }
+.metrics { display: flex; gap: 12px; margin-bottom: 16px; }
+.metrics > div { background: #ffffff0a; border-radius: 10px; padding: 10px 16px; min-width: 96px; }
+.metrics .num { display: block; font-size: 22px; font-weight: 600; }
+.metrics .lbl { color: var(--muted); font-size: 12px; }
+.rel { margin-bottom: 12px; }
+.rel h3 { font-size: 12px; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+.chip { display: inline-block; background: #ffffff12; border-radius: 6px; padding: 3px 9px;
+  font-size: 13px; margin: 0 4px 4px 0; }

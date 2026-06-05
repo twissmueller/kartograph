@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { effectiveMaturity, aggregateMaturity, nodeBrightness, BRIGHTNESS } from '../viewer/lib/maturity.js';
+import { effectiveMaturity, aggregateMaturity, nodeBrightness, BRIGHTNESS, maturityLabel, MATURITY_LABEL } from '../viewer/lib/maturity.js';
 
 test('effectiveMaturity prefers derived, falls back to declaredStage, then vision', () => {
   assert.equal(effectiveMaturity({ derived: { maturity: 'usable' }, declaredStage: 'vision' }), 'usable');
@@ -24,4 +24,18 @@ test('aggregateMaturity averages weights', () => {
 test('nodeBrightness returns a 0..1 value and defaults to the vision floor', () => {
   assert.equal(nodeBrightness('stable'), 1);
   assert.equal(nodeBrightness('mystery'), BRIGHTNESS.vision);
+});
+
+test('maturityLabel maps each maturity to its display label', () => {
+  assert.equal(maturityLabel('building'), 'Building');
+  assert.equal(maturityLabel('vision'), 'Vision');
+  assert.equal(maturityLabel('stable'), 'Stable');
+  // a label exists for every weighted maturity
+  for (const m of ['vision', 'sketched', 'building', 'usable', 'stable']) {
+    assert.equal(typeof MATURITY_LABEL[m], 'string');
+  }
+});
+
+test('maturityLabel returns the raw value for an unknown maturity', () => {
+  assert.equal(maturityLabel('mystery'), 'mystery');
 });
