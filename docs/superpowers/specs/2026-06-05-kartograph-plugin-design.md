@@ -31,9 +31,12 @@ The framework speaks a fixed vocabulary of **ten terms**, shipped *static* in th
 as `reference/glossary.md` and injected into workflow/skill prompts. These are distinct
 from each modeled project's own **project glossary** (§7).
 
-The nine domain terms (Akteur, Capability, Ereignis, Feature, Glossar, Kontext, Regel,
-Subjekt, Szenario) are defined in the existing glossary text and carried over verbatim.
-The tenth term added by this design:
+Each term is presented **bilingually** as *Canonical (translation)*: **Akteur (Actor)**,
+**Capability (Fähigkeit)**, **Ereignis (Event)**, **Feature (Funktion)**,
+**Glossar (Glossary)**, **Kontext (Context)**, **Regel (Rule)**, **Subjekt (Subject)**,
+**Szenario (Scenario)**. The conceptual terms stay German-canonical; the English
+translation rides along for readers and for the (English) UI. The tenth term added by this
+design:
 
 > **ADR (Architekturentscheidung)** — Eine dokumentierte Architekturentscheidung: eine
 > technische oder strukturelle Festlegung, die das *Wie* der Anwendung prägt, nicht das
@@ -76,6 +79,12 @@ These were the load-bearing decisions of the design session:
 5. **Humans review between workflows, not inside them.** Dynamic workflows cannot prompt
    the user mid-run. Therefore the pipeline is split into separate small workflows, and
    the orchestrating session **pauses and asks** at each boundary (§11).
+
+6. **The cartography metaphor is mental-only.** Cities, regions, roads, settler, fog —
+   these shape how we *think and talk*, but they never appear in UI strings or code
+   identifiers. The UI and code use the domain terms: Capability, Kontext, Dependency,
+   Maturity. No `class City`; it is `Capability`. This keeps the metaphor a thinking aid,
+   not a leaky abstraction.
 
 ---
 
@@ -142,6 +151,36 @@ merge pain.
 `kartograph.layout.json` is a flat `{ "<slug>": { "x", "y" } }` map; nodes with no entry
 are auto-placed by the viewer.
 
+### 4.1 Initial state — the seed map
+
+A fresh project is **not** an empty void. The map ships with a minimal, non-empty seed —
+the equivalent of Civilization's settler on the one discovered tile, except we show a
+seed *Capability*, not a literal settler (the metaphor is mental-only, §3.6). It signals
+"you are here, start exploring":
+
+```jsonc
+{
+  "version": "1",
+  "meta": { "name": "<project>", "tagline": "Uncharted — run /karto-init or /karto-explore to begin" },
+  "contexts": { "core": { "name": "Core", "definition": "The starting area of the system.", "color": "#33aa77" } },
+  "capabilities": {
+    "start-here": {
+      "name": "Start here",
+      "context": "core",
+      "definition": "Seed capability. Replace it by exploring and charting your first real feature.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    }
+  },
+  "subjects": {}, "actors": {}, "events": {}, "rules": {}, "glossary": {}, "adrs": {},
+  "dependencies": []
+}
+```
+
+The viewer renders this as a single dim `vision` node — the rest of the canvas is open,
+inviting the first expedition. `/karto-init` (§9.4) replaces the seed with a real draft
+map derived from existing code; `/karto-explore` grows it feature by feature.
+
 ---
 
 ## 5. Identity & linking
@@ -168,19 +207,21 @@ migration.
 Five levels. **Exactly one is declared; the rest are derived** by the reconciliation step
 from on-disk Feature/Szenario state. Humans never set maturity.
 
-| Level         | Determined by                                  | Kind     |
-| ------------- | ---------------------------------------------- | -------- |
-| **Vision**    | Capability exists, **0 Features**              | declared (seed) |
-| **Skizziert** | Has Feature(s), **0 Szenarien**                | derived  |
-| **Im Bau**    | Has Szenarien, only `@happy`                   | derived  |
-| **Nutzbar**   | `@happy` + `@edge` present                     | derived  |
-| **Stabil**    | `@happy` + `@edge` + `@error` present          | derived  |
+Enum keys and UI labels are **English** (the UI is English; §12):
+
+| Key (enum)   | UI label     | Determined by                              | Kind            |
+| ------------ | ------------ | ------------------------------------------ | --------------- |
+| `vision`     | **Vision**   | Capability exists, **0 Features**          | declared (seed) |
+| `sketched`   | **Sketched** | Has Feature(s), **0 Szenarien**            | derived         |
+| `building`   | **Building** | Has Szenarien, only `@happy`               | derived         |
+| `usable`     | **Usable**   | `@happy` + `@edge` present                 | derived         |
+| `stable`     | **Stable**   | `@happy` + `@edge` + `@error` present      | derived         |
 
 `vision` is the seed a human/`explore` sets when proposing a new capability candidate.
 The moment Features and scenarios exist, maturity is a pure function of the files.
 
 Aggregate project maturity (viewer-side): weighted mean over capabilities. Default
-weights `vision 0, skizziert 0.1, im_bau 0.3, nutzbar 0.7, stabil 1.0` (tunable).
+weights `vision 0, sketched 0.1, building 0.3, usable 0.7, stable 1.0` (tunable).
 
 ---
 
@@ -236,12 +277,13 @@ that (b) is a mitigation, not a guarantee.
 
 Two parts:
 
-- **Phase A — Survey conversation (interactive, main session).** Invokes the
-  **`karto-grill`** skill: brainstorms and grills the feature, pulling context from a
-  GitHub issue if referenced, challenging new terms against the existing project
-  glossary, sharpening fuzzy language, probing concrete scenarios, and applying the ADR
-  worthiness test. *Writes nothing to the model* — "read-only" means it never mutates the
-  map, glossary, `.feature` files, or code.
+- **Phase A — Survey conversation (interactive, main session).** Runs
+  **`superpowers:brainstorming`** to diverge/expand the idea, then the **`karto-grill`**
+  skill to converge: grills the feature, pulls context from a GitHub issue if referenced,
+  challenges new terms against the existing project glossary, sharpens fuzzy language,
+  probes concrete scenarios, and applies the ADR worthiness test. *Writes nothing to the
+  model* — "read-only" means it never mutates the map, glossary, `.feature` files, or
+  code.
 - **Phase B — Discovery workflow (background).** The command stamps `{date, slug}` (the
   session knows today's date; the workflow runtime cannot call `Date`) and invokes the
   Workflow tool with `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/discovery.js` and
@@ -279,7 +321,7 @@ the discipline of `superpowers:test-driven-development`:
   inner loop, adding units, until the **outer** scenario turns green.
 - **Close the loop.** Once the scenario is green, refactor at the seam, then advance to
   the next scenario. Working `@happy → @edge → @error` in order walks the capability up
-  the maturity ladder (Im Bau → Nutzbar → Stabil), so the outer loop *is* the maturity
+  the maturity ladder (Building → Usable → Stable), so the outer loop *is* the maturity
   progression.
 - Project specifics come from **`kartograph/config.json`**: for the **outer loop** — how
   `.feature` steps bind to step definitions and the acceptance runner; for the **inner
@@ -290,6 +332,27 @@ the discipline of `superpowers:test-driven-development`:
 
 `build`'s detailed config schema and step-definition binding are designed at Milestone 3
 against a concrete project, since they depend on stack specifics.
+
+### 9.4 `/karto-init` — chart an existing repo (read-mostly bootstrap)
+
+The reverse of `explore`: instead of reading a feature description, it reads **existing
+code** to bootstrap a draft map. For an existing (possibly very large) project, this is
+the first expedition that charts the known world.
+
+- **Workflow, fan-out over the codebase.** Subagents analyze directories/modules to infer
+  **Kontexte** (top-level areas), **Capabilities** (cohesive feature units),
+  **Subjekte** (data classes / persisted entities), **Akteure**, dependency edges, and
+  any **existing ADRs** (e.g. an existing `docs/adr/`), plus a **glossary seed** of
+  recurring domain terms. Backed by the **`karto-analyze-repo`** skill (§13).
+- **Maturity is still derived, not invented.** A discovered capability with tests/
+  `.feature` coverage derives its level per §6; one without lands at `sketched` (code
+  exists) or `vision` (named-only). `init` does not fabricate `@happy/@edge/@error` tags.
+- **Same gate, same review.** It assembles a complete draft `kartograph.json`, passes the
+  three-layer gate (§10), writes atomically, and then **pauses to ask** — the draft map
+  *is* the reviewable artifact (alongside an `init` survey record). For very large repos,
+  run it scoped to a subtree first to gauge cost, then widen.
+
+`init` is project-agnostic (it only reads code), so it ships in **M1**.
 
 ---
 
@@ -329,10 +392,13 @@ checkpoint.
 
 ## 12. Viewer & `/karto-show`
 
-A **pure static** viewer (vanilla JS, no framework, no build step) renders the map:
-cities = capabilities (size = Feature count, hue = context, brightness = maturity), roads
-= data dependencies, regions = contexts; plus a **glossary panel** and an **ADR panel**.
-Drill-down on a city opens its Features/Szenarien (lazy-loaded from `.feature`).
+A **pure static** viewer (vanilla JS, no framework, no build step) renders the map. The
+**UI is entirely English**, and uses **domain terms only** — Capability, Kontext,
+Dependency, Maturity — never the metaphor words (§3.6). The visual encoding (described
+here with the mental metaphor, *not* shown in the UI): capability nodes sized by Feature
+count, hued by context, brightness by maturity; edges are data dependencies; context
+groupings are regions. Plus a **glossary panel** and an **ADR panel**. Drill-down on a
+capability opens its Features/Szenarien (lazy-loaded from `.feature`).
 
 `/karto-show` starts a **tiny ephemeral dev server** (no framework; lives only while
 viewing). "No server" is reinterpreted as *no persistent backend / no framework / no
@@ -370,8 +436,15 @@ in our repo.
 - **`karto-groom-adr`** ← idea from `grill-with-docs` + `ADR-FORMAT.md`. ADR
   creation/grooming: MADR format, scan-and-increment numbering, supersession, worthiness
   test. Invoked by `chart` and standalone via `/karto-groom`.
+- **`karto-analyze-repo`** ← new (no upstream equivalent). Drives `/karto-init` (§9.4):
+  reverse-engineers Kontexte / Capabilities / Subjekte / Akteure / dependencies / glossary
+  seed / existing ADRs from a codebase, deriving maturity from existing tests where
+  present. Built for fan-out over large repos.
 
-No bundled TDD skill — `build` (M3) leans on `superpowers:test-driven-development`.
+**Using superpowers directly, not just borrowing:** explore Phase A invokes
+`superpowers:brainstorming`, and `build` invokes `superpowers:test-driven-development`. We
+*use and honor* these rather than re-implementing them — no bundled brainstorming or TDD
+skill of our own.
 
 ---
 
@@ -382,7 +455,13 @@ No bundled TDD skill — `build` (M3) leans on `superpowers:test-driven-developm
 - **`discovery.schema.json`** — the `explore` gate. Top sections: `conversationSummary`,
   `sources`, `findings { subjects, events, actors, rules, affectedCapabilities,
   capabilityCandidates, glossaryAdditions, adrCandidates, placement }`.
-- Further per-phase schemas follow (e.g. a chart-result schema if needed).
+- **`glossary.schema.json`** — the project-glossary collection (`term`, `definition`,
+  `type`, `aliasesToAvoid`, `related`). Used standalone as the `karto-groom-glossary`
+  output gate, and `$ref`'d from `kartograph.schema.json` (one definition, no duplication).
+- **`adr.schema.json`** — ADR metadata (`id`, `title`, `status`, `date`, `contexts`,
+  `capabilities`, `supersedes`) plus the markdown frontmatter shape. Used standalone as
+  the `karto-groom-adr` output gate, and `$ref`'d from `kartograph.schema.json`.
+- Further per-phase schemas follow (e.g. an `init` draft-map schema if needed).
 
 Schemas are versioned under `v1/`; a `version` field in `kartograph.json` enables future
 migrations.
@@ -400,18 +479,20 @@ migrations.
   determinism and reviewability).
 - Ship a marketplace entry so the plugin is installable.
 
-Commands: `/karto-explore`, `/karto-chart`, `/karto-build` (M3), `/karto-show`,
-`/karto-groom`. Skills: `karto-grill`, `karto-groom-glossary`, `karto-groom-adr`.
+Commands: `/karto-init`, `/karto-explore`, `/karto-chart`, `/karto-build` (M3),
+`/karto-show`, `/karto-groom`. Skills: `karto-grill`, `karto-groom-glossary`,
+`karto-groom-adr`, `karto-analyze-repo`.
 
 ---
 
 ## 16. Milestones
 
 - **M1 — modeling core (project-agnostic):** plugin skeleton + `plugin.json`;
-  `schemas/v1/kartograph.schema.json` + `discovery.schema.json`; the viewer (map +
-  glossary panel + ADR panel) + tiny dev server + `/karto-show`; a minimal example
-  `kartograph.json`; `reference/glossary.md` (ten terms); `karto-grill` skill;
-  `/karto-explore` (conversation + discovery workflow).
+  `schemas/v1/` (`kartograph`, `discovery`, `glossary`, `adr`); the viewer (map +
+  glossary panel + ADR panel, English UI) + tiny dev server + `/karto-show`; the **seed
+  map** (§4.1) as the example `kartograph.json`; `reference/glossary.md` (ten bilingual
+  terms); `karto-grill` skill; `/karto-explore` (brainstorming + grill + discovery
+  workflow); and `/karto-init` + `karto-analyze-repo` for bootstrapping existing repos.
 - **M2 — charting:** `/karto-chart` + `karto-groom-glossary` + `karto-groom-adr` +
   `/karto-groom`; reconciliation step (derive-and-cache).
 - **M3 — building (project-configured):** `kartograph/config.json` schema; `/karto-build`
@@ -433,6 +514,13 @@ Commands: `/karto-explore`, `/karto-chart`, `/karto-build` (M3), `/karto-show`,
 ## 18. Attribution & licensing
 
 Skill *ideas* are adapted from [`mattpocock/skills`](https://github.com/mattpocock/skills)
-(no 1:1 copying); honor its LICENSE and credit it in the Kartograph repo. The dynamic
-workflows mechanism follows the Claude Code docs:
+(no 1:1 copying); honor its LICENSE and credit it in the Kartograph repo.
+
+**Superpowers** is both *used* and *honored*: `/karto-explore` invokes
+`superpowers:brainstorming` and `/karto-build` invokes
+`superpowers:test-driven-development` directly, and the plugin credits the Superpowers
+project (its design conventions — brainstorming → writing-plans, TDD discipline — shaped
+this work). We do not re-implement or vendor those skills.
+
+The dynamic workflows mechanism follows the Claude Code docs:
 <https://code.claude.com/docs/en/workflows>.
