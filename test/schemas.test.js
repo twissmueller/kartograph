@@ -44,3 +44,11 @@ test('a bad maturity enum is rejected', async () => {
   });
   assert.equal(ok, false);
 });
+
+test('the seed map validates against the schema', async () => {
+  const ajv = await loadAjv();
+  const v = ajv.getSchema('https://kartograph.dev/schemas/v1/kartograph.schema.json');
+  const seed = JSON.parse(await readFile(new URL('../examples/kartograph.seed.json', import.meta.url)));
+  const ok = v(seed);
+  assert.equal(ok, true, JSON.stringify(v.errors, null, 2));
+});
