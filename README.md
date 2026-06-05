@@ -82,8 +82,8 @@ This repo is its own [plugin marketplace](https://code.claude.com/docs/en/plugin
 In Claude Code:
 
 ```text
-/plugin marketplace add twissmueller/kartograph
-/plugin install kartograph@kartograph
+/plugin marketplace add twissmueller/kartograph   # add the catalog (owner/repo)
+/plugin install kartograph@twissmueller           # install kartograph from twissmueller
 ```
 
 Then, in any project you want to map:
@@ -99,11 +99,11 @@ Then, in any project you want to map:
 Releases bump the `version` in the plugin manifest. To upgrade:
 
 ```text
-/plugin marketplace update kartograph   # refresh the catalog from GitHub
-/plugin update kartograph               # install the new version
+/plugin marketplace update twissmueller   # refresh the catalog from GitHub
 ```
 
-(`/plugin update` is a no-op when your installed version already matches.)
+Then enable **auto-update** for the marketplace in `/plugin` → *Marketplaces* (it upgrades
+installed plugins automatically when the manifest `version` bumps), or reinstall to force it.
 
 ## What lives in your repo
 
