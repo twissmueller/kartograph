@@ -1,0 +1,111 @@
+import http from 'node:http';
+import { createReadStream, watch } from 'node:fs';
+import { stat, readFile, writeFile } from 'node:fs/promises';
+import { join, normalize, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.feature': 'text/plain; charset=utf-8',
+  '.md': 'text/plain; charset=utf-8',
+};
+
+async function tryServeFile(res, baseDir, urlPath) {
+  const safe = normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
+  const filePath = join(baseDir, safe);
+  try {
+    const s = await stat(filePath);
+    if (!s.isFile()) return false;
+    res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] ?? 'application/octet-stream' });
+    createReadStream(filePath).pipe(res);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function createServer({ projectRoot, viewerDir }) {
+  const sseClients = new Set();
+
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url, 'http://localhost');
+    let path = decodeURIComponent(url.pathname);
+    if (path === '/') path = '/index.html';
+
+    if (path === '/events') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      });
+      res.write('retry: 1000\n\n');
+      sseClients.add(res);
+      req.on('close', () => sseClients.delete(res));
+      return;
+    }
+
+    if (path === '/layout' && req.method === 'POST') {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      try {
+        const json = JSON.parse(body || '{}');
+        await writeFile(join(projectRoot, 'kartograph.layout.json'), JSON.stringify(json, null, 2));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('{"ok":true}');
+      } catch (e) {
+        res.writeHead(400);
+        res.end(String(e.message));
+      }
+      return;
+    }
+
+    // viewer assets first, then project files (kartograph.json, .feature, .md, layout)
+    if (await tryServeFile(res, viewerDir, path)) return;
+    if (await tryServeFile(res, projectRoot, path)) return;
+    res.writeHead(404);
+    res.end('not found');
+  });
+
+  // Watch the project for changes and notify SSE clients.
+  const notify = (() => {
+    let timer = null;
+    return () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        for (const c of sseClients) c.write('data: changed\n\n');
+      }, 100);
+    };
+  })();
+
+  let watcher;
+  try {
+    watcher = watch(projectRoot, { recursive: true }, (_event, filename) => {
+      if (!filename) return notify();
+      if (/kartograph|\.feature$|decisions|\.json$/.test(filename)) notify();
+    });
+  } catch {
+    // recursive watch unsupported on this platform; watch the root file only
+    watcher = watch(join(projectRoot, 'kartograph.json'), notify);
+  }
+  server.on('close', () => watcher?.close());
+
+  return server;
+}
+
+export function start({ projectRoot, viewerDir, port = 4123 }) {
+  const server = createServer({ projectRoot, viewerDir });
+  server.listen(port, () => {
+    console.log(`Kartograph viewer: http://127.0.0.1:${port}`);
+  });
+  return server;
+}
+
+// CLI: node server/serve.js [port]   (projectRoot = cwd, viewer = sibling ../viewer)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const port = Number(process.argv[2] ?? 4123);
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  start({ projectRoot: process.cwd(), viewerDir, port });
+}
