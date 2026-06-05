@@ -1,0 +1,96 @@
+{
+  "$id": "https://kartograph.dev/schemas/v1/discovery.schema.json",
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "named": {
+      "type": "object", "additionalProperties": false,
+      "required": ["slug", "name"],
+      "properties": {
+        "slug": { "$ref": "#/$defs/slug" },
+        "name": { "type": "string", "minLength": 1 },
+        "definition": { "type": "string" }
+      }
+    },
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["slug", "name", "context", "definition"],
+      "properties": {
+        "slug": { "$ref": "#/$defs/slug" },
+        "name": { "type": "string", "minLength": 1 },
+        "context": { "$ref": "#/$defs/slug" },
+        "definition": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "statement"],
+      "properties": {
+        "slug": { "$ref": "#/$defs/slug" },
+        "name": { "type": "string", "minLength": 1 },
+        "statement": { "type": "string", "minLength": 1 },
+        "subject": { "$ref": "#/$defs/slug" }
+      }
+    },
+    "glossaryAddition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["slug", "term", "definition", "type"],
+      "properties": {
+        "slug": { "$ref": "#/$defs/slug" },
+        "term": { "type": "string", "minLength": 1 },
+        "definition": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["subjekt", "capability", "kontext", "akteur", "ereignis", "regel", "term"] },
+        "aliasesToAvoid": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "adrCandidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "rationale"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 },
+        "contexts": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+        "capabilities": { "type": "array", "items": { "$ref": "#/$defs/slug" } }
+      }
+    },
+    "placement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "slug"],
+      "properties": {
+        "kind": { "enum": ["affectedCapability", "capabilityCandidate"] },
+        "slug": { "$ref": "#/$defs/slug" },
+        "context": { "$ref": "#/$defs/slug" }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["date", "slug", "conversationSummary", "sources", "findings"],
+  "properties": {
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "slug": { "$ref": "#/$defs/slug" },
+    "conversationSummary": { "type": "string", "minLength": 1 },
+    "sources": {
+      "type": "object",
+      "required": ["description"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "issue": { "type": "string" }
+      }
+    },
+    "findings": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subjects", "events", "actors", "rules", "affectedCapabilities", "capabilityCandidates", "glossaryAdditions", "adrCandidates", "placement"],
+      "properties": {
+        "subjects": { "type": "array", "items": { "$ref": "#/$defs/named" } },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/named" } },
+        "actors": { "type": "array", "items": { "$ref": "#/$defs/named" } },
+        "rules": { "type": "array", "items": { "$ref": "#/$defs/rule" } },
+        "affectedCapabilities": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+        "capabilityCandidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
+        "glossaryAdditions": { "type": "array", "items": { "$ref": "#/$defs/glossaryAddition" } },
+        "adrCandidates": { "type": "array", "items": { "$ref": "#/$defs/adrCandidate" } },
+        "placement": { "type": "array", "items": { "$ref": "#/$defs/placement" } }
+      }
+    }
+  }
+}
