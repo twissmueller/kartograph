@@ -1,0 +1,7 @@
+{
+  "name": "kartograph",
+  "description": "Living map of a software system: explore, chart, and build through schema-gated workflows, rendered in a live static viewer.",
+  "version": "0.1.0",
+  "commands": ["./commands/karto-show.md"],
+  "skills": []
+}
