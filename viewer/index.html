@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kartograph</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div><h1 id="title">Kartograph</h1><div class="stats" id="stats"></div></div>
+    <div class="stats" id="maturity"></div>
+  </header>
+  <div id="canvas"><svg class="edges" id="edges"></svg></div>
+  <div class="panels">
+    <div class="panel"><h2>Maturity</h2><div class="bar"><div id="maturityBar"></div></div><div id="maturityBreakdown" class="stats"></div></div>
+    <div class="panel"><h2>Glossary</h2><table id="glossary"></table></div>
+    <div class="panel"><h2>Decisions (ADR)</h2><table id="adrs"></table></div>
+  </div>
+  <script type="module" src="/kartograph.js"></script>
+</body>
+</html>
