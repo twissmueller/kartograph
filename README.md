@@ -96,20 +96,27 @@ Then, in any project you want to map:
 
 ### Updating
 
-Updating is two stages: refresh the catalog, then upgrade the installed copy. Both look at
+Updating is two stages: refresh the catalog, then upgrade your installed copy. Both compare
 the manifest `version`, so **every release must bump `version`** — ship commits without
-bumping it and the resolved version is unchanged, so `/plugin update` and auto-update see
-nothing new and do nothing.
+bumping it and nothing downstream sees a change.
+
+**Stage 1 — refresh the catalog** (in Claude Code):
 
 ```text
-/plugin marketplace update twissmueller   # stage 1: re-pull marketplace.json so Claude Code sees the new version
-/plugin update kartograph@twissmueller    # stage 2: upgrade the installed plugin to the catalog version
+/plugin marketplace update twissmueller   # re-pull marketplace.json; says "1 plugin bumped" when a new version exists
 ```
 
-Stage 1 only refreshes the catalog — it does **not** touch your installed copy; stage 2 is
-what actually upgrades it. Alternatively, enable **auto-update** for the marketplace in
-`/plugin` → *Marketplaces* (it runs both stages at session start), or uninstall + reinstall
-to force it.
+This only refreshes the catalog — it does **not** touch your installed copy.
+
+**Stage 2 — upgrade the installed plugin.** There is *no* `/plugin update` slash command
+(typing it just opens the `/plugin` manager). Use one of:
+
+- **Interactive:** `/plugin` → *Installed* → select **kartograph** → `Enter` → update, then `/reload-plugins`.
+- **Terminal:** `claude plugin update kartograph@twissmueller`
+
+Or skip both stages: enable **auto-update** for the marketplace in `/plugin` → *Marketplaces*,
+which upgrades installed plugins at session start (you'll be prompted to run `/reload-plugins`).
+Uninstall + reinstall forces it too.
 
 ## What lives in your repo
 
