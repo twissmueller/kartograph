@@ -29,3 +29,22 @@ test('serves kartograph.json from the project root', async () => {
     server.close();
   }
 });
+
+test('POST /layout writes kartograph.layout.json to the project root', async () => {
+  const projectRoot = await tmpProject();
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  const server = createServer({ projectRoot, viewerDir });
+  const port = await listen(server);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/layout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 'start-here': { x: 5, y: 9 } }),
+    });
+    assert.equal(res.status, 200);
+    const saved = JSON.parse(await readFile(join(projectRoot, 'kartograph.layout.json'), 'utf8'));
+    assert.deepEqual(saved['start-here'], { x: 5, y: 9 });
+  } finally {
+    server.close();
+  }
+});
