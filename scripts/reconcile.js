@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile, readdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFeature, scenarioClass } from '../workflows/lib/gherkin.js';
@@ -41,7 +41,8 @@ async function readFeaturesByCapability(root, map) {
   return out;
 }
 
-// CLI: node scripts/reconcile.js [kartograph.json] — recompute + atomic write.
+// CLI: node scripts/reconcile.js [kartograph.json] — recompute derived blocks,
+// validate, then write via a temp file + rename so the map is never half-written.
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = process.cwd();
   const mapPath = process.argv[2] || join(root, 'kartograph.json');
@@ -50,7 +51,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const next = reconcileMap(map, featuresByCapability);
   const { valid, errors } = await validateKartograph(next);
   if (!valid) { console.error('INVALID after reconcile:'); for (const e of errors) console.error('  - ' + e); process.exit(1); }
-  await writeFile(mapPath, JSON.stringify(next, null, 2) + '\n');
+  const tmp = mapPath + '.reconcile.tmp';
+  await writeFile(tmp, JSON.stringify(next, null, 2) + '\n');
+  await rename(tmp, mapPath);
   console.log(`reconciled ${mapPath}`);
 }
 

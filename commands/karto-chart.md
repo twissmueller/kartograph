@@ -16,9 +16,11 @@ Run the **chart** phase: fold the latest (or specified) survey into the map. The
    This adds capability candidates (born `vision`), subjects/actors/events, glossary
    additions, rules, and proposed-ADR metadata to `kartograph.tmp.json`.
 
-3. **Groom** the working copy: use **`karto-groom-glossary`** to canonicalize the new glossary
-   terms (synonyms → `aliasesToAvoid`) and **`karto-groom-adr`** to finalize ADR numbering and
-   status. Apply their proposed edits to `kartograph.tmp.json`.
+3. **Groom** the working copy (metadata only — no files written yet): use
+   **`karto-groom-glossary`** to canonicalize the new glossary terms (synonyms →
+   `aliasesToAvoid`) and **`karto-groom-adr`** to tidy ADR status/supersession. The ADR ids
+   were already assigned in step 2 — **reuse them**, do not renumber. Apply the proposed
+   metadata edits to `kartograph.tmp.json`. The ADR `.md` files are written in step 4.
 
 4. **Generate the prose** via the **Workflow** tool:
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/chart.js`

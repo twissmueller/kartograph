@@ -33,8 +33,12 @@ ADR-NNNN | deprecated | rejected`), **Considered Options**, **Consequences**.
 
 ## Numbering & supersession
 
-- **Number** by scanning `kartograph/decisions/` for the highest `NNNN` and incrementing
-  (zero-padded to four digits). Slug is a lowercase-hyphen of the title.
+- **Number** by scanning for the highest `NNNN` across **both** the existing
+  `kartograph.json` `adrs` keys **and** `kartograph/decisions/*.md`, then incrementing
+  (zero-padded to four digits). Slug is a lowercase-hyphen of the title. This keeps numbering
+  consistent whether you are grooming a freshly-charted map (ids already in `adrs{}` but no
+  `.md` yet) or an existing one.
+- **Never renumber an ADR that already has an id** in `kartograph.json.adrs` — reuse it.
 - When a new decision replaces an old one, set the new ADR's `supersedes` to the old id and
   mark the old one `superseded` (in both its `.md` and its `kartograph.json` metadata).
 
@@ -46,5 +50,8 @@ filename without `.md` and must match the map key. Keep them identical.
 
 ## Output
 
-Propose the `.md` files and the `adrs` metadata. The caller writes the files, validates the
-map with `scripts/validate-kartograph.js`, and writes `kartograph.json` atomically.
+Propose the `adrs` **metadata** edits and the decision **text** for each ADR. The caller
+decides who writes the `.md` files: when invoked from `/karto-chart`, the chart workflow
+writes them (don't write them here — only propose metadata and text); when invoked from
+`/karto-groom`, write/adjust the `.md` files directly. Either way the caller validates the map
+with `scripts/validate-kartograph.js` and writes `kartograph.json` atomically.

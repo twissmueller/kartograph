@@ -16,6 +16,8 @@ yet tagged `@done`) with **double-loop, outside-in TDD**.
 
 3. **For each open scenario, run the double loop:**
    - **Outer loop (acceptance):** run the scenario via `acceptanceCommand` and **watch it fail**.
+     If `acceptanceCommand` is not set in the config, skip the outer run and rely on the inner
+     unit tests as the loop's signal — tell the user the acceptance loop is disabled.
    - **Inner loop (unit):** use the **`superpowers:test-driven-development`** skill to drive the
      implementation unit by unit — write a failing unit test, watch it fail, minimal code to
      pass, refactor while green (the Iron Law: no production code without a failing test you

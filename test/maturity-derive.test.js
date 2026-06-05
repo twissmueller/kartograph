@@ -20,3 +20,6 @@ test('happy + edge + error -> stable', () => {
 test('scenarios with no recognized class still count as building', () => {
   assert.equal(deriveMaturity({ featureCount: 1, scenarioCount: 2, classes: new Set() }), 'building');
 });
+test('coverage is cumulative: error without edge is NOT stable', () => {
+  assert.equal(deriveMaturity({ featureCount: 1, scenarioCount: 2, classes: new Set(['happy', 'error']) }), 'building');
+});

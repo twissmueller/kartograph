@@ -58,8 +58,9 @@ export function applyDiscovery(map, discovery) {
       next.rules[slug] = rule;
     }
   }
+  const norm = (s) => String(s).trim().toLowerCase();
   for (const a of f.adrCandidates) {
-    const exists = Object.values(next.adrs).some((x) => x.title === a.title);
+    const exists = Object.values(next.adrs).some((x) => norm(x.title) === norm(a.title));
     if (!exists) {
       const id = `${nextAdrNumber(next.adrs)}-${slugify(a.title)}`;
       next.adrs[id] = {

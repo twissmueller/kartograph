@@ -38,7 +38,9 @@ test('feature-level tags do not leak onto the first scenario', () => {
 test('scenarioClass maps tags to happy/edge/error, error wins', () => {
   assert.equal(scenarioClass(['@happy']), 'happy');
   assert.equal(scenarioClass(['@edge']), 'edge');
+  assert.equal(scenarioClass(['@happy', '@edge']), 'edge');
   assert.equal(scenarioClass(['@happy', '@error']), 'error');
+  assert.equal(scenarioClass(['@edge', '@error']), 'error');
   assert.equal(scenarioClass(['@todo']), null);
 });
 

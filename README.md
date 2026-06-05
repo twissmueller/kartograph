@@ -126,8 +126,11 @@ Kartograph is built in milestones:
   and `karto-analyze-repo` skills, the discovery schema + validator, and the dynamic
   workflows. *(Schema and helpers are unit-tested; the live workflow behavior is verified by
   running the commands in Claude Code.)*
-- 🔜 **M2 — chart**: `/karto-chart` plus glossary- and ADR-grooming.
-- 🔜 **M3 — build**: `/karto-build` with project-configured double-loop TDD.
+- ✅ **M2 — chart**: `/karto-chart` and `/karto-groom`, the glossary/ADR grooming skills, the
+  chart workflow, and the deterministic discovery→map transform + maturity reconciliation from
+  `.feature` files. *(Pure transforms are unit-tested; live charting is verified in Claude Code.)*
+- ✅ **M3 — build**: `/karto-build` with project-configured double-loop TDD, the build config
+  schema, and the open-scenario helper. *(Config/helpers unit-tested; the TDD loop runs live.)*
 
 See [`docs/superpowers/specs`](docs/superpowers/specs) for the full design.
 
