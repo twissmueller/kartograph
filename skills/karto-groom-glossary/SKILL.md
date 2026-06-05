@@ -1,5 +1,6 @@
 ---
 name: karto-groom-glossary
+user-invocable: false
 description: Groom the Kartograph project glossary — enforce one canonical term per concept, list synonyms as aliasesToAvoid, flag ambiguities and collisions, keep definitions tight. Use during /karto-chart or on demand via /karto-groom.
 ---
 

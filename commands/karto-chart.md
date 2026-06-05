@@ -23,7 +23,7 @@ Run the **chart** phase: fold the latest (or specified) survey into the map. The
    metadata edits to `kartograph.tmp.json`. The ADR `.md` files are written in step 4.
 
 4. **Generate the prose** via the **Workflow** tool:
-   - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/chart.js`
+   - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/chart.js`
    - `args: { discoveryPath: "<survey>", mapPath: "kartograph.tmp.json" }`
    It writes `.feature` files (tagged `@happy`/`@edge`/`@error`) under
    `features/<context>/<capability>/` and ADR `.md` files under `kartograph/decisions/`.

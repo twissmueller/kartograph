@@ -1,5 +1,6 @@
 ---
 name: karto-grill
+user-invocable: false
 description: Survey a feature for Kartograph — interview the user relentlessly to discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates, challenging every term against the project glossary. Use as Phase A of /karto-explore. Read-only — captures findings into a survey, never writes the map.
 ---
 

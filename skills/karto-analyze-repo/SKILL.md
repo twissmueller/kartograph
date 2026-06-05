@@ -1,5 +1,6 @@
 ---
 name: karto-analyze-repo
+user-invocable: false
 description: Reverse-engineer a draft Kartograph map from an existing codebase — infer Kontexte, Capabilities, Subjekte, Akteure, dependencies, a glossary seed, and existing ADRs, deriving maturity from real test coverage. Use as the guidance behind /karto-init.
 ---
 

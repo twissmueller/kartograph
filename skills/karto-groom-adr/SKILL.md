@@ -1,5 +1,6 @@
 ---
 name: karto-groom-adr
+user-invocable: false
 description: Create and maintain Kartograph ADRs — MADR-style decision records in kartograph/decisions, sequential numbering, supersession, the worthiness test, with kartograph.json adr metadata kept in sync. Use during /karto-chart or on demand via /karto-groom.
 ---
 

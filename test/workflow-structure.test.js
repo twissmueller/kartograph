@@ -11,7 +11,10 @@ const read = (p) => readFile(new URL(p, root), 'utf8');
 // executing.
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
-for (const wf of ['workflows/discovery.js', 'workflows/init.js', 'workflows/chart.js']) {
+// The three workflow scripts live under workflows/internal/ (a non-scanned
+// subdirectory) so they don't register as standalone `[dynamic workflow]` slash
+// commands — commands invoke them by scriptPath instead.
+for (const wf of ['workflows/internal/discovery.js', 'workflows/internal/init.js', 'workflows/internal/chart.js']) {
   test(`${wf} parses as a workflow body`, async () => {
     const src = await read(wf);
     const body = src.replace(/export\s+const\s+meta/, 'const meta');
@@ -46,6 +49,14 @@ for (const skill of [
     assert.match(fm, /(^|\n)name:\s*\S+/, 'has name');
     assert.match(fm, /(^|\n)description:\s*\S+/, 'has description');
   });
+
+  // These skills are internal building blocks invoked by the commands, not
+  // user-facing entry points — they must stay out of the `/` slash menu so the
+  // public surface is exactly the six commands.
+  test(`${skill} is hidden from the slash menu (user-invocable: false)`, async () => {
+    const fm = frontmatter(await read(skill));
+    assert.match(fm, /(^|\n)user-invocable:\s*false\b/, 'has user-invocable: false');
+  });
 }
 
 for (const cmd of [
@@ -61,19 +72,19 @@ for (const cmd of [
 
 test('explore command wires the discovery workflow by scriptPath', async () => {
   const src = await read('commands/karto-explore.md');
-  assert.match(src, /workflows\/discovery\.js/);
+  assert.match(src, /workflows\/internal\/discovery\.js/);
   assert.match(src, /CLAUDE_PLUGIN_ROOT/);
 });
 
 test('init command wires the init workflow by scriptPath', async () => {
   const src = await read('commands/karto-init.md');
-  assert.match(src, /workflows\/init\.js/);
+  assert.match(src, /workflows\/internal\/init\.js/);
   assert.match(src, /CLAUDE_PLUGIN_ROOT/);
 });
 
 test('chart command wires the chart workflow by scriptPath', async () => {
   const src = await read('commands/karto-chart.md');
-  assert.match(src, /workflows\/chart\.js/);
+  assert.match(src, /workflows\/internal\/chart\.js/);
   assert.match(src, /CLAUDE_PLUGIN_ROOT/);
 });
 

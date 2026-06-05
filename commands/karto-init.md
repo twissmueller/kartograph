@@ -8,7 +8,7 @@ Optional focus subtree: `$ARGUMENTS`
 1. Use the **`karto-analyze-repo`** skill for guidance on what to extract and how to derive
    maturity from real test coverage (never invent scenario tags).
 2. Invoke the **Workflow** tool with:
-   - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/init.js`
+   - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/init.js`
    - `args: { root: ".", scope: "<subtree from $ARGUMENTS, or omit>" }`
    For a very large repo, set `scope` to one subtree first to gauge cost, then widen.
 3. When it returns a draft map, **validate** it before writing:

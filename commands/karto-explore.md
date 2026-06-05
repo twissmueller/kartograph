@@ -22,7 +22,7 @@ files, or code. Its only output is a survey file you review before charting.
 4. Determine today's date as `YYYY-MM-DD`, and a `slug` from the feature description
    (lowercase, hyphenated, e.g. "Watering schedule" → `watering-schedule`).
 5. Invoke the **Workflow** tool with:
-   - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/discovery.js`
+   - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/discovery.js`
    - `args: { date, slug, description: "<the feature description>", conversationSummary: "<the summary>", mapPath: "kartograph.json" }` (add `issue` if one was referenced)
 6. When it returns, **validate** the discovery document before saving it:
    - Write it to a temp file, then run
