@@ -11,7 +11,7 @@ const read = (p) => readFile(new URL(p, root), 'utf8');
 // executing.
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
-for (const wf of ['workflows/discovery.js', 'workflows/init.js']) {
+for (const wf of ['workflows/discovery.js', 'workflows/init.js', 'workflows/chart.js']) {
   test(`${wf} parses as a workflow body`, async () => {
     const src = await read(wf);
     const body = src.replace(/export\s+const\s+meta/, 'const meta');
@@ -34,7 +34,12 @@ function frontmatter(src) {
   return m ? m[1] : null;
 }
 
-for (const skill of ['skills/karto-grill/SKILL.md', 'skills/karto-analyze-repo/SKILL.md']) {
+for (const skill of [
+  'skills/karto-grill/SKILL.md',
+  'skills/karto-analyze-repo/SKILL.md',
+  'skills/karto-groom-glossary/SKILL.md',
+  'skills/karto-groom-adr/SKILL.md',
+]) {
   test(`${skill} has YAML frontmatter with name and description`, async () => {
     const fm = frontmatter(await read(skill));
     assert.ok(fm, 'has frontmatter block');
@@ -43,7 +48,10 @@ for (const skill of ['skills/karto-grill/SKILL.md', 'skills/karto-analyze-repo/S
   });
 }
 
-for (const cmd of ['commands/karto-explore.md', 'commands/karto-init.md', 'commands/karto-show.md']) {
+for (const cmd of [
+  'commands/karto-explore.md', 'commands/karto-chart.md', 'commands/karto-build.md',
+  'commands/karto-groom.md', 'commands/karto-init.md', 'commands/karto-show.md',
+]) {
   test(`${cmd} has a description frontmatter`, async () => {
     const fm = frontmatter(await read(cmd));
     assert.ok(fm, 'has frontmatter block');
@@ -63,10 +71,26 @@ test('init command wires the init workflow by scriptPath', async () => {
   assert.match(src, /CLAUDE_PLUGIN_ROOT/);
 });
 
-test('plugin.json registers the new commands and skills', async () => {
+test('chart command wires the chart workflow by scriptPath', async () => {
+  const src = await read('commands/karto-chart.md');
+  assert.match(src, /workflows\/chart\.js/);
+  assert.match(src, /CLAUDE_PLUGIN_ROOT/);
+});
+
+test('build command leans on superpowers TDD and reads the project config', async () => {
+  const src = await read('commands/karto-build.md');
+  assert.match(src, /test-driven-development/);
+  assert.match(src, /kartograph\/config\.json/);
+});
+
+test('plugin.json registers all commands and skills', async () => {
   const p = JSON.parse(await read('.claude-plugin/plugin.json'));
-  for (const c of ['./commands/karto-explore.md', './commands/karto-init.md', './commands/karto-show.md'])
-    assert.ok(p.commands.includes(c), `commands includes ${c}`);
-  for (const s of ['./skills/karto-grill', './skills/karto-analyze-repo'])
-    assert.ok(p.skills.includes(s), `skills includes ${s}`);
+  for (const c of [
+    './commands/karto-explore.md', './commands/karto-chart.md', './commands/karto-build.md',
+    './commands/karto-groom.md', './commands/karto-init.md', './commands/karto-show.md',
+  ]) assert.ok(p.commands.includes(c), `commands includes ${c}`);
+  for (const s of [
+    './skills/karto-grill', './skills/karto-analyze-repo',
+    './skills/karto-groom-glossary', './skills/karto-groom-adr',
+  ]) assert.ok(p.skills.includes(s), `skills includes ${s}`);
 });

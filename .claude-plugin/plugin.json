@@ -1,14 +1,19 @@
 {
   "name": "kartograph",
   "description": "Living map of a software system: explore, chart, and build through schema-gated workflows, rendered in a live static viewer.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "commands": [
     "./commands/karto-explore.md",
+    "./commands/karto-chart.md",
+    "./commands/karto-build.md",
+    "./commands/karto-groom.md",
     "./commands/karto-init.md",
     "./commands/karto-show.md"
   ],
   "skills": [
     "./skills/karto-grill",
-    "./skills/karto-analyze-repo"
+    "./skills/karto-analyze-repo",
+    "./skills/karto-groom-glossary",
+    "./skills/karto-groom-adr"
   ]
 }

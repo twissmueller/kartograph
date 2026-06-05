@@ -12,7 +12,7 @@
       "name": "kartograph",
       "source": ".",
       "description": "A living map of your software system: explore, chart, and build through schema-gated workflows, rendered in a live static viewer.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": { "name": "Tobias Wissmüller", "email": "tobias@wissmueller.net" }
     }
   ]
