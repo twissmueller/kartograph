@@ -97,10 +97,12 @@ features/<context>/<capability>/*.feature   the behavior, in Gherkin
 
 Kartograph is built in milestones:
 
-- ✅ **M1a — foundation & viewer** *(this release)*: schemas, validator + integrity gate,
-  the seed map, the static live-reloading viewer, and `/karto-show`.
-- 🔜 **M1b — explore & init**: `/karto-explore`, `/karto-init`, the grilling skill, the
-  discovery schema.
+- ✅ **M1a — foundation & viewer**: schemas, validator + integrity gate, the seed map, the
+  static live-reloading viewer, and `/karto-show`.
+- ✅ **M1b — explore & init**: `/karto-explore` and `/karto-init` commands, the `karto-grill`
+  and `karto-analyze-repo` skills, the discovery schema + validator, and the dynamic
+  workflows. *(Schema and helpers are unit-tested; the live workflow behavior is verified by
+  running the commands in Claude Code.)*
 - 🔜 **M2 — chart**: `/karto-chart` plus glossary- and ADR-grooming.
 - 🔜 **M3 — build**: `/karto-build` with project-configured double-loop TDD.
 
