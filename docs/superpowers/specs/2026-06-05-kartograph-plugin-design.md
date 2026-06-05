@@ -267,17 +267,26 @@ ask** whether to build; the git diff is the human's review gate.
 
 ### 9.3 `/karto-build <capability>` — construct (writing, technical) — Milestone 3
 
-Implements the capability's open scenarios via **strict TDD**, stealing the discipline of
-`superpowers:test-driven-development`:
+Implements the capability's open scenarios via **double-loop (outside-in) TDD**, stealing
+the discipline of `superpowers:test-driven-development`:
 
-- For each open `Scenario`, write the failing test **first** and **watch it fail**
-  (the Iron Law: no production code without a failing test you saw fail), then minimal
-  code to pass, then refactor while green.
-- Project specifics come from **`kartograph/config.json`** (language, test command, code
-  location, how `.feature` files bind to step definitions) — this is the one
-  project-configured phase.
-- After implementation, reconciliation re-derives the capability's maturity from the now-
-  passing, tagged scenarios.
+- **Outer loop — acceptance / BDD (Gherkin).** Pick one open `Scenario` from the
+  capability's `.feature` files; run it and **watch it fail** (red). This executable
+  specification is the goal of the iteration.
+- **Inner loop — classic unit TDD.** To make that scenario pass, drive the implementation
+  unit by unit: Red → Green → Refactor, honoring the Iron Law (no production code without
+  a failing *unit* test you watched fail), minimal code, refactor while green. Stay in the
+  inner loop, adding units, until the **outer** scenario turns green.
+- **Close the loop.** Once the scenario is green, refactor at the seam, then advance to
+  the next scenario. Working `@happy → @edge → @error` in order walks the capability up
+  the maturity ladder (Im Bau → Nutzbar → Stabil), so the outer loop *is* the maturity
+  progression.
+- Project specifics come from **`kartograph/config.json`**: for the **outer loop** — how
+  `.feature` steps bind to step definitions and the acceptance runner; for the **inner
+  loop** — the unit test runner and code location. This is the one project-configured
+  phase.
+- After each scenario closes, reconciliation re-derives the capability's maturity from the
+  now-passing, tagged scenarios.
 
 `build`'s detailed config schema and step-definition binding are designed at Milestone 3
 against a concrete project, since they depend on stack specifics.
