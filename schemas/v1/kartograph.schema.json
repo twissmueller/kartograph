@@ -1,0 +1,116 @@
+{
+  "$id": "https://kartograph.dev/schemas/v1/kartograph.schema.json",
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "maturity": { "enum": ["vision", "sketched", "building", "usable", "stable"] },
+    "context": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "definition"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "definition": { "type": "string", "minLength": 1 },
+        "color": { "type": "string" }
+      }
+    },
+    "capability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "context", "definition"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "context": { "$ref": "#/$defs/slug" },
+        "definition": { "type": "string", "minLength": 1 },
+        "declaredStage": { "enum": ["vision", null] },
+        "derived": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "maturity": { "$ref": "#/$defs/maturity" },
+            "featureCount": { "type": "integer", "minimum": 0 },
+            "scenarioCount": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "subject": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "glossaryRef": { "$ref": "#/$defs/slug" },
+        "properties": { "type": "array", "items": { "type": "string" } },
+        "rules": { "type": "array", "items": { "$ref": "#/$defs/slug" } }
+      }
+    },
+    "named": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "glossaryRef": { "$ref": "#/$defs/slug" }
+      }
+    },
+    "rule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "statement"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "statement": { "type": "string", "minLength": 1 },
+        "subject": { "$ref": "#/$defs/slug" }
+      }
+    },
+    "slugMap": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/slug" }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "meta", "contexts", "capabilities"],
+  "properties": {
+    "version": { "const": "1" },
+    "meta": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "tagline": { "type": "string" }
+      }
+    },
+    "contexts": {
+      "allOf": [{ "$ref": "#/$defs/slugMap" }],
+      "additionalProperties": { "$ref": "#/$defs/context" }
+    },
+    "capabilities": {
+      "allOf": [{ "$ref": "#/$defs/slugMap" }],
+      "additionalProperties": { "$ref": "#/$defs/capability" }
+    },
+    "subjects": {
+      "allOf": [{ "$ref": "#/$defs/slugMap" }],
+      "additionalProperties": { "$ref": "#/$defs/subject" }
+    },
+    "actors": {
+      "allOf": [{ "$ref": "#/$defs/slugMap" }],
+      "additionalProperties": { "$ref": "#/$defs/named" }
+    },
+    "events": {
+      "allOf": [{ "$ref": "#/$defs/slugMap" }],
+      "additionalProperties": { "$ref": "#/$defs/named" }
+    },
+    "rules": {
+      "allOf": [{ "$ref": "#/$defs/slugMap" }],
+      "additionalProperties": { "$ref": "#/$defs/rule" }
+    },
+    "glossary": { "$ref": "https://kartograph.dev/schemas/v1/glossary.schema.json#/$defs/glossary" },
+    "adrs": { "$ref": "https://kartograph.dev/schemas/v1/adr.schema.json#/$defs/adrs" },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "$ref": "#/$defs/slug" },
+          "to": { "$ref": "#/$defs/slug" }
+        }
+      }
+    }
+  }
+}
