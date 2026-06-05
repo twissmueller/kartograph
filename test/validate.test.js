@@ -40,3 +40,45 @@ test('validateKartograph fails when integrity is broken even if schema is fine',
   const result = await validateKartograph(doc);
   assert.equal(result.valid, false);
 });
+
+test('subject referencing a missing rule is caught', async () => {
+  const doc = await seed();
+  doc.subjects.order = { name: 'Order', rules: ['ghost'] };
+  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('order') && e.includes('ghost')));
+});
+
+test('subject referencing a missing glossary term is caught', async () => {
+  const doc = await seed();
+  doc.subjects.order = { name: 'Order', glossaryRef: 'ghost' };
+  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('order') && e.includes('ghost')));
+});
+
+test('rule referencing a missing subject is caught', async () => {
+  const doc = await seed();
+  doc.rules.must_pay = { name: 'Must pay', statement: 's', subject: 'ghost' };
+  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('must_pay') && e.includes('ghost')));
+});
+
+test('actor referencing a missing glossary term is caught', async () => {
+  const doc = await seed();
+  doc.actors.gardener = { name: 'Gardener', glossaryRef: 'ghost' };
+  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('gardener') && e.includes('ghost')));
+});
+
+test('event referencing a missing glossary term is caught', async () => {
+  const doc = await seed();
+  doc.events.planted = { name: 'Planted', glossaryRef: 'ghost' };
+  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('planted') && e.includes('ghost')));
+});
+
+test('glossary term relating to a missing term is caught', async () => {
+  const doc = await seed();
+  doc.glossary.bed = { term: 'Bed', definition: 'd', type: 'subjekt', related: ['ghost'] };
+  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('bed') && e.includes('ghost')));
+});
+
+test('adr superseding a missing adr is caught', async () => {
+  const doc = await seed();
+  doc.adrs['0002-x'] = { id: '0002-x', title: 't', status: 'accepted', date: '2026-06-05', supersedes: '0001-ghost' };
+  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('0002-x') && e.includes('0001-ghost')));
+});

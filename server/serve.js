@@ -80,15 +80,23 @@ export function createServer({ projectRoot, viewerDir }) {
     };
   })();
 
-  let watcher;
+  const onChange = (_event, filename) => {
+    // The viewer writes kartograph.layout.json itself; don't reload on our own writes.
+    if (filename === 'kartograph.layout.json') return;
+    if (!filename) return notify();
+    if (/kartograph|\.feature$|decisions|\.json$/.test(filename)) notify();
+  };
+
+  let watcher = null;
   try {
-    watcher = watch(projectRoot, { recursive: true }, (_event, filename) => {
-      if (!filename) return notify();
-      if (/kartograph|\.feature$|decisions|\.json$/.test(filename)) notify();
-    });
+    watcher = watch(projectRoot, { recursive: true }, onChange);
   } catch {
-    // recursive watch unsupported on this platform; watch the root file only
-    watcher = watch(join(projectRoot, 'kartograph.json'), notify);
+    // recursive watch unsupported on this platform; watch the root file only if present
+    try {
+      watcher = watch(join(projectRoot, 'kartograph.json'), notify);
+    } catch {
+      watcher = null;
+    }
   }
   server.on('close', () => watcher?.close());
 

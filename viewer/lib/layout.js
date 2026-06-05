@@ -13,5 +13,7 @@ export function autoPlace(slugs, existingLayout = {}, opts = {}) {
       y: Math.round(cy + radius * Math.sin(angle)),
     };
   });
-  return { ...placed, ...existingLayout };
+  // existingLayout first so computed positions win for entries that were
+  // filtered in as "missing" (e.g. a null/invalid saved entry).
+  return { ...existingLayout, ...placed };
 }

@@ -19,3 +19,8 @@ test('placement is deterministic (no randomness)', () => {
   const b = autoPlace(['x', 'y', 'z'], {});
   assert.deepEqual(a, b);
 });
+
+test('a null saved entry is replaced with a real computed position', () => {
+  const out = autoPlace(['a'], { a: null });
+  assert.ok(out.a && Number.isInteger(out.a.x) && Number.isInteger(out.a.y));
+});
