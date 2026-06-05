@@ -96,14 +96,20 @@ Then, in any project you want to map:
 
 ### Updating
 
-Releases bump the `version` in the plugin manifest. To upgrade:
+Updating is two stages: refresh the catalog, then upgrade the installed copy. Both look at
+the manifest `version`, so **every release must bump `version`** — ship commits without
+bumping it and the resolved version is unchanged, so `/plugin update` and auto-update see
+nothing new and do nothing.
 
 ```text
-/plugin marketplace update twissmueller   # refresh the catalog from GitHub
+/plugin marketplace update twissmueller   # stage 1: re-pull marketplace.json so Claude Code sees the new version
+/plugin update kartograph@twissmueller    # stage 2: upgrade the installed plugin to the catalog version
 ```
 
-Then enable **auto-update** for the marketplace in `/plugin` → *Marketplaces* (it upgrades
-installed plugins automatically when the manifest `version` bumps), or reinstall to force it.
+Stage 1 only refreshes the catalog — it does **not** touch your installed copy; stage 2 is
+what actually upgrades it. Alternatively, enable **auto-update** for the marketplace in
+`/plugin` → *Marketplaces* (it runs both stages at session start), or uninstall + reinstall
+to force it.
 
 ## What lives in your repo
 
