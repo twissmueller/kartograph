@@ -25,16 +25,24 @@ instead of a feature description.
 - **Existing ADRs:** if the repo already has `docs/adr/` (or similar), carry those decisions
   in as ADR metadata.
 
-## Maturity is derived, never invented
+## Maturity is earned from Kartograph coverage, never declared
 
-Set each capability's maturity from what actually exists on disk — do **not** fabricate
-`@happy/@edge/@error` scenario tags:
+A capability's `derived.maturity` reflects **only** the Kartograph `.feature`/scenario
+coverage it actually has — never your judgement of the project's own test suite, and never
+fabricated `@happy/@edge/@error` tags. Reverse-engineering a codebase produces no Kartograph
+scenarios, so honest counts are usually `0/0`.
 
-- Has real tests / `.feature` coverage → derive per the maturity table (`building`/`usable`/`stable`).
-- Code exists but no meaningful tests → `sketched`.
-- Named/stubbed only → `vision` (set `declaredStage: "vision"`).
+Maturity follows STRICTLY from the counts you record:
 
-When unsure, choose the **lower** maturity. The map should under-claim, never over-claim.
+- `featureCount` 0 → **`vision`** (set `declaredStage: "vision"`). This is the normal result
+  for code that hasn't been charted yet — a well-built, well-tested feature with no Kartograph
+  scenarios is still `vision` here.
+- `featureCount` > 0 but `scenarioCount` 0 → **`sketched`**.
+- `scenarioCount` > 0 → **`building`**.
+
+**Never `usable` or `stable` at init.** Those require charted `@edge`/`@error` scenarios and
+are earned later through `/karto-chart` + reconcile. Claiming them with zero coverage is a
+contradiction the validator now rejects. When unsure, choose the **lower** maturity.
 
 ## Scope & cost
 

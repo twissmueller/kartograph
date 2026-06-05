@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import { maturityMatchesCounts } from '../workflows/lib/maturity-derive.js';
 
 const SCHEMA_DIR = new URL('../schemas/v1/', import.meta.url);
 const KARTOGRAPH_ID = 'https://kartograph.dev/schemas/v1/kartograph.schema.json';
@@ -31,6 +32,11 @@ export function checkReferentialIntegrity(doc) {
 
   for (const [slug, cap] of Object.entries(doc.capabilities || {})) {
     if (!contexts.has(cap.context)) errors.push(`capability '${slug}' references missing context '${cap.context}'`);
+    const d = cap.derived;
+    if (d && d.maturity && !maturityMatchesCounts(d.maturity, d)) {
+      errors.push(`capability '${slug}' maturity '${d.maturity}' is inconsistent with its coverage ` +
+        `(featureCount ${d.featureCount}, scenarioCount ${d.scenarioCount}) — maturity must be earned, not declared`);
+    }
   }
   for (const dep of doc.dependencies || []) {
     if (!capabilities.has(dep.from)) errors.push(`dependency.from '${dep.from}' is not a capability`);

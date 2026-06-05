@@ -82,3 +82,16 @@ test('adr superseding a missing adr is caught', async () => {
   doc.adrs['0002-x'] = { id: '0002-x', title: 't', status: 'accepted', date: '2026-06-05', supersedes: '0001-ghost' };
   assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('0002-x') && e.includes('0001-ghost')));
 });
+
+test('maturity inconsistent with counts (stable @ 0 features) is caught', async () => {
+  const doc = await seed();
+  doc.capabilities['start-here'].derived = { maturity: 'stable', featureCount: 0, scenarioCount: 0 };
+  const errors = checkReferentialIntegrity(doc);
+  assert.ok(errors.some(e => e.includes('start-here') && e.toLowerCase().includes('maturity')), JSON.stringify(errors));
+});
+
+test('reconcile-style maturity (stable with features+scenarios) passes integrity', async () => {
+  const doc = await seed();
+  doc.capabilities['start-here'].derived = { maturity: 'stable', featureCount: 2, scenarioCount: 6 };
+  assert.ok(!checkReferentialIntegrity(doc).some(e => e.toLowerCase().includes('maturity')));
+});
