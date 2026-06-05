@@ -14,7 +14,11 @@ Launch the Kartograph viewer for the current project.
    node "${CLAUDE_PLUGIN_ROOT}/server/serve.js" 4123
    ```
 
-   Run it with `run_in_background: true` so the session stays responsive.
+   Run it with `run_in_background: true` so the session stays responsive. This
+   server binds a TCP port, which the Claude Code sandbox blocks with
+   `listen EPERM`. Start the Bash call **outside the sandbox** from the first
+   attempt (set `dangerouslyDisableSandbox: true`) — it only serves localhost
+   from the project root, so there is no failed sandboxed try to retry.
 3. Open the browser at `http://127.0.0.1:4123` (`open` on macOS, `xdg-open` on Linux).
 4. Tell the user the viewer is live, that edits to `kartograph.json`,
    `kartograph/decisions/`, and `features/**` auto-refresh the page, and that dragging

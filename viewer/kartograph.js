@@ -1,14 +1,24 @@
 import { buildGraph } from '/lib/graph.js';
 import { aggregateMaturity, nodeBrightness, WEIGHTS, maturityLabel } from '/lib/maturity.js';
-import { autoPlaceGrouped, boundsForGroups } from '/lib/layout.js';
+import { autoPlaceGrouped, boundsForGroups, separateBoxes } from '/lib/layout.js';
 
 const canvas = document.getElementById('canvas');
+const world = document.getElementById('world');
 const edgesSvg = document.getElementById('edges');
 const panels = document.getElementById('panels');
 const detail = document.getElementById('detail');
 let layout = {};
 let current = null;   // { k, g, contextColor, contextName, pos }
 let selected = null;  // slug of the capability shown in the detail panel
+
+// View transform (pan/zoom). World coords (layout, edges, regions) are unchanged;
+// this only maps world -> screen. Kept as module state so a live-reload re-render
+// does not reset the view.
+let view = { x: 0, y: 0, z: 1 };
+const ZOOM_MIN = 0.2, ZOOM_MAX = 3;
+function applyTransform() {
+  world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.z})`;
+}
 
 async function loadJSON(path, fallback) {
   try { const r = await fetch(path, { cache: 'no-store' }); return r.ok ? await r.json() : fallback; }
@@ -34,18 +44,16 @@ async function saveLayout() {
   await fetch('/layout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(layout) });
 }
 
-// Collect the rendered node rectangles in canvas coordinates (centre + size).
+// Collect the rendered node rectangles in WORLD coordinates (centre + size).
+// Uses style.left/top (the stored world centre) and offsetWidth/Height (layout
+// size, unaffected by the CSS transform) so the boxes are correct at any zoom.
 function nodeRects() {
-  const c = canvas.getBoundingClientRect();
-  return [...canvas.querySelectorAll('.node')].map((el) => {
-    const r = el.getBoundingClientRect();
-    return {
-      context: el.dataset.context,
-      x: r.left - c.left + r.width / 2,
-      y: r.top - c.top + r.height / 2,
-      w: r.width, h: r.height,
-    };
-  });
+  return [...canvas.querySelectorAll('.node')].map((el) => ({
+    context: el.dataset.context,
+    x: parseFloat(el.style.left),
+    y: parseFloat(el.style.top),
+    w: el.offsetWidth, h: el.offsetHeight,
+  }));
 }
 
 function drawContainers() {
@@ -55,11 +63,12 @@ function drawContainers() {
   const counts = {};
   for (const n of g.nodes) counts[n.context] = (counts[n.context] ?? 0) + 1;
   const boxes = boundsForGroups(nodeRects(), 28);
-  const firstNode = canvas.querySelector('.node');
+  const firstNode = world.querySelector('.node');
   for (const [ctx, b] of Object.entries(boxes)) {
     const color = contextColor[ctx] ?? '#666666';
     const region = document.createElement('div');
     region.className = 'context-region';
+    region.dataset.context = ctx;
     region.style.left = b.x + 'px';
     region.style.top = b.y + 'px';
     region.style.width = b.w + 'px';
@@ -68,11 +77,13 @@ function drawContainers() {
     region.style.background = tint(color, 0.1);
     const label = document.createElement('div');
     label.className = 'context-label';
+    label.dataset.context = ctx;
     label.style.left = b.x + 12 + 'px';
     label.style.top = b.y + 8 + 'px';
     label.textContent = `${contextName[ctx] ?? ctx} · ${counts[ctx] ?? 0} cap`;
-    canvas.insertBefore(region, firstNode);
-    canvas.insertBefore(label, firstNode);
+    world.insertBefore(region, firstNode);
+    world.insertBefore(label, firstNode);
+    makeContextDraggable(region, label, ctx);
   }
 }
 
@@ -158,12 +169,13 @@ function render(k) {
     el.style.fontSize = Math.max(12, Math.min(18, 11 + n.featureCount / 3)) + 'px';
     el.innerHTML = `${n.name}<small>${maturityLabel(n.maturity)}${n.featureCount ? ` · ${n.featureCount} features` : ''}</small>`;
     makeDraggable(el, n.slug, pos);
-    canvas.appendChild(el);
+    world.appendChild(el);
   }
 
   current = { k, g, contextColor, contextName, pos };
   drawContainers();
   drawEdges(pos);
+  applyTransform();
 
   const gTable = document.getElementById('glossary');
   gTable.innerHTML = Object.values(k.glossary ?? {})
@@ -186,7 +198,7 @@ function makeDraggable(el, slug, pos) {
   });
   el.addEventListener('pointermove', (ev) => {
     if (startX === undefined) return;
-    const dx = ev.clientX - startX, dy = ev.clientY - startY;
+    const dx = (ev.clientX - startX) / view.z, dy = (ev.clientY - startY) / view.z;
     if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
     const x = origX + dx, y = origY + dy;
     layout[slug] = { x, y }; pos[slug] = { x, y };
@@ -201,6 +213,81 @@ function makeDraggable(el, slug, pos) {
   });
 }
 
+// Translate a whole context — its member capabilities and its region+label — by
+// (dx, dy) in world coords, updating layout, pos and the DOM. Used by live
+// collision so a pushed-away context moves as one rigid box.
+function translateContext(ctx, dx, dy) {
+  if (!dx && !dy) return;
+  for (const n of current.g.nodes) {
+    if (n.context !== ctx) continue;
+    const p = current.pos[n.slug]; if (!p) continue;
+    const x = p.x + dx, y = p.y + dy;
+    layout[n.slug] = { x, y }; current.pos[n.slug] = { x, y };
+    const node = canvas.querySelector(`.node[data-slug="${n.slug}"]`);
+    if (node) { node.style.left = x + 'px'; node.style.top = y + 'px'; }
+  }
+  for (const el of canvas.querySelectorAll(
+    `.context-region[data-context="${ctx}"], .context-label[data-context="${ctx}"]`)) {
+    el.style.left = parseFloat(el.style.left) + dx + 'px';
+    el.style.top = parseFloat(el.style.top) + dy + 'px';
+  }
+}
+
+// While `fixedCtx` is being dragged, push every other context box out of its way
+// so boxes never overlap (live collision). Chained pile-ups separate too.
+function resolveCollisions(fixedCtx) {
+  const deltas = separateBoxes(boundsForGroups(nodeRects(), 28), { fixed: fixedCtx, gap: 16 });
+  for (const ctx in deltas) {
+    if (ctx !== fixedCtx) translateContext(ctx, deltas[ctx].dx, deltas[ctx].dy);
+  }
+}
+
+// A context has no position of its own: its container box is derived from the
+// rects of the capabilities inside it. Dragging the box therefore translates
+// every member capability by the same delta, and the box follows. We move the
+// region + label and the member nodes directly during the drag (never via
+// drawContainers, which would recreate — and so drop — the element we are
+// dragging), then persist and reload on release.
+function makeContextDraggable(region, label, ctx) {
+  let startX, startY, moved, members, regOrig, labOrig;
+  const onDown = (ev) => {
+    if (!current) return;
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    region.style.cursor = label.style.cursor = 'grabbing';
+    startX = ev.clientX; startY = ev.clientY; moved = false;
+    members = current.g.nodes
+      .filter((n) => n.context === ctx && layout[n.slug])
+      .map((n) => ({ slug: n.slug, x: layout[n.slug].x, y: layout[n.slug].y }));
+    regOrig = { x: parseFloat(region.style.left), y: parseFloat(region.style.top) };
+    labOrig = { x: parseFloat(label.style.left), y: parseFloat(label.style.top) };
+  };
+  const onMove = (ev) => {
+    if (startX === undefined) return;
+    const dx = (ev.clientX - startX) / view.z, dy = (ev.clientY - startY) / view.z;
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    for (const m of members) {
+      const x = m.x + dx, y = m.y + dy;
+      layout[m.slug] = { x, y }; current.pos[m.slug] = { x, y };
+      const node = canvas.querySelector(`.node[data-slug="${m.slug}"]`);
+      if (node) { node.style.left = x + 'px'; node.style.top = y + 'px'; }
+    }
+    region.style.left = regOrig.x + dx + 'px'; region.style.top = regOrig.y + dy + 'px';
+    label.style.left = labOrig.x + dx + 'px'; label.style.top = labOrig.y + dy + 'px';
+    resolveCollisions(ctx);
+    drawEdges(current.pos);
+  };
+  const onUp = async () => {
+    if (startX === undefined) return;
+    startX = undefined; region.style.cursor = label.style.cursor = 'grab';
+    if (moved) { await saveLayout(); reload(); }
+  };
+  for (const handle of [region, label]) {
+    handle.addEventListener('pointerdown', onDown);
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+  }
+}
+
 async function reload() {
   const k = await loadJSON('/kartograph.json', { meta: { name: 'Kartograph' }, contexts: {}, capabilities: {} });
   render(k);
@@ -212,7 +299,55 @@ document.getElementById('reset').addEventListener('click', async () => {
   reload();
 });
 
+// Wheel zooms toward the cursor; dragging empty canvas pans. Dragging a node or a
+// context box is handled by their own pointer handlers, so panning only starts when
+// the gesture begins on the bare canvas/world (not on a node, region or label).
+function wireZoomPan() {
+  canvas.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    const cx = ev.clientX - r.left, cy = ev.clientY - r.top;
+    const z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, view.z * Math.exp(-ev.deltaY * 0.0015)));
+    const wx = (cx - view.x) / view.z, wy = (cy - view.y) / view.z; // world point under cursor
+    view.x = cx - wx * z; view.y = cy - wy * z; view.z = z;          // keep it fixed
+    applyTransform();
+  }, { passive: false });
+
+  let px;
+  canvas.addEventListener('pointerdown', (ev) => {
+    if (ev.target !== canvas && ev.target !== world && ev.target !== edgesSvg) return;
+    canvas.setPointerCapture(ev.pointerId);
+    canvas.classList.add('panning');
+    px = { x: ev.clientX, y: ev.clientY };
+  });
+  canvas.addEventListener('pointermove', (ev) => {
+    if (!px) return;
+    view.x += ev.clientX - px.x; view.y += ev.clientY - px.y;
+    px = { x: ev.clientX, y: ev.clientY };
+    applyTransform();
+  });
+  const endPan = () => { px = null; canvas.classList.remove('panning'); };
+  canvas.addEventListener('pointerup', endPan);
+  canvas.addEventListener('pointercancel', endPan);
+}
+
+// Accordion sections (click a header to fold/unfold) and the sidebar collapse toggle.
+function wireSidebar() {
+  for (const head of document.querySelectorAll('.acc-head')) {
+    head.addEventListener('click', () => head.closest('.acc').classList.toggle('open'));
+  }
+  const sidebar = document.getElementById('sidebar');
+  const toggle = document.getElementById('sidebarToggle');
+  toggle?.addEventListener('click', () => {
+    const collapsed = sidebar.classList.toggle('collapsed');
+    toggle.textContent = collapsed ? '‹' : '›';
+    toggle.title = collapsed ? 'Expand panel' : 'Collapse panel';
+  });
+}
+
 async function boot() {
+  wireSidebar();
+  wireZoomPan();
   layout = await loadJSON('/kartograph.layout.json', {});
   await reload();
   const es = new EventSource('/events');

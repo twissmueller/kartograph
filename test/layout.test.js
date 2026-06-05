@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoPlace, autoPlaceGrouped, boundsForGroups } from '../viewer/lib/layout.js';
+import { autoPlace, autoPlaceGrouped, boundsForGroups, separateBoxes } from '../viewer/lib/layout.js';
+
+const overlap = (A, B) => {
+  const ox = Math.min(A.x + A.w, B.x + B.w) - Math.max(A.x, B.x);
+  const oy = Math.min(A.y + A.h, B.y + B.h) - Math.max(A.y, B.y);
+  return ox > 0 && oy > 0;
+};
+const moveBox = (box, d) => ({ x: box.x + d.dx, y: box.y + d.dy, w: box.w, h: box.h });
 
 test('existing positions are preserved', () => {
   const out = autoPlace(['a', 'b'], { a: { x: 10, y: 20 } });
@@ -90,4 +97,64 @@ test('boundsForGroups box encloses all nodes of the context', () => {
   const b = out.one;
   assert.ok(b.x <= -10 - 5 && b.y <= -10 - 5);
   assert.ok(b.x + b.w >= 110 + 5 && b.y + b.h >= 60 + 5);
+});
+
+// --- autoPlaceGrouped: context boxes must not overlap on a fresh layout ---
+
+test('autoPlaceGrouped lays a fresh map out with non-overlapping context boxes', () => {
+  // many capabilities across several contexts, no saved positions
+  const ns = nodes([
+    ['a1', 'one'], ['a2', 'one'], ['a3', 'one'], ['a4', 'one'], ['a5', 'one'],
+    ['b1', 'two'], ['b2', 'two'], ['b3', 'two'],
+    ['c1', 'three'], ['c2', 'three'],
+    ['d1', 'four'],
+  ]);
+  const pos = autoPlaceGrouped(ns, {}, { width: 1200, height: 800 });
+  // reconstruct each context box from the placed node centres + a nominal node size
+  const rects = ns.map((n) => ({ context: n.context, x: pos[n.slug].x, y: pos[n.slug].y, w: 160, h: 48 }));
+  const boxes = boundsForGroups(rects, 28);
+  const keys = Object.keys(boxes);
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      assert.ok(!overlap(boxes[keys[i]], boxes[keys[j]]), `${keys[i]} overlaps ${keys[j]}`);
+    }
+  }
+});
+
+// --- separateBoxes: push overlapping context boxes apart ---
+
+test('separateBoxes pushes two overlapping boxes apart', () => {
+  const boxes = { a: { x: 0, y: 0, w: 100, h: 100 }, b: { x: 50, y: 0, w: 100, h: 100 } };
+  const d = separateBoxes(boxes, { gap: 0 });
+  assert.ok(!overlap(moveBox(boxes.a, d.a), moveBox(boxes.b, d.b)), 'no overlap after separation');
+});
+
+test('separateBoxes keeps the fixed box in place', () => {
+  const boxes = { a: { x: 0, y: 0, w: 100, h: 100 }, b: { x: 50, y: 0, w: 100, h: 100 } };
+  const d = separateBoxes(boxes, { fixed: 'a' });
+  assert.deepEqual(d.a, { dx: 0, dy: 0 });
+  assert.ok(!overlap(moveBox(boxes.a, d.a), moveBox(boxes.b, d.b)));
+});
+
+test('separateBoxes leaves non-overlapping boxes untouched', () => {
+  const boxes = { a: { x: 0, y: 0, w: 100, h: 100 }, b: { x: 200, y: 0, w: 100, h: 100 } };
+  const d = separateBoxes(boxes);
+  assert.deepEqual(d.a, { dx: 0, dy: 0 });
+  assert.deepEqual(d.b, { dx: 0, dy: 0 });
+});
+
+test('separateBoxes resolves a three-box pile-up', () => {
+  const boxes = {
+    a: { x: 0, y: 0, w: 100, h: 100 },
+    b: { x: 20, y: 10, w: 100, h: 100 },
+    c: { x: 40, y: 20, w: 100, h: 100 },
+  };
+  const d = separateBoxes(boxes, { gap: 0, iterations: 12 });
+  const out = Object.fromEntries(Object.keys(boxes).map((k) => [k, moveBox(boxes[k], d[k])]));
+  const keys = Object.keys(out);
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      assert.ok(!overlap(out[keys[i]], out[keys[j]]), `${keys[i]} still overlaps ${keys[j]}`);
+    }
+  }
 });
