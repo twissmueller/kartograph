@@ -76,11 +76,34 @@ npm run show                                # → http://127.0.0.1:4123
 Drag nodes to arrange them (positions are saved to `kartograph.layout.json`); edit
 `kartograph.json` and the page reloads itself.
 
-### Use it as a Claude Code plugin
+## Install as a Claude Code plugin
 
-Point Claude Code at this repo as a plugin (it ships `.claude-plugin/plugin.json` with the
-`/karto-*` commands), then run `/karto-init` in a project you want to map, or
-`/karto-explore` to design a new feature.
+This repo is its own [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces).
+In Claude Code:
+
+```text
+/plugin marketplace add twissmueller/kartograph
+/plugin install kartograph@kartograph
+```
+
+Then, in any project you want to map:
+
+```text
+/karto-init                 # bootstrap a map from existing code
+/karto-explore "<feature>"  # design a new feature
+/karto-show                 # open the live viewer
+```
+
+### Updating
+
+Releases bump the `version` in the plugin manifest. To upgrade:
+
+```text
+/plugin marketplace update kartograph   # refresh the catalog from GitHub
+/plugin update kartograph               # install the new version
+```
+
+(`/plugin update` is a no-op when your installed version already matches.)
 
 ## What lives in your repo
 

@@ -1,0 +1,19 @@
+{
+  "name": "kartograph",
+  "owner": {
+    "name": "Tobias Wissmüller",
+    "email": "tobias@wissmueller.net"
+  },
+  "metadata": {
+    "description": "Kartograph — a living map of your software system, drawn together by you and AI."
+  },
+  "plugins": [
+    {
+      "name": "kartograph",
+      "source": ".",
+      "description": "A living map of your software system: explore, chart, and build through schema-gated workflows, rendered in a live static viewer.",
+      "version": "0.1.0",
+      "author": { "name": "Tobias Wissmüller", "email": "tobias@wissmueller.net" }
+    }
+  ]
+}
