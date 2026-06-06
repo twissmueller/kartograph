@@ -80,16 +80,22 @@ export function createServer({ projectRoot, viewerDir }) {
       try { names = (await readdir(dir)).filter((n) => n.endsWith('.feature')).sort(); }
       catch { names = []; }
       const files = [];
-      for (const name of names) {
-        const parsed = parseFeature(await readFile(join(dir, name), 'utf8'));
-        files.push({
-          file: name,
-          feature: parsed.feature,
-          description: parsed.description,
-          scenarios: parsed.scenarios.map((s) => ({
-            name: s.name, tags: s.tags, class: scenarioClass(s.tags), steps: s.steps,
-          })),
-        });
+      try {
+        for (const name of names) {
+          const parsed = parseFeature(await readFile(join(dir, name), 'utf8'));
+          files.push({
+            file: name,
+            feature: parsed.feature,
+            description: parsed.description,
+            scenarios: parsed.scenarios.map((s) => ({
+              name: s.name, tags: s.tags, class: scenarioClass(s.tags), steps: s.steps,
+            })),
+          });
+        }
+      } catch (e) {
+        res.writeHead(500);
+        res.end(String(e.message));
+        return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ files }));
