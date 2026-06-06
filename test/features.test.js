@@ -39,3 +39,13 @@ test('filterScenarios keeps active classes and always keeps untagged', () => {
   const kept = filterScenarios(scenarios, { happy: true, edge: false, error: false });
   assert.deepEqual(kept.map((s) => s.name), ['h', 'u']);
 });
+
+test('filterScenarios with all classes off keeps only untagged scenarios', () => {
+  const scenarios = [
+    { name: 'h', class: 'happy' },
+    { name: 'u1', class: null },
+    { name: 'u2', class: undefined },
+  ];
+  const kept = filterScenarios(scenarios, { happy: false, edge: false, error: false });
+  assert.deepEqual(kept.map((s) => s.name), ['u1', 'u2']);
+});
