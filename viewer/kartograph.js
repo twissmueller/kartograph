@@ -134,6 +134,7 @@ function openDetail(slug) {
   panels.hidden = true;
   document.getElementById('featuresSection').innerHTML =
     '<h3 class="feat-h">Features</h3><p class="feat-empty">Loading…</p>';
+  featureFiles = []; // drop the previous capability's data so it can't render during the load
   loadFeatures(slug, c.context);
 }
 
@@ -158,6 +159,10 @@ function renderFeatures() {
     root.innerHTML = '<h3 class="feat-h">Features</h3><p class="feat-empty">No features yet</p>';
     return;
   }
+  // Snapshot which scenarios are currently expanded so a full innerHTML rebuild
+  // (triggered by a filter/sort toggle) does not collapse them. dataset.scn is the
+  // browser-unescaped raw id, so we compare it against the raw scnId below.
+  const open = new Set([...root.querySelectorAll('.scn.open')].map((el) => el.dataset.scn));
   const f = featureFilters;
   const classToggle = (c) =>
     `<button type="button" class="cls-toggle cls-${c}${f[c] ? '' : ' off'}" data-cls="${c}">${c}</button>`;
@@ -172,7 +177,8 @@ function renderFeatures() {
       const cls = s.class || 'none';
       const tag = s.class ? `<span class="scn-tag cls-${s.class}">${s.class}</span>` : '';
       const steps = (s.steps || []).map((st) => esc(st)).join('\n');
-      return `<div class="scn cls-${cls}">
+      const scnId = file.file + '::' + s.name;
+      return `<div class="scn cls-${cls}${open.has(scnId) ? ' open' : ''}" data-scn="${esc(scnId)}">
         <div class="scn-head"><span class="scn-name">${esc(s.name)}</span>${tag}</div>
         <pre class="scn-steps">${steps}</pre>
       </div>`;

@@ -87,6 +87,7 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 .cls-toggle.cls-edge { border-color: #4f9dd680; }
 .cls-toggle.cls-error { border-color: #e2683c80; }
 .sort-toggle:hover, .cls-toggle:hover { border-color: #ffffff3a; }
+.sort-toggle.on { border-color: #ffffff3a; background: #ffffff1c; }
 .feat { background: #ffffff08; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
 .feat-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
 .feat-desc { color: var(--ink); opacity: 0.8; font-size: 13px; margin: 0 0 8px; }
