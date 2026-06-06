@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from '../server/serve.js';
@@ -72,6 +72,69 @@ test('a file change pushes a "changed" SSE event', async () => {
     }
     controller.abort();
     assert.ok(received.includes('data: changed'), `no change event; got: ${received}`);
+  } finally {
+    server.close();
+  }
+});
+
+test('GET /features/<context>/<slug> returns parsed features', async () => {
+  const projectRoot = await tmpProject();
+  const dir = join(projectRoot, 'features', 'admin-console', 'licenses-and-access');
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, 'grant.feature'), `Feature: Grant a license
+  @happy
+  Scenario: grant a seat
+    Given an admin
+    When they grant a seat
+    Then the user gains access
+
+  @error
+  Scenario: license expired
+    Given an expired license
+    Then the grant is rejected
+`);
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  const server = createServer({ projectRoot, viewerDir });
+  const port = await listen(server);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/features/admin-console/licenses-and-access`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.files.length, 1);
+    const f = body.files[0];
+    assert.equal(f.file, 'grant.feature');
+    assert.equal(f.feature, 'Grant a license');
+    assert.equal(f.scenarios.length, 2);
+    assert.equal(f.scenarios[0].class, 'happy');
+    assert.deepEqual(f.scenarios[0].steps, ['Given an admin', 'When they grant a seat', 'Then the user gains access']);
+    assert.equal(f.scenarios[1].class, 'error');
+  } finally {
+    server.close();
+  }
+});
+
+test('GET /features for a capability with no feature directory returns an empty list', async () => {
+  const projectRoot = await tmpProject();
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  const server = createServer({ projectRoot, viewerDir });
+  const port = await listen(server);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/features/platform/rate-limiting`);
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { files: [] });
+  } finally {
+    server.close();
+  }
+});
+
+test('GET /features rejects a non-slug path segment with 400', async () => {
+  const projectRoot = await tmpProject();
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  const server = createServer({ projectRoot, viewerDir });
+  const port = await listen(server);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/features/..%2Fetc/passwd`);
+    assert.equal(res.status, 400);
   } finally {
     server.close();
   }

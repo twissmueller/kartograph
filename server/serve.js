@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { createReadStream, watch } from 'node:fs';
-import { stat, readFile, writeFile } from 'node:fs/promises';
+import { stat, readFile, writeFile, readdir } from 'node:fs/promises';
+import { parseFeature, scenarioClass } from '../workflows/lib/gherkin.js';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -59,6 +60,39 @@ export function createServer({ projectRoot, viewerDir }) {
         res.writeHead(400);
         res.end(String(e.message));
       }
+      return;
+    }
+
+    // GET /features/<context>/<slug> — parse the capability's .feature files to JSON.
+    // Match against the raw (percent-encoded) pathname so that encoded slashes in path
+    // traversal attempts (e.g. ..%2F) are caught by the slug validator below.
+    const fm = /^\/features\/([^/]+)\/([^/]+)\/?$/.exec(url.pathname);
+    if (fm && req.method === 'GET') {
+      const [, context, slug] = fm;
+      const isSlug = (s) => /^[a-z0-9][a-z0-9-]*$/.test(s);
+      if (!isSlug(context) || !isSlug(slug)) {
+        res.writeHead(400);
+        res.end('bad request');
+        return;
+      }
+      const dir = join(projectRoot, 'features', context, slug);
+      let names = [];
+      try { names = (await readdir(dir)).filter((n) => n.endsWith('.feature')).sort(); }
+      catch { names = []; }
+      const files = [];
+      for (const name of names) {
+        const parsed = parseFeature(await readFile(join(dir, name), 'utf8'));
+        files.push({
+          file: name,
+          feature: parsed.feature,
+          description: parsed.description,
+          scenarios: parsed.scenarios.map((s) => ({
+            name: s.name, tags: s.tags, class: scenarioClass(s.tags), steps: s.steps,
+          })),
+        });
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ files }));
       return;
     }
 
