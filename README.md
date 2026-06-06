@@ -76,6 +76,12 @@ npm run show                                # → http://127.0.0.1:4123
 Drag nodes to arrange them (positions are saved to `kartograph.layout.json`); edit
 `kartograph.json` and the page reloads itself.
 
+Click a capability to open the **Feature Browser** in the side panel: read each of its
+features and scenarios with their full Gherkin steps, filter scenarios by path
+(`@happy` / `@edge` / `@error`), sort features by scenario count, and see at a glance — via
+per-feature coverage badges — which paths each feature still lacks. It updates live as you
+edit `.feature` files, so you can grow the software both exploratively and systematically.
+
 ## Install as a Claude Code plugin
 
 This repo is its own [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces).
