@@ -1,6 +1,7 @@
 import { buildGraph } from '/lib/graph.js';
 import { aggregateMaturity, nodeBrightness, WEIGHTS, maturityLabel } from '/lib/maturity.js';
 import { autoPlaceGrouped, boundsForGroups, separateBoxes } from '/lib/layout.js';
+import { coverage, sortByScenarioCount, filterScenarios } from '/lib/features.js';
 
 const canvas = document.getElementById('canvas');
 const world = document.getElementById('world');
@@ -10,6 +11,8 @@ const detail = document.getElementById('detail');
 let layout = {};
 let current = null;   // { k, g, contextColor, contextName, pos }
 let selected = null;  // slug of the capability shown in the detail panel
+let featureFiles = [];                                          // parsed files for the open capability
+const featureFilters = { happy: true, edge: true, error: true, sortByCount: true };
 
 // View transform (pan/zoom). World coords (layout, edges, regions) are unchanged;
 // this only maps world -> screen. Kept as module state so a live-reload re-render
@@ -124,16 +127,79 @@ function openDetail(slug) {
       <div><span class="num">${deps.length}</span><span class="lbl">depends on</span></div>
     </div>
     <div class="rel"><h3>depends on</h3>${chips(deps)}</div>
-    <div class="rel"><h3>required by</h3>${chips(rev)}</div>`;
+    <div class="rel"><h3>required by</h3>${chips(rev)}</div>
+    <div class="features" id="featuresSection"></div>`;
   document.getElementById('detailBack').addEventListener('click', closeDetail);
   detail.hidden = false;
   panels.hidden = true;
+  document.getElementById('featuresSection').innerHTML =
+    '<h3 class="feat-h">Features</h3><p class="feat-empty">Loading…</p>';
+  loadFeatures(slug, c.context);
 }
 
 function closeDetail() {
   selected = null;
   detail.hidden = true;
   panels.hidden = false;
+}
+
+async function loadFeatures(slug, context) {
+  const data = await loadJSON(`/features/${encodeURIComponent(context)}/${encodeURIComponent(slug)}`, { files: [] });
+  if (selected !== slug) return; // a live reload switched capability mid-fetch
+  featureFiles = data.files || [];
+  renderFeatures();
+}
+
+function renderFeatures() {
+  const root = document.getElementById('featuresSection');
+  if (!root) return;
+  const esc = (s) => String(s ?? '').replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+  if (!featureFiles.length) {
+    root.innerHTML = '<h3 class="feat-h">Features</h3><p class="feat-empty">No features yet</p>';
+    return;
+  }
+  const f = featureFilters;
+  const classToggle = (c) =>
+    `<button type="button" class="cls-toggle cls-${c}${f[c] ? '' : ' off'}" data-cls="${c}">${c}</button>`;
+  const covBadge = (cov, c) =>
+    `<span class="cov-badge cls-${c} ${cov[c] ? 'on' : 'off'}">${cov[c] ? '✓' : '✗'}${c}</span>`;
+  const ordered = f.sortByCount ? sortByScenarioCount(featureFiles) : featureFiles;
+
+  const blocks = ordered.map((file) => {
+    const cov = coverage(file.scenarios);
+    const shown = filterScenarios(file.scenarios, f);
+    const scns = shown.map((s) => {
+      const cls = s.class || 'none';
+      const tag = s.class ? `<span class="scn-tag cls-${s.class}">${s.class}</span>` : '';
+      const steps = (s.steps || []).map((st) => esc(st)).join('\n');
+      return `<div class="scn cls-${cls}">
+        <div class="scn-head"><span class="scn-name">${esc(s.name)}</span>${tag}</div>
+        <pre class="scn-steps">${steps}</pre>
+      </div>`;
+    }).join('') || '<p class="feat-empty">No scenarios match the filter</p>';
+    const desc = file.description ? `<p class="feat-desc">${esc(file.description)}</p>` : '';
+    return `<div class="feat">
+      <div class="feat-title">${esc(file.feature || file.file)}</div>
+      <div class="cov">${covBadge(cov, 'happy')}${covBadge(cov, 'edge')}${covBadge(cov, 'error')}</div>
+      ${desc}${scns}
+    </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    <h3 class="feat-h">Features</h3>
+    <div class="feat-bar">
+      ${classToggle('happy')}${classToggle('edge')}${classToggle('error')}
+      <button type="button" class="sort-toggle${f.sortByCount ? ' on' : ''}">sort: ${f.sortByCount ? 'scenarios' : 'name'}</button>
+    </div>
+    ${blocks}`;
+
+  root.onclick = (ev) => {
+    const t = ev.target.closest('[data-cls], .sort-toggle, .scn-head');
+    if (!t) return;
+    if (t.dataset.cls) { featureFilters[t.dataset.cls] = !featureFilters[t.dataset.cls]; renderFeatures(); }
+    else if (t.classList.contains('sort-toggle')) { featureFilters.sortByCount = !featureFilters.sortByCount; renderFeatures(); }
+    else if (t.classList.contains('scn-head')) { t.closest('.scn').classList.toggle('open'); }
+  };
 }
 
 function render(k) {

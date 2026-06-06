@@ -74,3 +74,37 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 .rel h3 { font-size: 12px; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
 .chip { display: inline-block; background: #ffffff12; border-radius: 6px; padding: 3px 9px;
   font-size: 13px; margin: 0 4px 4px 0; }
+
+/* Feature browser inside the capability detail panel */
+.features { margin-top: 16px; }
+.feat-h { font-size: 12px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.feat-empty { color: var(--muted); font-size: 13px; margin: 4px 0; }
+.feat-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.cls-toggle, .sort-toggle { background: #ffffff10; color: var(--ink); border: 1px solid #ffffff1f;
+  border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+.cls-toggle.off { opacity: 0.4; }
+.cls-toggle.cls-happy { border-color: #5bb26b80; }
+.cls-toggle.cls-edge { border-color: #4f9dd680; }
+.cls-toggle.cls-error { border-color: #e2683c80; }
+.sort-toggle:hover, .cls-toggle:hover { border-color: #ffffff3a; }
+.feat { background: #ffffff08; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.feat-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.feat-desc { color: var(--ink); opacity: 0.8; font-size: 13px; margin: 0 0 8px; }
+.cov { display: flex; gap: 6px; margin-bottom: 8px; }
+.cov-badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
+.cov-badge.on.cls-happy { background: #5bb26b; color: #fff; }
+.cov-badge.on.cls-edge { background: #4f9dd6; color: #fff; }
+.cov-badge.on.cls-error { background: #e2683c; color: #fff; }
+.cov-badge.off { background: #ffffff10; color: var(--muted); }
+.scn { border-top: 1px solid #ffffff10; }
+.scn-head { display: flex; align-items: center; gap: 8px; padding: 6px 2px; cursor: pointer; }
+.scn-head::before { content: '▸'; color: var(--muted); font-size: 11px; transition: transform 0.15s; }
+.scn.open .scn-head::before { transform: rotate(90deg); }
+.scn-name { flex: 1; }
+.scn-tag { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; color: #fff; }
+.scn-tag.cls-happy { background: #5bb26b; }
+.scn-tag.cls-edge { background: #4f9dd6; }
+.scn-tag.cls-error { background: #e2683c; }
+.scn-steps { display: none; margin: 0 0 8px; padding: 8px 10px; background: #00000033; border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; color: var(--ink); }
+.scn.open .scn-steps { display: block; }
