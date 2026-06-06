@@ -1,6 +1,8 @@
-// Minimal Gherkin reader: feature title + scenarios with their tags.
-// Tags accumulate on lines above a Scenario and attach to the next one;
-// the Feature line resets pending tags so feature-level tags don't leak.
+// Minimal Gherkin reader: parses a feature title, an optional free-text
+// description (lines between the Feature: line and the first tag/scenario),
+// and each scenario's tags and steps.  Tags accumulate on lines above a
+// Scenario and attach to the next one; the Feature line resets pending tags
+// so feature-level tags don't leak into scenarios.
 export function parseFeature(text) {
   const scenarios = [];
   let pending = [];
