@@ -5,19 +5,31 @@ export function parseFeature(text) {
   const scenarios = [];
   let pending = [];
   let feature = null;
+  const descriptionLines = [];
+  let current = null;        // scenario currently collecting steps
+  let inDescription = false; // between the Feature: line and the first tag/scenario
   for (const raw of String(text).split(/\r?\n/)) {
     const line = raw.trim();
     if (line.startsWith('@')) {
       pending.push(...line.split(/\s+/).filter((t) => t.startsWith('@')));
+      current = null;
+      inDescription = false;
     } else if (/^Feature:/i.test(line)) {
       feature = line.replace(/^Feature:\s*/i, '').trim();
       pending = [];
+      current = null;
+      inDescription = true;
     } else if (/^Scenario(\s+Outline)?:/i.test(line)) {
-      scenarios.push({ name: line.replace(/^Scenario(\s+Outline)?:\s*/i, '').trim(), tags: pending });
+      current = { name: line.replace(/^Scenario(\s+Outline)?:\s*/i, '').trim(), tags: pending, steps: [] };
+      scenarios.push(current);
       pending = [];
+      inDescription = false;
+    } else if (line && !line.startsWith('#')) {
+      if (current) current.steps.push(line);
+      else if (inDescription) descriptionLines.push(line);
     }
   }
-  return { feature, scenarios };
+  return { feature, description: descriptionLines.join('\n') || undefined, scenarios };
 }
 
 export function scenarioClass(tags) {

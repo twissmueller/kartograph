@@ -47,3 +47,33 @@ test('scenarioClass maps tags to happy/edge/error, error wins', () => {
 test('parseFeature on empty text yields no scenarios', () => {
   assert.deepEqual(parseFeature('').scenarios, []);
 });
+
+test('parseFeature captures the steps of each scenario', () => {
+  const r = parseFeature(sample);
+  assert.deepEqual(r.scenarios[0].steps, [
+    'Given a plant due for watering',
+    'When the day starts',
+    'Then a reminder is shown',
+  ]);
+  assert.deepEqual(r.scenarios[2].steps, ['Given the moisture sensor is offline']);
+});
+
+test('parseFeature captures a feature description block', () => {
+  const text = `Feature: Billing
+  Money moves between accounts.
+  Auditable at all times.
+
+  @happy
+  Scenario: charge a card
+    Given a valid card
+    Then the charge succeeds
+`;
+  const r = parseFeature(text);
+  assert.equal(r.description, 'Money moves between accounts.\nAuditable at all times.');
+  assert.deepEqual(r.scenarios[0].steps, ['Given a valid card', 'Then the charge succeeds']);
+});
+
+test('parseFeature with no description leaves description undefined', () => {
+  const r = parseFeature(sample);
+  assert.equal(r.description, undefined);
+});
