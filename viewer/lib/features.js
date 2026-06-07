@@ -21,3 +21,21 @@ export function sortByScenarioCount(files) {
 export function filterScenarios(scenarios, active) {
   return scenarios.filter((s) => s.class == null || active[s.class]);
 }
+
+// Split a free-text feature description into narrative prose and labeled metadata
+// rows. A line shaped like "Label: value" (a short capitalised label, then a colon
+// and value — e.g. "Issue: …", "Spec: …") becomes a metadata row; every other
+// non-empty line is narrative prose (e.g. the "As a … / So that …" user story).
+// Prose keeps its order and line breaks; blank lines are dropped.
+export function parseDescription(text) {
+  const prose = [];
+  const meta = [];
+  for (const raw of String(text ?? '').split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = /^([A-Z][A-Za-z][A-Za-z ]{0,22}):\s+(.+)$/.exec(line);
+    if (m) meta.push({ label: m[1], value: m[2] });
+    else prose.push(line);
+  }
+  return { prose: prose.join('\n'), meta };
+}

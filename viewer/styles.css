@@ -92,6 +92,12 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 .feat-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
 .feat-desc { color: var(--ink); opacity: 0.8; font-size: 13px; margin: 0 0 8px;
   white-space: pre-wrap; overflow-wrap: anywhere; }
+.feat-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px;
+  margin: 0 0 8px; padding-top: 8px; border-top: 1px solid #ffffff10; font-size: 12px; }
+.feat-meta dt { color: var(--muted); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.02em; white-space: nowrap; }
+.feat-meta dd { margin: 0; color: var(--ink); opacity: 0.85; overflow-wrap: anywhere; }
+.feat-desc a, .feat-meta dd a { color: #6ea8ff; }
 .cov { display: flex; gap: 6px; margin-bottom: 8px; }
 .cov-badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
 .cov-badge.on.cls-happy { background: #5bb26b; color: #fff; }

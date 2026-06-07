@@ -1,7 +1,7 @@
 import { buildGraph } from '/lib/graph.js';
 import { aggregateMaturity, nodeBrightness, WEIGHTS, maturityLabel } from '/lib/maturity.js';
 import { autoPlaceGrouped, boundsForGroups, separateBoxes } from '/lib/layout.js';
-import { coverage, sortByScenarioCount, filterScenarios } from '/lib/features.js';
+import { coverage, sortByScenarioCount, filterScenarios, parseDescription } from '/lib/features.js';
 
 const canvas = document.getElementById('canvas');
 const world = document.getElementById('world');
@@ -151,6 +151,23 @@ async function loadFeatures(slug, context) {
   renderFeatures();
 }
 
+// Render a feature description: the narrative user story as prose, and any
+// "Label: value" lines as an aligned metadata list. URLs become links. `esc` is
+// the caller's HTML-escaper; we escape first, then linkify the escaped text.
+function descHtml(text, esc) {
+  if (!text) return '';
+  const { prose, meta } = parseDescription(text);
+  const linkify = (s) => esc(s).replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  const proseHtml = prose ? `<p class="feat-desc">${linkify(prose)}</p>` : '';
+  const metaHtml = meta.length
+    ? `<dl class="feat-meta">${meta.map((m) =>
+        `<dt>${esc(m.label)}</dt><dd>${linkify(m.value)}</dd>`).join('')}</dl>`
+    : '';
+  return proseHtml + metaHtml;
+}
+
 function renderFeatures() {
   const root = document.getElementById('featuresSection');
   if (!root) return;
@@ -183,7 +200,7 @@ function renderFeatures() {
         <pre class="scn-steps">${steps}</pre>
       </div>`;
     }).join('') || '<p class="feat-empty">No scenarios match the filter</p>';
-    const desc = file.description ? `<p class="feat-desc">${esc(file.description)}</p>` : '';
+    const desc = descHtml(file.description, esc);
     return `<div class="feat">
       <div class="feat-title">${esc(file.feature || file.file)}</div>
       <div class="cov">${covBadge(cov, 'happy')}${covBadge(cov, 'edge')}${covBadge(cov, 'error')}</div>
