@@ -91,19 +91,38 @@ function drawContainers() {
 }
 
 // When a capability is selected, draw only the edges touching it (and highlight
-// them); with nothing selected, draw every edge. Honoured by all redraw paths
-// (render, drag, reload) since it reads the module-level `selected`.
+// them); with nothing selected, draw every edge. Each edge is an A→B dependency
+// drawn from A's centre to B's border, with an arrowhead pointing at B (the
+// depended-upon capability). Honoured by all redraw paths (render, drag, reload)
+// since it reads the module-level `selected`. Keeps the <defs> markers intact by
+// removing only the <line> elements.
 function drawEdges(pos) {
-  edgesSvg.innerHTML = '';
+  for (const l of edgesSvg.querySelectorAll('line')) l.remove();
   if (!current) return;
+  // Target-node sizes in layout px (offset* is transform-independent) so an edge
+  // can stop at the border of the capability it points to, leaving room for the
+  // arrowhead, which the node box would otherwise cover.
+  const size = {};
+  for (const el of canvas.querySelectorAll('.node')) size[el.dataset.slug] = { w: el.offsetWidth, h: el.offsetHeight };
   for (const e of current.g.edges) {
     if (selected && e.from !== selected && e.to !== selected) continue;
     const a = pos[e.from], b = pos[e.to];
     if (!a || !b) continue;
+    let ex = b.x, ey = b.y;
+    const tb = size[e.to];
+    if (tb) {
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const adx = Math.abs(dx), ady = Math.abs(dy);
+      if (adx || ady) {
+        const s = Math.min(adx ? (tb.w / 2 + 6) / adx : Infinity, ady ? (tb.h / 2 + 6) / ady : Infinity);
+        ex = b.x + dx * s; ey = b.y + dy * s;
+      }
+    }
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
-    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    line.setAttribute('x2', ex); line.setAttribute('y2', ey);
     if (selected) line.setAttribute('class', 'focus');
+    line.setAttribute('marker-end', selected ? 'url(#arrow-focus)' : 'url(#arrow)');
     edgesSvg.appendChild(line);
   }
 }

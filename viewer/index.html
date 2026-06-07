@@ -15,7 +15,14 @@
     </div>
   </header>
   <div id="main">
-    <div id="canvas"><div id="world"><svg class="edges" id="edges"></svg></div></div>
+    <div id="canvas"><div id="world"><svg class="edges" id="edges">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9"
+                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffffff66" /></marker>
+        <marker id="arrow-focus" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9"
+                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6ea8ffcc" /></marker>
+      </defs>
+    </svg></div></div>
     <aside id="sidebar">
       <button type="button" id="sidebarToggle" class="sidebar-toggle" title="Collapse panel" aria-label="Collapse panel">›</button>
       <div id="sidebarBody" class="sidebar-body">
