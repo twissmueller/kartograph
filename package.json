@@ -1,6 +1,6 @@
 {
   "name": "kartograph",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A living map of a software system, maintained jointly by human and AI.",
   "type": "module",
   "license": "MIT",

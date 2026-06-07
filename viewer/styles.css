@@ -90,7 +90,8 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 .sort-toggle.on { border-color: #ffffff3a; background: #ffffff1c; }
 .feat { background: #ffffff08; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
 .feat-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-.feat-desc { color: var(--ink); opacity: 0.8; font-size: 13px; margin: 0 0 8px; }
+.feat-desc { color: var(--ink); opacity: 0.8; font-size: 13px; margin: 0 0 8px;
+  white-space: pre-wrap; overflow-wrap: anywhere; }
 .cov { display: flex; gap: 6px; margin-bottom: 8px; }
 .cov-badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
 .cov-badge.on.cls-happy { background: #5bb26b; color: #fff; }
