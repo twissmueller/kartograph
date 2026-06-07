@@ -98,6 +98,7 @@
             "properties": {
               "from": { "$ref": "#/$defs/slug" },
               "to": { "$ref": "#/$defs/slug" },
+              "reason": { "type": "string" },
               "features": { "type": "array", "items": { "type": "string" } }
             }
           }

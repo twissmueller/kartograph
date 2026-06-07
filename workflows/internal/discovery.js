@@ -85,7 +85,7 @@ const FINDINGS_SCHEMA = {
       items: {
         type: 'object', additionalProperties: false,
         required: ['from', 'to'],
-        properties: { from: SLUG, to: SLUG, features: { type: 'array', items: { type: 'string' } } },
+        properties: { from: SLUG, to: SLUG, reason: { type: 'string' }, features: { type: 'array', items: { type: 'string' } } },
       },
     },
   },
@@ -114,7 +114,7 @@ Then extract Kartograph findings:
 - glossaryAdditions: domain terms worth defining, ONE canonical term each (list synonyms under aliasesToAvoid). Do not duplicate existing glossary terms.
 - adrCandidates: architecture decisions, but ONLY when the decision is hard to reverse AND surprising without context AND the result of a real trade-off. Otherwise it is a plain feature, not an ADR.
 - placement: where each affected/candidate capability lands (its context).
-- dependencies: capability→capability links this feature introduces. When a feature of one capability needs another capability, record { from, to } (both capability slugs, from = the capability that needs the other). Under "features", list the .feature filename(s) you expect the chart phase to write for the "from" capability that justify the link (e.g. ["grant-license.feature"]) — these are declared up-front and chart will write those exact files. Omit "features" only if you genuinely cannot name the feature yet. Do not invent dependencies the feature does not actually require.
+- dependencies: capability→capability links this feature introduces. When a feature of one capability needs another capability, record { from, to } (both capability slugs, from = the capability that needs the other). Add a one-line "reason" describing HOW from uses to (e.g. "reads canonical plant records to validate a bed"). Under "features", list the .feature filename(s) you expect the chart phase to write for the "from" capability that justify the link (e.g. ["grant-license.feature"]) — these are declared up-front and chart will write those exact files. Omit "features" only if you genuinely cannot name the feature yet. Do not invent dependencies the feature does not actually require.
 
 Use lowercase-hyphen slugs. Return the findings object.`,
   { schema: FINDINGS_SCHEMA, label: 'extract', phase: 'Extract' }

@@ -135,7 +135,7 @@ function highlightSelected() {
   }
 }
 
-function openDetail(slug) {
+function openDetail(slug, focusFeature) {
   if (!current) return;
   const { k, g, contextName } = current;
   const c = k.capabilities?.[slug];
@@ -152,9 +152,14 @@ function openDetail(slug) {
   const relList = (edges, otherKey) => (edges.length ? edges.map((d) => {
     const other = otherKey === 'to' ? d.to : d.from;
     const name = k.capabilities?.[other]?.name ?? other;
+    const reason = d.reason ? `<div class="rel-reason">${esc(d.reason)}</div>` : '';
+    // Justifying features always belong to the edge's `from` capability; clicking one
+    // opens that capability and scrolls to the feature so you can read the actual scenarios.
     const via = (d.features && d.features.length)
-      ? `<span class="rel-via">via ${d.features.map(esc).join(', ')}</span>` : '';
-    return `<div class="rel-row"><span class="chip">${esc(name)}</span>${via}</div>`;
+      ? `<div class="rel-via">via ${d.features.map((file) =>
+          `<a class="rel-feature" data-cap="${esc(d.from)}" data-feature="${esc(file)}">${esc(file)}</a>`).join(', ')}</div>`
+      : '';
+    return `<div class="rel-row"><span class="chip">${esc(name)}</span>${reason}${via}</div>`;
   }).join('') : '—');
   detail.innerHTML = `
     <span class="back" id="detailBack">‹ Overview</span>
@@ -178,7 +183,7 @@ function openDetail(slug) {
   document.getElementById('featuresSection').innerHTML =
     '<h3 class="feat-h">Features</h3><p class="feat-empty">Loading…</p>';
   featureFiles = []; // drop the previous capability's data so it can't render during the load
-  loadFeatures(slug, c.context);
+  loadFeatures(slug, c.context, focusFeature);
 }
 
 function closeDetail() {
@@ -189,11 +194,19 @@ function closeDetail() {
   if (current) drawEdges(current.pos);
 }
 
-async function loadFeatures(slug, context) {
+async function loadFeatures(slug, context, focusFeature) {
   const data = await loadJSON(`/features/${encodeURIComponent(context)}/${encodeURIComponent(slug)}`, { files: [] });
   if (selected !== slug) return; // a live reload switched capability mid-fetch
   featureFiles = data.files || [];
   renderFeatures();
+  if (focusFeature) {
+    const el = document.querySelector(`#featuresSection .feat[data-feature="${CSS.escape(focusFeature)}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.add('flash');
+      setTimeout(() => el.classList.remove('flash'), 1200);
+    }
+  }
 }
 
 // Render a feature description: the narrative user story as prose, and any
@@ -249,7 +262,7 @@ function renderFeatures() {
     const bg = (file.background && file.background.length)
       ? `<div class="feat-bg"><span class="feat-bg-label">Background</span><pre class="feat-bg-steps">${file.background.map((st) => esc(st)).join('\n')}</pre></div>`
       : '';
-    return `<div class="feat">
+    return `<div class="feat" data-feature="${esc(file.file)}">
       <div class="feat-title">${esc(file.feature || file.file)}</div>
       <div class="cov">${covBadge(cov, 'happy')}${covBadge(cov, 'edge')}${covBadge(cov, 'error')}</div>
       ${desc}${bg}${scns}
@@ -486,6 +499,13 @@ function wireSidebar() {
 async function boot() {
   wireSidebar();
   wireZoomPan();
+  // Click a justifying feature in depends-on / required-by to open its capability and
+  // scroll to that feature's scenarios (the concrete "how" of the dependency).
+  detail.addEventListener('click', (ev) => {
+    const link = ev.target.closest('.rel-feature');
+    if (!link) return;
+    openDetail(link.dataset.cap, link.dataset.feature);
+  });
   layout = await loadJSON('/kartograph.layout.json', {});
   await reload();
   const es = new EventSource('/events');

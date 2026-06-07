@@ -79,3 +79,15 @@ test('a dependency with a non-array features is rejected', async () => {
   });
   assert.equal(ok, false);
 });
+
+test('a dependency may carry a free-text reason', async () => {
+  const ajv = await loadAjv();
+  const v = ajv.getSchema('https://kartograph.dev/schemas/v1/kartograph.schema.json');
+  const ok = v({
+    version: '1', meta: { name: 'X' },
+    contexts: { core: { name: 'Core', definition: 'd' } },
+    capabilities: { a: { name: 'A', context: 'core', definition: 'd' }, b: { name: 'B', context: 'core', definition: 'd' } },
+    dependencies: [{ from: 'a', to: 'b', reason: 'reads B records to validate', features: ['x.feature'] }],
+  });
+  assert.equal(ok, true, JSON.stringify(v.errors));
+});

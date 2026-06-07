@@ -91,3 +91,15 @@ test('a bare findings.dependencies edge (no features) is folded without a featur
   assert.ok(edge);
   assert.equal(edge.features, undefined);
 });
+
+test('folds a dependency reason and keeps it on re-apply', () => {
+  const d = structuredClone(discovery);
+  d.findings.dependencies = [{ from: 'task-reminders', to: 'watering-schedule', reason: 'reads the next-due time', features: ['remind.feature'] }];
+  const once = applyDiscovery(baseMap, d);
+  const edge = once.dependencies.find((e) => e.from === 'task-reminders' && e.to === 'watering-schedule');
+  assert.equal(edge.reason, 'reads the next-due time');
+  const twice = applyDiscovery(once, d);
+  const edges = twice.dependencies.filter((e) => e.from === 'task-reminders' && e.to === 'watering-schedule');
+  assert.equal(edges.length, 1);
+  assert.equal(edges[0].reason, 'reads the next-due time');
+});

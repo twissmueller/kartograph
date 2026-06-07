@@ -64,6 +64,7 @@ export function applyDiscovery(map, discovery) {
       edge = { from: dep.from, to: dep.to };
       next.dependencies.push(edge);
     }
+    if (dep.reason) edge.reason = dep.reason;
     for (const file of dep.features || []) {
       edge.features ||= [];
       if (!edge.features.includes(file)) edge.features.push(file);
