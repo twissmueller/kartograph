@@ -201,10 +201,13 @@ function renderFeatures() {
       </div>`;
     }).join('') || '<p class="feat-empty">No scenarios match the filter</p>';
     const desc = descHtml(file.description, esc);
+    const bg = (file.background && file.background.length)
+      ? `<div class="feat-bg"><span class="feat-bg-label">Background</span><pre class="feat-bg-steps">${file.background.map((st) => esc(st)).join('\n')}</pre></div>`
+      : '';
     return `<div class="feat">
       <div class="feat-title">${esc(file.feature || file.file)}</div>
       <div class="cov">${covBadge(cov, 'happy')}${covBadge(cov, 'edge')}${covBadge(cov, 'error')}</div>
-      ${desc}${scns}
+      ${desc}${bg}${scns}
     </div>`;
   }).join('');
 

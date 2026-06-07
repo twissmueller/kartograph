@@ -77,3 +77,30 @@ test('parseFeature with no description leaves description undefined', () => {
   const r = parseFeature(sample);
   assert.equal(r.description, undefined);
 });
+
+test('parseFeature captures a structured Background block as shared steps', () => {
+  const text = `Feature: Project Spaces
+  Operator-side visibility.
+
+  Background:
+    Given the admin console is reachable at /admin
+    And I am authenticated as a SITE_ADMIN
+
+  @happy
+  Scenario: search
+    When they search
+    Then results appear
+`;
+  const r = parseFeature(text);
+  assert.deepEqual(r.background, [
+    'Given the admin console is reachable at /admin',
+    'And I am authenticated as a SITE_ADMIN',
+  ]);
+  assert.equal(r.description, 'Operator-side visibility.');
+  assert.equal(r.scenarios.length, 1);
+  assert.deepEqual(r.scenarios[0].steps, ['When they search', 'Then results appear']);
+});
+
+test('parseFeature leaves background undefined when there is no Background block', () => {
+  assert.equal(parseFeature(sample).background, undefined);
+});

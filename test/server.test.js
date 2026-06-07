@@ -139,3 +139,34 @@ test('GET /features rejects a non-slug path segment with 400', async () => {
     server.close();
   }
 });
+
+test('GET /features includes a Background block when present', async () => {
+  const projectRoot = await tmpProject();
+  const dir = join(projectRoot, 'features', 'admin-console', 'project-spaces');
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, 'spaces.feature'), `Feature: Project Spaces
+  Background:
+    Given the admin console is reachable at /admin
+    And I am authenticated as a SITE_ADMIN
+
+  @happy
+  Scenario: search
+    When they search
+    Then results appear
+`);
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  const server = createServer({ projectRoot, viewerDir });
+  const port = await listen(server);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/features/admin-console/project-spaces`);
+    assert.equal(res.status, 200);
+    const f = (await res.json()).files[0];
+    assert.deepEqual(f.background, [
+      'Given the admin console is reachable at /admin',
+      'And I am authenticated as a SITE_ADMIN',
+    ]);
+    assert.equal(f.scenarios.length, 1);
+  } finally {
+    server.close();
+  }
+});

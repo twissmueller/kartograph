@@ -98,6 +98,12 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
   letter-spacing: 0.02em; white-space: nowrap; }
 .feat-meta dd { margin: 0; color: var(--ink); opacity: 0.85; overflow-wrap: anywhere; }
 .feat-desc a, .feat-meta dd a { color: #6ea8ff; }
+.feat-bg { margin: 0 0 10px; }
+.feat-bg-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  color: var(--muted); letter-spacing: 0.02em; margin-bottom: 4px; }
+.feat-bg-steps { margin: 0; padding: 8px 10px; background: #00000033; border-radius: 6px;
+  border-left: 2px solid #ffffff22; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; white-space: pre-wrap; color: var(--ink); opacity: 0.9; }
 .cov { display: flex; gap: 6px; margin-bottom: 8px; }
 .cov-badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
 .cov-badge.on.cls-happy { background: #5bb26b; color: #fff; }

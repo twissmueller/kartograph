@@ -87,6 +87,7 @@ export function createServer({ projectRoot, viewerDir }) {
             file: name,
             feature: parsed.feature,
             description: parsed.description,
+            background: parsed.background,
             scenarios: parsed.scenarios.map((s) => ({
               name: s.name, tags: s.tags, class: scenarioClass(s.tags), steps: s.steps,
             })),
