@@ -144,9 +144,18 @@ function openDetail(slug) {
   const maturity = g.nodes.find((n) => n.slug === slug)?.maturity ?? 'vision';
   const fc = c.derived?.featureCount ?? 0;
   const sc = c.derived?.scenarioCount ?? 0;
-  const deps = (k.dependencies || []).filter((d) => d.from === slug).map((d) => k.capabilities?.[d.to]?.name ?? d.to);
-  const rev = (k.dependencies || []).filter((d) => d.to === slug).map((d) => k.capabilities?.[d.from]?.name ?? d.from);
-  const chips = (arr) => (arr.length ? arr.map((x) => `<span class="chip">${x}</span>`).join('') : '—');
+  const esc = (s) => String(s ?? '').replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+  const depEdges = (k.dependencies || []).filter((d) => d.from === slug);
+  const revEdges = (k.dependencies || []).filter((d) => d.to === slug);
+  // Each row: the other capability's name, plus the from-side features that justify the
+  // edge ("via x.feature"). otherKey selects which end of the edge is the other capability.
+  const relList = (edges, otherKey) => (edges.length ? edges.map((d) => {
+    const other = otherKey === 'to' ? d.to : d.from;
+    const name = k.capabilities?.[other]?.name ?? other;
+    const via = (d.features && d.features.length)
+      ? `<span class="rel-via">via ${d.features.map(esc).join(', ')}</span>` : '';
+    return `<div class="rel-row"><span class="chip">${esc(name)}</span>${via}</div>`;
+  }).join('') : '—');
   detail.innerHTML = `
     <span class="back" id="detailBack">‹ Overview</span>
     <h2 class="detail-title">${c.name}
@@ -156,10 +165,10 @@ function openDetail(slug) {
     <div class="metrics">
       <div><span class="num">${fc}</span><span class="lbl">features</span></div>
       <div><span class="num">${sc}</span><span class="lbl">scenarios</span></div>
-      <div><span class="num">${deps.length}</span><span class="lbl">depends on</span></div>
+      <div><span class="num">${depEdges.length}</span><span class="lbl">depends on</span></div>
     </div>
-    <div class="rel"><h3>depends on</h3>${chips(deps)}</div>
-    <div class="rel"><h3>required by</h3>${chips(rev)}</div>
+    <div class="rel"><h3>depends on</h3>${relList(depEdges, 'to')}</div>
+    <div class="rel"><h3>required by</h3>${relList(revEdges, 'from')}</div>
     <div class="features" id="featuresSection"></div>`;
   document.getElementById('detailBack').addEventListener('click', closeDetail);
   detail.hidden = false;

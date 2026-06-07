@@ -65,3 +65,29 @@ test('does not mutate the input map', () => {
   applyDiscovery(baseMap, discovery);
   assert.equal(JSON.stringify(baseMap), before);
 });
+
+test('folds findings.dependencies into the map, dedups, unions features, idempotent', () => {
+  const d = structuredClone(discovery);
+  d.findings.dependencies = [{ from: 'task-reminders', to: 'watering-schedule', features: ['remind.feature'] }];
+  const once = applyDiscovery(baseMap, d);
+  const edge = once.dependencies.find((e) => e.from === 'task-reminders' && e.to === 'watering-schedule');
+  assert.ok(edge, 'edge added');
+  assert.deepEqual(edge.features, ['remind.feature']);
+
+  // second apply with an extra feature on the same edge: no duplicate edge, features unioned
+  const d2 = structuredClone(d);
+  d2.findings.dependencies = [{ from: 'task-reminders', to: 'watering-schedule', features: ['remind.feature', 'snooze.feature'] }];
+  const twice = applyDiscovery(once, d2);
+  const edges = twice.dependencies.filter((e) => e.from === 'task-reminders' && e.to === 'watering-schedule');
+  assert.equal(edges.length, 1, 'no duplicate edge');
+  assert.deepEqual(edges[0].features, ['remind.feature', 'snooze.feature']);
+});
+
+test('a bare findings.dependencies edge (no features) is folded without a features key', () => {
+  const d = structuredClone(discovery);
+  d.findings.dependencies = [{ from: 'task-reminders', to: 'watering-schedule' }];
+  const m = applyDiscovery(baseMap, d);
+  const edge = m.dependencies.find((e) => e.from === 'task-reminders' && e.to === 'watering-schedule');
+  assert.ok(edge);
+  assert.equal(edge.features, undefined);
+});

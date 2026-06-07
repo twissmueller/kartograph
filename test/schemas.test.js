@@ -52,3 +52,30 @@ test('the seed map validates against the schema', async () => {
   const ok = v(seed);
   assert.equal(ok, true, JSON.stringify(v.errors, null, 2));
 });
+
+test('a dependency may carry justifying feature filenames', async () => {
+  const ajv = await loadAjv();
+  const v = ajv.getSchema('https://kartograph.dev/schemas/v1/kartograph.schema.json');
+  const ok = v({
+    version: '1', meta: { name: 'X' },
+    contexts: { core: { name: 'Core', definition: 'd' } },
+    capabilities: {
+      a: { name: 'A', context: 'core', definition: 'd' },
+      b: { name: 'B', context: 'core', definition: 'd' },
+    },
+    dependencies: [{ from: 'a', to: 'b', features: ['grant.feature', 'revoke.feature'] }],
+  });
+  assert.equal(ok, true, JSON.stringify(v.errors));
+});
+
+test('a dependency with a non-array features is rejected', async () => {
+  const ajv = await loadAjv();
+  const v = ajv.getSchema('https://kartograph.dev/schemas/v1/kartograph.schema.json');
+  const ok = v({
+    version: '1', meta: { name: 'X' },
+    contexts: { core: { name: 'Core', definition: 'd' } },
+    capabilities: { a: { name: 'A', context: 'core', definition: 'd' }, b: { name: 'B', context: 'core', definition: 'd' } },
+    dependencies: [{ from: 'a', to: 'b', features: 'grant.feature' }],
+  });
+  assert.equal(ok, false);
+});

@@ -77,6 +77,8 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 .rel h3 { font-size: 12px; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
 .chip { display: inline-block; background: #ffffff12; border-radius: 6px; padding: 3px 9px;
   font-size: 13px; margin: 0 4px 4px 0; }
+.rel-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.rel-via { color: var(--muted); font-size: 12px; }
 
 /* Feature browser inside the capability detail panel */
 .features { margin-top: 16px; }

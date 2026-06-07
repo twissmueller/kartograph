@@ -36,6 +36,10 @@ Rules:
   subjects, rules, and edge cases imply them.
 - Use Given/When/Then steps and the project glossary's canonical terms (read them from the map).
 - Keep one Feature per file; name files with a lowercase-hyphen feature slug.
+- If the survey's findings.dependencies reference a feature filename for a capability you are
+  writing (the "features" list on a dependency whose "from" is that capability), name that
+  capability's .feature file with the EXACT filename referenced, so the recorded dependency
+  resolves to a real file.
 
 Return a plain list of the file paths you wrote.`,
   { label: 'scenarios', phase: 'Scenarios' }

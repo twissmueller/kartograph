@@ -108,7 +108,8 @@
         "required": ["from", "to"],
         "properties": {
           "from": { "$ref": "#/$defs/slug" },
-          "to": { "$ref": "#/$defs/slug" }
+          "to": { "$ref": "#/$defs/slug" },
+          "features": { "type": "array", "items": { "type": "string" } }
         }
       }
     }

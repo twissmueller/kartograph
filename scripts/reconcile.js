@@ -23,6 +23,32 @@ export function reconcileMap(map, featuresByCapability) {
   return next;
 }
 
+// Pure: warn for every dependency `features` entry whose filename is not present
+// in the `from` capability's directory. namesByCapability: { slug: [filename, ...] }.
+// Non-fatal — surfaces drift between a declared edge and the scenarios that justify it.
+export function dependencyFeatureWarnings(map, namesByCapability) {
+  const warnings = [];
+  for (const dep of map.dependencies || []) {
+    const have = new Set(namesByCapability[dep.from] || []);
+    for (const file of dep.features || []) {
+      if (!have.has(file)) warnings.push(`dependency ${dep.from}->${dep.to} references missing feature '${file}'`);
+    }
+  }
+  return warnings;
+}
+
+// Read just the .feature filenames per capability (for the dependency check above).
+async function readFeatureNamesByCapability(root, map) {
+  const out = {};
+  for (const [slug, cap] of Object.entries(map.capabilities || {})) {
+    const dir = join(root, 'features', cap.context, slug);
+    let entries = [];
+    try { entries = await readdir(dir); } catch { entries = []; }
+    out[slug] = entries.filter((n) => n.endsWith('.feature'));
+  }
+  return out;
+}
+
 // Read all .feature files for a capability from features/<context>/<slug>/.
 async function readFeaturesByCapability(root, map) {
   const out = {};
@@ -51,6 +77,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const next = reconcileMap(map, featuresByCapability);
   const { valid, errors } = await validateKartograph(next);
   if (!valid) { console.error('INVALID after reconcile:'); for (const e of errors) console.error('  - ' + e); process.exit(1); }
+  const names = await readFeatureNamesByCapability(root, next);
+  for (const w of dependencyFeatureWarnings(next, names)) console.error('  warning: ' + w);
   const tmp = mapPath + '.reconcile.tmp';
   await writeFile(tmp, JSON.stringify(next, null, 2) + '\n');
   await rename(tmp, mapPath);

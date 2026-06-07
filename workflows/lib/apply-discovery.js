@@ -58,6 +58,17 @@ export function applyDiscovery(map, discovery) {
       next.rules[slug] = rule;
     }
   }
+  for (const dep of f.dependencies || []) {
+    let edge = next.dependencies.find((e) => e.from === dep.from && e.to === dep.to);
+    if (!edge) {
+      edge = { from: dep.from, to: dep.to };
+      next.dependencies.push(edge);
+    }
+    for (const file of dep.features || []) {
+      edge.features ||= [];
+      if (!edge.features.includes(file)) edge.features.push(file);
+    }
+  }
   const norm = (s) => String(s).trim().toLowerCase();
   for (const a of f.adrCandidates) {
     const exists = Object.values(next.adrs).some((x) => norm(x.title) === norm(a.title));

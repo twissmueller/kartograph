@@ -64,3 +64,17 @@ test('validateDiscovery accepts a minimal doc and rejects a broken one', async (
   assert.equal(res.valid, false);
   assert.ok(res.errors.length > 0);
 });
+
+test('findings.dependencies is optional and shape-checked when present', async () => {
+  const v = await loadValidator();
+  // optional: minimal (no dependencies key) still validates
+  assert.equal(v(minimal), true, JSON.stringify(v.errors));
+  // present and well-formed validates
+  const ok = structuredClone(minimal);
+  ok.findings.dependencies = [{ from: 'a', to: 'b', features: ['grant.feature'] }];
+  assert.equal(v(ok), true, JSON.stringify(v.errors));
+  // malformed entry (missing 'to') rejected
+  const bad = structuredClone(minimal);
+  bad.findings.dependencies = [{ from: 'a' }];
+  assert.equal(v(bad), false);
+});

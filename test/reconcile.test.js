@@ -45,3 +45,23 @@ test('readFeaturesByCapability globs features/<context>/<slug>/*.feature and fee
   assert.equal(out.capabilities['watering-schedule'].derived.maturity, 'stable');
   assert.equal(out.capabilities['watering-schedule'].derived.scenarioCount, 3);
 });
+
+test('dependencyFeatureWarnings flags a referenced feature missing from the from capability', async () => {
+  const { dependencyFeatureWarnings } = await import('../scripts/reconcile.js');
+  const m = {
+    dependencies: [
+      { from: 'a', to: 'b', features: ['present.feature', 'gone.feature'] },
+      { from: 'a', to: 'c' },
+    ],
+  };
+  const names = { a: ['present.feature'] };
+  const warnings = dependencyFeatureWarnings(m, names);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /gone\.feature/);
+});
+
+test('dependencyFeatureWarnings is silent when every referenced feature exists', async () => {
+  const { dependencyFeatureWarnings } = await import('../scripts/reconcile.js');
+  const m = { dependencies: [{ from: 'a', to: 'b', features: ['x.feature'] }] };
+  assert.deepEqual(dependencyFeatureWarnings(m, { a: ['x.feature', 'y.feature'] }), []);
+});

@@ -89,7 +89,19 @@
         "capabilityCandidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
         "glossaryAdditions": { "type": "array", "items": { "$ref": "#/$defs/glossaryAddition" } },
         "adrCandidates": { "type": "array", "items": { "$ref": "#/$defs/adrCandidate" } },
-        "placement": { "type": "array", "items": { "$ref": "#/$defs/placement" } }
+        "placement": { "type": "array", "items": { "$ref": "#/$defs/placement" } },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "$ref": "#/$defs/slug" },
+              "to": { "$ref": "#/$defs/slug" },
+              "features": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
       }
     }
   }
