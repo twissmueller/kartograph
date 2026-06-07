@@ -90,16 +90,29 @@ function drawContainers() {
   }
 }
 
+// When a capability is selected, draw only the edges touching it (and highlight
+// them); with nothing selected, draw every edge. Honoured by all redraw paths
+// (render, drag, reload) since it reads the module-level `selected`.
 function drawEdges(pos) {
   edgesSvg.innerHTML = '';
   if (!current) return;
   for (const e of current.g.edges) {
+    if (selected && e.from !== selected && e.to !== selected) continue;
     const a = pos[e.from], b = pos[e.to];
     if (!a || !b) continue;
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
     line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    if (selected) line.setAttribute('class', 'focus');
     edgesSvg.appendChild(line);
+  }
+}
+
+// Toggle the highlight ring on the selected capability's node (none when
+// `selected` is null).
+function highlightSelected() {
+  for (const el of canvas.querySelectorAll('.node')) {
+    el.classList.toggle('selected', el.dataset.slug === selected);
   }
 }
 
@@ -132,6 +145,8 @@ function openDetail(slug) {
   document.getElementById('detailBack').addEventListener('click', closeDetail);
   detail.hidden = false;
   panels.hidden = true;
+  highlightSelected();
+  drawEdges(current.pos);
   document.getElementById('featuresSection').innerHTML =
     '<h3 class="feat-h">Features</h3><p class="feat-empty">Loading…</p>';
   featureFiles = []; // drop the previous capability's data so it can't render during the load
@@ -142,6 +157,8 @@ function closeDetail() {
   selected = null;
   detail.hidden = true;
   panels.hidden = false;
+  highlightSelected();
+  if (current) drawEdges(current.pos);
 }
 
 async function loadFeatures(slug, context) {
@@ -267,6 +284,7 @@ function render(k) {
   current = { k, g, contextColor, contextName, pos };
   drawContainers();
   drawEdges(pos);
+  highlightSelected();
   applyTransform();
 
   const gTable = document.getElementById('glossary');
