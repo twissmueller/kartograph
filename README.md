@@ -40,7 +40,8 @@ Kartograph describes any application with ten terms (bilingual, *canonical (tran
 
 ## How it works
 
-Three human-invoked phases, each a checkpoint you wave through:
+Three core phases — Explore, Chart, Build — plus commands to view and maintain the map, each
+a checkpoint you wave through:
 
 | Phase | Command | What it does |
 | --- | --- | --- |
