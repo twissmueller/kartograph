@@ -52,3 +52,16 @@ test('a map that matches the analysis exactly produces no drift', () => {
     newCapabilities: [], newDependencies: [], missingCapabilities: [], missingDependencies: [], suggestExplore: [],
   });
 });
+
+test('suggests an existing still-coded capability that has no charted scenarios', () => {
+  const m = {
+    capabilities: {
+      coded: { name: 'Coded', context: 'c', definition: 'd', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+    },
+    dependencies: [],
+  };
+  const f = { affectedCapabilities: ['coded'], capabilityCandidates: [], dependencies: [] };
+  const r = mapDrift(m, f);
+  assert.ok(r.suggestExplore.includes('coded'));
+  assert.deepEqual(r.missingCapabilities, []); // it IS surfaced by the analysis, so not missing
+});
