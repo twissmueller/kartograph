@@ -27,17 +27,52 @@ const SCAN_SCHEMA = {
   properties: { notes: { type: 'string' } },
 };
 
-// Permissive: forces an OBJECT (not free text) with the core top-level keys.
-// Deep validation is done by scripts/validate-kartograph.js in the command.
+// Forces an OBJECT (not free text) with the core top-level keys, and pins the inner
+// shapes of the collections an LLM most often gets wrong by inventing German field
+// names (rules, glossary, subjects, actors, events) so the structured-output layer
+// rejects e.g. `definition`/`appliesToSubjects` on a rule or a `begriff` glossary type
+// and the agent must retry. Mirrors schemas/v1 — keep in sync. Deep cross-reference
+// validation still runs via scripts/validate-kartograph.js in the command.
+const SLUG = { type: 'string', pattern: '^[a-z0-9][a-z0-9-]*$' };
+const slugMapOf = (item) => ({ type: 'object', additionalProperties: item });
+const NAMED = {
+  type: 'object', additionalProperties: false,
+  required: ['name'],
+  properties: { name: { type: 'string' }, glossaryRef: SLUG },
+};
 const ASSEMBLE_SCHEMA = {
   type: 'object', additionalProperties: true,
   required: ['version', 'meta', 'contexts', 'capabilities'],
   properties: {
     version: { const: '1' },
     meta: { type: 'object' },
-    contexts: { type: 'object' }, capabilities: { type: 'object' },
-    subjects: { type: 'object' }, actors: { type: 'object' }, events: { type: 'object' },
-    rules: { type: 'object' }, glossary: { type: 'object' }, adrs: { type: 'object' },
+    contexts: { type: 'object' }, capabilities: { type: 'object' }, adrs: { type: 'object' },
+    subjects: slugMapOf({
+      type: 'object', additionalProperties: false,
+      required: ['name'],
+      properties: {
+        name: { type: 'string' }, glossaryRef: SLUG,
+        properties: { type: 'array', items: { type: 'string' } },
+        rules: { type: 'array', items: SLUG },
+      },
+    }),
+    actors: slugMapOf(NAMED),
+    events: slugMapOf(NAMED),
+    rules: slugMapOf({
+      type: 'object', additionalProperties: false,
+      required: ['name', 'statement'],
+      properties: { name: { type: 'string' }, statement: { type: 'string' }, subject: SLUG },
+    }),
+    glossary: slugMapOf({
+      type: 'object', additionalProperties: false,
+      required: ['term', 'definition', 'type'],
+      properties: {
+        term: { type: 'string' }, definition: { type: 'string' },
+        type: { enum: ['subjekt', 'capability', 'kontext', 'akteur', 'ereignis', 'regel', 'term'] },
+        aliasesToAvoid: { type: 'array', items: { type: 'string' } },
+        related: { type: 'array', items: SLUG },
+      },
+    }),
     dependencies: { type: 'array' },
   },
 };
@@ -71,7 +106,12 @@ ${JSON.stringify(domain, null, 2)}
 Links (dependencies + existing ADRs):
 ${JSON.stringify(links, null, 2)}
 
-Produce an object with these top-level keys: version ("1"), meta {name}, and slug-keyed objects contexts, capabilities, subjects, actors, events, rules, glossary, adrs, plus a dependencies array of {from,to}. Give EVERY context a distinct "color" (a #rrggbb hex string) so the map is readable — assign them in order from this palette, cycling if there are more than ten contexts: #33aa77, #7a6cff, #e2683c, #d9a521, #4f9dd6, #c0529b, #5bb26b, #b5573c, #8a7d4a, #6d6f78. Each capability must reference an existing context slug and carry a "derived" block {maturity, featureCount, scenarioCount}; set featureCount/scenarioCount to the REAL number of .feature files / tagged scenarios you found (0 when none exist — do not use 1 as a placeholder). Maturity MUST be consistent with those counts: featureCount 0 -> "vision"; features but scenarioCount 0 -> "sketched"; scenarioCount > 0 -> "building". NEVER "usable" or "stable" — those require charted @edge/@error scenarios and are earned later via /karto-chart, not declared here (a map that claims them with zero coverage is rejected by validation). Capabilities with nothing built use declaredStage "vision". Every dependency and reference must point at a slug that exists in the draft (no dangling references). Return ONLY the kartograph object.`,
+Produce an object with these top-level keys: version ("1"), meta {name}, and slug-keyed objects contexts, capabilities, subjects, actors, events, rules, glossary, adrs, plus a dependencies array of {from,to}.
+
+Use EXACTLY these English field names — never invent German equivalents:
+- rules: each entry is { name, statement, subject? } — the invariant goes in "statement" (NOT "definition"), and "subject" is a SINGLE subject slug (NOT "appliesToSubjects"; if a rule touches several subjects, pick the primary one and mention the others in the statement text).
+- glossary: each entry is { term, definition, type } where "type" is one of exactly: subjekt, capability, kontext, akteur, ereignis, regel, term (use "term" when unsure — never other words like "begriff").
+- subjects: each { name, glossaryRef?, properties?, rules? }; actors and events: each { name, glossaryRef? }. Give EVERY context a distinct "color" (a #rrggbb hex string) so the map is readable — assign them in order from this palette, cycling if there are more than ten contexts: #33aa77, #7a6cff, #e2683c, #d9a521, #4f9dd6, #c0529b, #5bb26b, #b5573c, #8a7d4a, #6d6f78. Each capability must reference an existing context slug and carry a "derived" block {maturity, featureCount, scenarioCount}; set featureCount/scenarioCount to the REAL number of .feature files / tagged scenarios you found (0 when none exist — do not use 1 as a placeholder). Maturity MUST be consistent with those counts: featureCount 0 -> "vision"; features but scenarioCount 0 -> "sketched"; scenarioCount > 0 -> "building". NEVER "usable" or "stable" — those require charted @edge/@error scenarios and are earned later via /karto-chart, not declared here (a map that claims them with zero coverage is rejected by validation). Capabilities with nothing built use declaredStage "vision". Every dependency and reference must point at a slug that exists in the draft (no dangling references). Return ONLY the kartograph object.`,
   { schema: ASSEMBLE_SCHEMA, label: 'assemble', phase: 'Assemble' }
 );
 

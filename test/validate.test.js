@@ -95,3 +95,17 @@ test('reconcile-style maturity (stable with features+scenarios) passes integrity
   doc.capabilities['start-here'].derived = { maturity: 'stable', featureCount: 2, scenarioCount: 6 };
   assert.ok(!checkReferentialIntegrity(doc).some(e => e.toLowerCase().includes('maturity')));
 });
+
+test('a rule with the wrong field names (definition/appliesToSubjects) is rejected', async () => {
+  const doc = await seed();
+  doc.rules = { 'bad-rule': { name: 'Bad', definition: 'x', appliesToSubjects: ['start-here'] } };
+  const result = await validateKartograph(doc);
+  assert.equal(result.valid, false, 'definition/appliesToSubjects must not validate');
+});
+
+test('a glossary entry with an out-of-enum type (begriff) is rejected', async () => {
+  const doc = await seed();
+  doc.glossary = { 'some-term': { term: 'X', definition: 'd', type: 'begriff' } };
+  const result = await validateKartograph(doc);
+  assert.equal(result.valid, false, 'type "begriff" is not in the enum');
+});

@@ -11,11 +11,16 @@ Optional focus subtree: `$ARGUMENTS`
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/init.js`
    - `args: { root: ".", scope: "<subtree from $ARGUMENTS, or omit>" }`
    For a very large repo, set `scope` to one subtree first to gauge cost, then widen.
-3. When it returns a draft map, **validate** it before writing:
+3. When it returns a draft map, **validate** it before writing — this step is mandatory, never
+   skip it:
    - Write the draft to a temp file, then run
      `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-kartograph.js <tempfile>`.
-   - If it fails (schema or referential integrity), show the errors and fix the draft; do not
-     write an invalid map.
+   - If it fails (schema or referential integrity), **fix the draft to match the schema and
+     re-run the validator until it passes** — do not write an invalid map. In particular,
+     correct any wrong field names (e.g. a rule must use `statement` + a single `subject`, not
+     `definition`/`appliesToSubjects`; a glossary `type` must be one of subjekt/capability/
+     kontext/akteur/ereignis/regel/term, never `begriff`). Only write `kartograph.json` once
+     the validator reports OK.
 4. If `kartograph.json` already exists and is **not** the seed map (its capabilities are more
    than just `start-here`), do **not** overwrite it without explicitly confirming with the
    user. Otherwise write the validated draft to `kartograph.json`.
