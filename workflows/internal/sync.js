@@ -8,6 +8,9 @@
 // contains. /karto-sync folds the additions into the map via applyDiscovery and
 // computes the missing-entry report via mapDrift. Maturity is never decided here.
 //
+// Returns the findings object directly (not wrapped in a discovery document). Callers
+// must wrap it as { findings: <return value> } before passing it to applyDiscovery.
+//
 // args: { root, scope?, mapPath? }
 
 export const meta = {
@@ -25,6 +28,8 @@ const NAMED = {
   required: ['slug', 'name'],
   properties: { slug: SLUG, name: { type: 'string' }, definition: { type: 'string' } },
 };
+// FINDINGS_SCHEMA — kept identical to the one in workflows/internal/discovery.js.
+// Workflow files cannot import, so the definition is duplicated; change both together.
 const FINDINGS_SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['subjects', 'events', 'actors', 'rules', 'affectedCapabilities', 'capabilityCandidates', 'glossaryAdditions', 'adrCandidates', 'placement'],
@@ -125,6 +130,7 @@ ${JSON.stringify(extracted, null, 2)}
 
 Tasks:
 - Move any capabilityCandidate that ALREADY exists in the map into affectedCapabilities instead (it is not new).
+- Merge near-duplicate glossaryAdditions into a single canonical term; record the rejected wordings under aliasesToAvoid. Do not duplicate glossary terms already in the map.
 - Ensure every remaining capabilityCandidate has a valid context slug and a matching placement entry.
 - Keep dependencies as { from, to } (optionally with a one-line reason). Use only capability slugs that exist in the map or appear in capabilityCandidates.
 
