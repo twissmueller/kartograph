@@ -35,8 +35,11 @@ Keep `kartograph.json` in sync with the codebase. Optional focus from `$ARGUMENT
    copy and `kartograph/decisions/*.md`.
 5. **Dependencies** (empty, `dependencies`, or `deps`): apply the
    **`karto-groom-dependencies`** skill to back-fill edge `reason`/`features`, then fold its
-   returned array into the working copy via `applyDiscovery` (same one-liner as step 2, but
-   with `dependencies:` set to that array and the other finding lists empty).
+   returned array into the working copy (the skill returns a `dependencies` array; wrap it in
+   a findings object whose other lists are empty):
+   ```bash
+   DEPS='<the skill dependencies array as JSON>' node -e "import('${CLAUDE_PLUGIN_ROOT}/workflows/lib/apply-discovery.js').then(m=>{const fs=require('fs');const map=JSON.parse(fs.readFileSync('kartograph.tmp.json'));const findings={subjects:[],events:[],actors:[],rules:[],affectedCapabilities:[],capabilityCandidates:[],glossaryAdditions:[],adrCandidates:[],placement:[],dependencies:JSON.parse(process.env.DEPS)};fs.writeFileSync('kartograph.tmp.json',JSON.stringify(m.applyDiscovery(map,{date:'',slug:'sync',conversationSummary:'',sources:{description:''},findings}),null,2)+'\n');})"
+   ```
 
 6. Show the user the full diff of `kartograph.tmp.json` vs `kartograph.json`, plus the drift
    report. Wait for approval.
