@@ -103,3 +103,20 @@ test('folds a dependency reason and keeps it on re-apply', () => {
   assert.equal(edges.length, 1);
   assert.equal(edges[0].reason, 'reads the next-due time');
 });
+
+test('unannotatedDependencies returns edges missing a reason or any features', async () => {
+  const { unannotatedDependencies } = await import('../workflows/lib/apply-discovery.js');
+  const map = { dependencies: [
+    { from: 'a', to: 'b', reason: 'r', features: ['x.feature'] }, // fully annotated
+    { from: 'a', to: 'c', features: ['y.feature'] },              // missing reason
+    { from: 'a', to: 'd', reason: 'r' },                          // missing features
+    { from: 'a', to: 'e' },                                       // bare
+  ] };
+  const todo = unannotatedDependencies(map).map((d) => d.to);
+  assert.deepEqual(todo, ['c', 'd', 'e']);
+});
+
+test('unannotatedDependencies on a map with no dependencies is empty', async () => {
+  const { unannotatedDependencies } = await import('../workflows/lib/apply-discovery.js');
+  assert.deepEqual(unannotatedDependencies({}), []);
+});
