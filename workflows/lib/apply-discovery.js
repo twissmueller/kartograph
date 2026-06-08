@@ -26,6 +26,7 @@ export function applyDiscovery(map, discovery) {
   const next = structuredClone(map);
   for (const c of COLLECTIONS) next[c] ||= {};
   next.dependencies ||= [];
+  next.openQuestions ||= [];
   const f = discovery.findings;
   const hasGlossary = new Set(f.glossaryAdditions.map((g) => g.slug));
 
@@ -77,6 +78,20 @@ export function applyDiscovery(map, discovery) {
     }
   }
   const norm = (s) => String(s).trim().toLowerCase();
+  // Open questions: questions the survey could not answer yet, stamped with the feature
+  // (survey) they arose from. Append-only, deduped on normalized question + feature slug,
+  // so re-charting the same survey adds nothing.
+  const feature = { slug: discovery.slug, description: discovery.sources.description };
+  for (const q of f.openQuestions || []) {
+    const exists = next.openQuestions.some(
+      (e) => e.feature.slug === feature.slug && norm(e.question) === norm(q.question),
+    );
+    if (!exists) {
+      const entry = { question: q.question, feature, date: discovery.date };
+      if (q.context) entry.context = q.context;
+      next.openQuestions.push(entry);
+    }
+  }
   for (const a of f.adrCandidates) {
     const exists = Object.values(next.adrs).some((x) => norm(x.title) === norm(a.title));
     if (!exists) {

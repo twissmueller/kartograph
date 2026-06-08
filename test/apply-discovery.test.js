@@ -104,6 +104,46 @@ test('folds a dependency reason and keeps it on re-apply', () => {
   assert.equal(edges[0].reason, 'reads the next-due time');
 });
 
+test('folds findings.openQuestions onto the map, stamped with the origin feature and date', () => {
+  const d = structuredClone(discovery);
+  d.findings.openQuestions = [
+    { question: 'How long do we retain logs?' },
+    { question: 'Who owns the schedule?', context: 'care' },
+  ];
+  const m = applyDiscovery(baseMap, d);
+  assert.equal(m.openQuestions.length, 2);
+  const q = m.openQuestions[0];
+  assert.equal(q.question, 'How long do we retain logs?');
+  assert.deepEqual(q.feature, { slug: 's', description: 'd' });
+  assert.equal(q.date, '2026-06-05');
+  assert.equal(q.context, undefined);
+  assert.equal(m.openQuestions[1].context, 'care');
+});
+
+test('open questions are idempotent — re-charting the same survey adds no duplicates', () => {
+  const d = structuredClone(discovery);
+  d.findings.openQuestions = [{ question: 'How long do we retain logs?' }];
+  const once = applyDiscovery(baseMap, d);
+  const twice = applyDiscovery(once, d);
+  assert.equal(twice.openQuestions.length, 1);
+});
+
+test('the same question text under a different feature is kept separate', () => {
+  const d1 = structuredClone(discovery);
+  d1.findings.openQuestions = [{ question: 'Who owns it?' }];
+  const d2 = structuredClone(discovery);
+  d2.slug = 'other';
+  d2.sources.description = 'Other feature';
+  d2.findings.openQuestions = [{ question: 'Who owns it?' }];
+  const m = applyDiscovery(applyDiscovery(baseMap, d1), d2);
+  assert.equal(m.openQuestions.length, 2);
+});
+
+test('a survey with no openQuestions leaves the map array empty', () => {
+  const m = applyDiscovery(baseMap, discovery);
+  assert.deepEqual(m.openQuestions, []);
+});
+
 test('unannotatedDependencies returns edges missing a reason or any features', async () => {
   const { unannotatedDependencies } = await import('../workflows/lib/apply-discovery.js');
   const map = { dependencies: [

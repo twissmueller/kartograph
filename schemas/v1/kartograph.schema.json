@@ -113,6 +113,26 @@
           "features": { "type": "array", "items": { "type": "string" } }
         }
       }
+    },
+    "openQuestions": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["question", "feature", "date"],
+        "properties": {
+          "question": { "type": "string", "minLength": 1 },
+          "feature": {
+            "type": "object", "additionalProperties": false,
+            "required": ["slug", "description"],
+            "properties": {
+              "slug": { "$ref": "#/$defs/slug" },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          },
+          "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+          "context": { "$ref": "#/$defs/slug" }
+        }
+      }
     }
   }
 }

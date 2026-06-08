@@ -39,6 +39,10 @@ As you go, actively:
   context**, and **the result of a real trade-off**. Otherwise it is a plain Feature, not an ADR.
 - **Locate it on the map.** Decide which existing Context/Capability the change touches, and
   whether it needs a new Capability candidate (born `vision`).
+- **Capture open questions.** When you raise a valid question the user cannot answer yet
+  (often a customer decision — retention, ownership, pricing, an external constraint), do not
+  loop on it: note it as an **open question** and move on. These are not failures — they are
+  the agenda for the next customer conversation.
 
 ## Hard rule — read-only
 
@@ -51,6 +55,8 @@ write.
 ## Output
 
 End by producing a tight **conversation summary** (what was discussed and decided, in prose)
-plus the raw feature description and any issue reference. The `/karto-explore` command hands
+plus the raw feature description and any issue reference. If any questions were left
+unanswered, list them verbatim under an **"Offene Fragen / Open questions"** heading at the
+end of the summary — the discovery workflow reads that section to record them on the map. The `/karto-explore` command hands
 these to the discovery workflow, which extracts the structured findings and writes the survey
 file `kartograph/surveys/<date>-<slug>.discovery.json`.

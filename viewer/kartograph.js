@@ -2,6 +2,7 @@ import { buildGraph } from '/lib/graph.js';
 import { aggregateMaturity, nodeBrightness, WEIGHTS, maturityLabel } from '/lib/maturity.js';
 import { autoPlaceGrouped, boundsForGroups, separateBoxes } from '/lib/layout.js';
 import { coverage, sortByScenarioCount, filterScenarios, parseDescription } from '/lib/features.js';
+import { groupQuestionsByFeature, countQuestions } from '/lib/questions.js';
 
 const canvas = document.getElementById('canvas');
 const world = document.getElementById('world');
@@ -334,6 +335,19 @@ function render(k) {
   const aTable = document.getElementById('adrs');
   aTable.innerHTML = Object.values(k.adrs ?? {})
     .map((a) => `<tr><td>${a.id}</td><td>${a.title}</td><td>${a.status}</td></tr>`).join('') || '<tr><td>—</td></tr>';
+
+  // Open questions, grouped by the feature (survey) they arose from — the list to walk
+  // through in a customer meeting.
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const qGroups = groupQuestionsByFeature(k.openQuestions);
+  const qCount = countQuestions(k.openQuestions);
+  document.getElementById('questionsCount').textContent = qCount ? `(${qCount})` : '';
+  document.getElementById('questions').innerHTML = qGroups.length
+    ? qGroups.map((g) => `<div class="q-feature"><h3 class="q-feature-h">${esc(g.description)}` +
+        `<small>${g.latestDate}</small></h3><ul class="q-list">` +
+        g.questions.map((q) => `<li>${esc(q.question)}</li>`).join('') +
+        `</ul></div>`).join('')
+    : '<p class="feat-empty">No open questions</p>';
 
   // Keep an open detail panel in sync after a live reload; close it if its
   // capability disappeared from the map.

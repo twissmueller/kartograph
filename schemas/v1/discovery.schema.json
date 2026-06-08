@@ -60,6 +60,14 @@
         "slug": { "$ref": "#/$defs/slug" },
         "context": { "$ref": "#/$defs/slug" }
       }
+    },
+    "openQuestion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["question"],
+      "properties": {
+        "question": { "type": "string", "minLength": 1 },
+        "context": { "$ref": "#/$defs/slug" }
+      }
     }
   },
   "type": "object",
@@ -102,7 +110,8 @@
               "features": { "type": "array", "items": { "type": "string" } }
             }
           }
-        }
+        },
+        "openQuestions": { "type": "array", "items": { "$ref": "#/$defs/openQuestion" } }
       }
     }
   }

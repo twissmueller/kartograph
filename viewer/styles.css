@@ -36,6 +36,16 @@ header .stats { color: var(--muted); font-size: 13px; }
 .acc.open > .acc-head::after { transform: rotate(180deg); }
 .acc-body { display: none; padding: 0 2px 12px; }
 .acc.open > .acc-body { display: block; }
+.acc-count { color: var(--muted); font-weight: 400; }
+
+/* Open Questions panel — grouped by feature (survey) */
+.q-feature { margin: 0 0 14px; }
+.q-feature:last-child { margin-bottom: 0; }
+.q-feature-h { font-size: 13px; text-transform: none; color: var(--ink); margin: 0 0 6px;
+  font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.q-feature-h small { color: var(--muted); font-size: 11px; font-weight: 400; flex: none; }
+.q-list { margin: 0; padding-left: 18px; }
+.q-list li { color: var(--ink); opacity: 0.9; font-size: 13px; margin: 3px 0; }
 .context-region { position: absolute; border: 1px solid #ffffff22; border-radius: 14px;
   background: #ffffff08; cursor: grab; }
 .context-region:hover { border-color: #ffffff3a; }

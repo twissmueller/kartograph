@@ -80,6 +80,30 @@ test('a dependency with a non-array features is rejected', async () => {
   assert.equal(ok, false);
 });
 
+test('a map may carry open questions stamped with their origin feature', async () => {
+  const ajv = await loadAjv();
+  const v = ajv.getSchema('https://kartograph.dev/schemas/v1/kartograph.schema.json');
+  const ok = v({
+    version: '1', meta: { name: 'X' },
+    contexts: { core: { name: 'Core', definition: 'd' } },
+    capabilities: {},
+    openQuestions: [
+      { question: 'Retention period?', feature: { slug: 'logs', description: 'Irrigation logs' }, date: '2026-06-08' },
+      { question: 'Owner?', feature: { slug: 'logs', description: 'Irrigation logs' }, date: '2026-06-08', context: 'core' },
+    ],
+  });
+  assert.equal(ok, true, JSON.stringify(v.errors));
+});
+
+test('an open question missing its feature or date is rejected', async () => {
+  const ajv = await loadAjv();
+  const v = ajv.getSchema('https://kartograph.dev/schemas/v1/kartograph.schema.json');
+  const base = { version: '1', meta: { name: 'X' }, contexts: { core: { name: 'Core', definition: 'd' } }, capabilities: {} };
+  assert.equal(v({ ...base, openQuestions: [{ question: 'Q?', date: '2026-06-08' }] }), false, 'no feature');
+  assert.equal(v({ ...base, openQuestions: [{ question: 'Q?', feature: { slug: 'a', description: 'A' } }] }), false, 'no date');
+  assert.equal(v({ ...base, openQuestions: [{ question: 'Q?', feature: { slug: 'a', description: 'A' }, date: 'June' }] }), false, 'bad date');
+});
+
 test('a dependency may carry a free-text reason', async () => {
   const ajv = await loadAjv();
   const v = ajv.getSchema('https://kartograph.dev/schemas/v1/kartograph.schema.json');

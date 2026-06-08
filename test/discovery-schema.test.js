@@ -65,6 +65,27 @@ test('validateDiscovery accepts a minimal doc and rejects a broken one', async (
   assert.ok(res.errors.length > 0);
 });
 
+test('findings.openQuestions is optional and shape-checked when present', async () => {
+  const v = await loadValidator();
+  // optional: minimal (no openQuestions key) still validates
+  assert.equal(v(minimal), true, JSON.stringify(v.errors));
+  // present and well-formed validates (with and without an optional context)
+  const ok = structuredClone(minimal);
+  ok.findings.openQuestions = [
+    { question: 'How long do we retain irrigation logs?' },
+    { question: 'Who owns the watering schedule?', context: 'watering' },
+  ];
+  assert.equal(v(ok), true, JSON.stringify(v.errors));
+  // empty question rejected
+  const empty = structuredClone(minimal);
+  empty.findings.openQuestions = [{ question: '' }];
+  assert.equal(v(empty), false);
+  // unknown property rejected
+  const extra = structuredClone(minimal);
+  extra.findings.openQuestions = [{ question: 'ok?', answer: 'no' }];
+  assert.equal(v(extra), false);
+});
+
 test('findings.dependencies is optional and shape-checked when present', async () => {
   const v = await loadValidator();
   // optional: minimal (no dependencies key) still validates
