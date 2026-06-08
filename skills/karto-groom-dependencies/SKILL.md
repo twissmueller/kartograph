@@ -1,7 +1,7 @@
 ---
 name: karto-groom-dependencies
 user-invocable: false
-description: Back-fill existing Kartograph dependency edges with a one-line reason and the justifying feature filenames, by reading the from-capability's scenarios. Flags edges no feature supports (possible stale dependency). Use on demand via /karto-groom.
+description: Back-fill existing Kartograph dependency edges with a one-line reason and the justifying feature filenames, by reading the from-capability's scenarios. Flags edges no feature supports (possible stale dependency). Use on demand via /karto-sync.
 ---
 
 # Karto-Groom-Dependencies
@@ -41,7 +41,7 @@ a `reason` nor `features`. This skill back-fills them from evidence already in t
 ## Output
 
 Return a `dependencies` findings array of the edges you enriched, each
-`{ from, to, reason?, features? }`. The `/karto-groom` command folds it into the map via
+`{ from, to, reason?, features? }`. The `/karto-sync` command folds it into the map via
 `applyDiscovery` (which dedups by `from+to`, unions `features`, and sets `reason`), then
 validates and writes atomically. Separately, list any edges you flagged as stale/undocumented
 so the user can decide whether to keep or remove them.

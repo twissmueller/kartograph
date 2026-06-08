@@ -49,6 +49,7 @@ Three human-invoked phases, each a checkpoint you wave through:
 | **Build** | `/karto-build <capability>` | Implement the open scenarios with double-loop TDD (Gherkin outer loop, unit-test inner loop). |
 | **Show** | `/karto-show` | Open the live viewer in your browser. |
 | **Init** | `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
+| **Sync** | `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
 
 Two ideas make it trustworthy:
 
@@ -145,7 +146,7 @@ Kartograph is built in milestones:
   and `karto-analyze-repo` skills, the discovery schema + validator, and the dynamic
   workflows. *(Schema and helpers are unit-tested; the live workflow behavior is verified by
   running the commands in Claude Code.)*
-- ✅ **M2 — chart**: `/karto-chart` and `/karto-groom`, the glossary/ADR grooming skills, the
+- ✅ **M2 — chart**: `/karto-chart` and `/karto-sync`, the glossary/ADR grooming skills, the
   chart workflow, and the deterministic discovery→map transform + maturity reconciliation from
   `.feature` files. *(Pure transforms are unit-tested; live charting is verified in Claude Code.)*
 - ✅ **M3 — build**: `/karto-build` with project-configured double-loop TDD, the build config

@@ -1,7 +1,7 @@
 ---
 name: karto-groom-adr
 user-invocable: false
-description: Create and maintain Kartograph ADRs — MADR-style decision records in kartograph/decisions, sequential numbering, supersession, the worthiness test, with kartograph.json adr metadata kept in sync. Use during /karto-chart or on demand via /karto-groom.
+description: Create and maintain Kartograph ADRs — MADR-style decision records in kartograph/decisions, sequential numbering, supersession, the worthiness test, with kartograph.json adr metadata kept in sync. Use during /karto-chart or on demand via /karto-sync.
 ---
 
 # Karto-Groom-ADR
@@ -54,5 +54,5 @@ filename without `.md` and must match the map key. Keep them identical.
 Propose the `adrs` **metadata** edits and the decision **text** for each ADR. The caller
 decides who writes the `.md` files: when invoked from `/karto-chart`, the chart workflow
 writes them (don't write them here — only propose metadata and text); when invoked from
-`/karto-groom`, write/adjust the `.md` files directly. Either way the caller validates the map
+`/karto-sync`, write/adjust the `.md` files directly. Either way the caller validates the map
 with `scripts/validate-kartograph.js` and writes `kartograph.json` atomically.

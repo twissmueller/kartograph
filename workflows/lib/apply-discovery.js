@@ -3,7 +3,7 @@ import { slugify } from './survey.js';
 const COLLECTIONS = ['contexts', 'capabilities', 'subjects', 'actors', 'events', 'rules', 'glossary', 'adrs'];
 
 // Dependency edges that still need grooming: missing a reason, or missing any justifying
-// features. Used by the dependency back-fill (/karto-groom dependencies) to target work.
+// features. Used by the dependency back-fill (/karto-sync deps) to target work.
 export function unannotatedDependencies(map) {
   return (map.dependencies || []).filter((d) => !d.reason || !(d.features && d.features.length));
 }

@@ -1,7 +1,7 @@
 ---
 name: karto-groom-glossary
 user-invocable: false
-description: Groom the Kartograph project glossary — enforce one canonical term per concept, list synonyms as aliasesToAvoid, flag ambiguities and collisions, keep definitions tight. Use during /karto-chart or on demand via /karto-groom.
+description: Groom the Kartograph project glossary — enforce one canonical term per concept, list synonyms as aliasesToAvoid, flag ambiguities and collisions, keep definitions tight. Use during /karto-chart or on demand via /karto-sync.
 ---
 
 # Karto-Groom-Glossary
@@ -33,6 +33,6 @@ object). The workflows guarantee the glossary's *structure*; this skill guarante
 ## Output
 
 Propose the groomed `glossary` object. You do **not** write `kartograph.json` yourself — the
-caller (`/karto-chart` or `/karto-groom`) applies your changes, validates with
+caller (`/karto-chart` or `/karto-sync`) applies your changes, validates with
 `scripts/validate-kartograph.js`, and writes atomically. Report the merges, splits, and new
 `aliasesToAvoid` entries you made.
