@@ -14,6 +14,7 @@ let current = null;   // { k, g, contextColor, contextName, pos }
 let selected = null;  // slug of the capability shown in the detail panel
 let featureFiles = [];                                          // parsed files for the open capability
 const featureFilters = { happy: true, edge: true, error: true, sortByCount: true };
+let showEdges = true;   // global toggle: hide all dependency edges (header button)
 
 // View transform (pan/zoom). World coords (layout, edges, regions) are unchanged;
 // this only maps world -> screen. Kept as module state so a live-reload re-render
@@ -99,7 +100,7 @@ function drawContainers() {
 // removing only the <line> elements.
 function drawEdges(pos) {
   for (const l of edgesSvg.querySelectorAll('line')) l.remove();
-  if (!current) return;
+  if (!current || !showEdges) return;
   // Target-node sizes in layout px (offset* is transform-independent) so an edge
   // can stop at the border of the capability it points to, leaving room for the
   // arrowhead, which the node box would otherwise cover.
@@ -462,6 +463,17 @@ document.getElementById('reset').addEventListener('click', async () => {
   layout = {};
   await saveLayout();
   reload();
+});
+
+// Toggle all dependency edges on/off. Pure view state — does not touch the map or layout,
+// so it survives live reloads (module state) and only redraws the edge layer.
+const toggleEdges = document.getElementById('toggleEdges');
+toggleEdges.addEventListener('click', () => {
+  showEdges = !showEdges;
+  toggleEdges.textContent = showEdges ? 'Hide edges' : 'Show edges';
+  toggleEdges.setAttribute('aria-pressed', String(!showEdges));
+  toggleEdges.classList.toggle('off', !showEdges);
+  if (current) drawEdges(current.pos);
 });
 
 // Wheel zooms toward the cursor; dragging empty canvas pans. Dragging a node or a

@@ -11,6 +11,7 @@ header .stats { color: var(--muted); font-size: 13px; }
 .reset { background: var(--panel); color: var(--muted); border: 1px solid #ffffff1f;
   border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12px; cursor: pointer; }
 .reset:hover { color: var(--ink); border-color: #ffffff33; }
+.reset.off { color: var(--ink); background: #ffffff14; border-color: #ffffff3d; }
 #canvas { position: relative; flex: 1; min-width: 0; border-radius: 10px;
   background: #15171b; overflow: hidden; cursor: grab; }
 #canvas.panning { cursor: grabbing; }
