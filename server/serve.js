@@ -74,7 +74,7 @@ export function createServer({ projectRoot, viewerDir }) {
       const isSlug = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(s);
       const isFeature = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*\.feature$/.test(s);
       const VALID = ['open', 'wip', 'test', 'done'];
-      if (!isSlug(p.context) || !isSlug(p.capability) || !isFeature(p.feature) || !p.scenario || !VALID.includes(p.progress)) {
+      if (!isSlug(p.context) || !isSlug(p.capability) || !isFeature(p.feature) || typeof p.scenario !== 'string' || !p.scenario || !VALID.includes(p.progress)) {
         res.writeHead(400); res.end('bad request'); return;
       }
       const filePath = join(projectRoot, 'features', p.context, p.capability, p.feature);
