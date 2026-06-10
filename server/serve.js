@@ -114,7 +114,7 @@ export function createServer({ projectRoot, viewerDir }) {
           for (const s of parsed.scenarios) {
             scenarios.push({
               capability: slug, capabilityName: cap.name || slug, context,
-              feature: name, name: s.name,
+              feature: name, featureName: parsed.feature || name, name: s.name,
               class: scenarioClass(s.tags), progress: scenarioProgress(s.tags),
             });
           }

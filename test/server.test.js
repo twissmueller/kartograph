@@ -229,8 +229,8 @@ test('GET /board aggregates scenarios across all capabilities with progress + cl
     assert.equal(scenarios.length, 2);
     const water = scenarios.find((s) => s.name === 'Water');
     assert.deepEqual(
-      { cap: water.capability, ctx: water.context, file: water.feature, cls: water.class, prog: water.progress },
-      { cap: 'watering', ctx: 'care', file: 'water.feature', cls: 'happy', prog: 'wip' });
+      { cap: water.capability, ctx: water.context, file: water.feature, fname: water.featureName, cls: water.class, prog: water.progress },
+      { cap: 'watering', ctx: 'care', file: 'water.feature', fname: 'Watering', cls: 'happy', prog: 'wip' });
     assert.equal(scenarios.find((s) => s.name === 'Rain').progress, 'done');
   } finally {
     server.close();

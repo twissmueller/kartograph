@@ -7,16 +7,20 @@ const COL_LABEL = { open: 'Open', wip: 'In Progress', test: 'Test', done: 'Done'
 
 let container = null;
 let getContextColor = () => ({});
-let onOpenScenario = () => {};
 let scenarios = [];
 const capFilter = new Set();   // empty = show all
 let dragging = null;           // the scenario object being dragged
 let lastDragEnd = 0;           // timestamp of the last dragend, to suppress the click it may emit
+let selectedKey = null;        // the clicked card, highlighted; stays put across re-renders
+
+// Stable identity for a scenario card: capability + feature file + scenario name.
+function cardKey(o) {
+  return `${o.capability}::${o.feature}::${o.scenario ?? o.name}`;
+}
 
 export function initBoard(opts) {
   container = opts.container;
   getContextColor = opts.getContextColor || getContextColor;
-  onOpenScenario = opts.onOpenScenario || onOpenScenario;
 }
 
 export async function loadBoard() {
@@ -44,20 +48,34 @@ function render() {
   const chips = caps.map(([slug, name]) =>
     `<button type="button" class="board-chip${capFilter.has(slug) ? ' on' : ''}" data-cap="${esc(slug)}">${esc(name)}</button>`).join('');
 
+  const card = (s) => {
+    const color = colors[s.context] || '#666666';
+    const cls = s.class ? `<span class="bc-cls">${esc(s.class)}</span>` : '';
+    const key = cardKey(s);
+    return `<div class="board-card${selectedKey === key ? ' selected' : ''}" draggable="true" style="border-left-color:${color}"
+      data-context="${esc(s.context)}" data-cap="${esc(s.capability)}"
+      data-feature="${esc(s.feature)}" data-scn="${esc(s.name)}" data-key="${esc(key)}">
+      <div class="bc-name">${esc(s.name)}</div>
+      <div class="bc-meta"><span class="bc-cap">${esc(s.capabilityName)}</span>${cls}</div>
+    </div>`;
+  };
+
   const colHtml = BOARD_COLUMNS.map((key) => {
-    const cards = cols[key].map((s) => {
-      const color = colors[s.context] || '#666666';
-      const cls = s.class ? `<span class="bc-cls">${esc(s.class)}</span>` : '';
-      return `<div class="board-card" draggable="true" style="border-left-color:${color}"
-        data-context="${esc(s.context)}" data-cap="${esc(s.capability)}"
-        data-feature="${esc(s.feature)}" data-scn="${esc(s.name)}">
-        <div class="bc-name">${esc(s.name)}</div>
-        <div class="bc-meta"><span class="bc-cap">${esc(s.capabilityName)}</span>${cls}</div>
-      </div>`;
-    }).join('') || '<div class="board-empty">—</div>';
+    // Within a column, group cards by their feature (capability + feature file), keeping
+    // first-seen order. The heading is the Feature: title (falls back to the filename).
+    const groups = new Map();
+    for (const s of cols[key]) {
+      const gkey = `${s.capability}::${s.feature}`;
+      if (!groups.has(gkey)) groups.set(gkey, { label: s.featureName || s.feature, cards: [] });
+      groups.get(gkey).cards.push(s);
+    }
+    const body = cols[key].length
+      ? [...groups.values()].map((g) =>
+          `<div class="board-group"><div class="board-group-h">${esc(g.label)}</div>${g.cards.map(card).join('')}</div>`).join('')
+      : '<div class="board-empty">—</div>';
     return `<div class="board-col" data-col="${key}">
       <div class="board-col-head"><span>${COL_LABEL[key]}</span><span>${cols[key].length}</span></div>
-      <div class="board-col-body">${cards}</div>
+      <div class="board-col-body">${body}</div>
     </div>`;
   }).join('');
 
@@ -86,7 +104,8 @@ function wireEvents() {
     card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragging = null; lastDragEnd = Date.now(); });
     card.addEventListener('click', () => {
       if (Date.now() - lastDragEnd < 200) return; // ignore the click an aborted drag can emit
-      onOpenScenario({ capability: card.dataset.cap, feature: card.dataset.feature });
+      selectedKey = card.dataset.key;            // highlight this card; stay on the board
+      for (const c of container.querySelectorAll('.board-card')) c.classList.toggle('selected', c === card);
     });
   }
   for (const col of container.querySelectorAll('.board-col')) {

@@ -545,10 +545,6 @@ async function boot() {
   initBoard({
     container: document.getElementById('board'),
     getContextColor: () => (current ? current.contextColor : {}),
-    onOpenScenario: ({ capability, feature }) => {
-      if (boardMode) document.getElementById('viewToggle').click(); // back to Map
-      openDetail(capability, feature);
-    },
   });
   // Click a justifying feature in depends-on / required-by to open its capability and
   // scroll to that feature's scenarios (the concrete "how" of the dependency).

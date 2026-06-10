@@ -162,6 +162,10 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
   border-radius: 6px; padding: 8px; cursor: grab; font-size: 13px; }
 .board-card:hover { border-color: #ffffff3d; }
 .board-card.dragging { opacity: 0.4; }
+.board-card.selected { border-color: #6ea8ff; box-shadow: 0 0 0 2px #6ea8ff55; }
+.board-group { display: flex; flex-direction: column; gap: 6px; }
+.board-group-h { font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.02em; padding: 2px 0; }
 .board-card .bc-name { color: var(--ink); }
 .board-card .bc-meta { display: flex; gap: 6px; margin-top: 5px; align-items: center; }
 .board-card .bc-cap { color: var(--muted); font-size: 11px; }
