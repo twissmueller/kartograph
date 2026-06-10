@@ -94,10 +94,13 @@ test('sync command wires the sync workflow by scriptPath', async () => {
   assert.match(src, /CLAUDE_PLUGIN_ROOT/);
 });
 
-test('build command leans on superpowers TDD and reads the project config', async () => {
+test('build command leans on superpowers TDD and works from the map, with no separate config', async () => {
   const src = await read('commands/karto-build.md');
   assert.match(src, /test-driven-development/);
-  assert.match(src, /kartograph\/config\.json/);
+  assert.match(src, /kartograph\.json/);
+  // The only files Kartograph keeps are kartograph.json + kartograph.layout.json; build
+  // must not depend on a separate config.json.
+  assert.doesNotMatch(src, /config\.json/);
 });
 
 test('plugin.json registers all commands and skills', async () => {

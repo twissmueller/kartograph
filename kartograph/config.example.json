@@ -1,8 +1,0 @@
-{
-  "language": "typescript",
-  "testCommand": "npm test",
-  "acceptanceCommand": "npm run cucumber",
-  "codeDir": "src",
-  "stepDefinitions": "features/steps",
-  "notes": "How .feature scenarios bind to step definitions and how to run unit vs acceptance tests."
-}
