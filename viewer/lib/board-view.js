@@ -11,6 +11,7 @@ let onOpenScenario = () => {};
 let scenarios = [];
 const capFilter = new Set();   // empty = show all
 let dragging = null;           // the scenario object being dragged
+let lastDragEnd = 0;           // timestamp of the last dragend, to suppress the click it may emit
 
 export function initBoard(opts) {
   container = opts.container;
@@ -82,8 +83,9 @@ function wireEvents() {
       };
       card.classList.add('dragging');
     });
-    card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragging = null; });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragging = null; lastDragEnd = Date.now(); });
     card.addEventListener('click', () => {
+      if (Date.now() - lastDragEnd < 200) return; // ignore the click an aborted drag can emit
       onOpenScenario({ capability: card.dataset.cap, feature: card.dataset.feature });
     });
   }
