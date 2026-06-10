@@ -78,6 +78,12 @@ npm run show                                # → http://127.0.0.1:4123
 Drag nodes to arrange them (positions are saved to `kartograph.layout.json`); edit
 `kartograph.json` and the page reloads itself.
 
+The viewer has two views, switched from the header: the **Map** (the capability graph) and
+the **Board** — a cross-capability Kanban of every scenario by progress (Open / In Progress /
+Test / Done). Drag a card between columns to set its `@wip`/`@test`/`@done` tag in the
+`.feature` file; click a card to jump to that capability. Progress is tracking-only and does
+not change derived maturity.
+
 Click a capability to open the **Feature Browser** in the side panel: read each of its
 features and scenarios with their full Gherkin steps, filter scenarios by path
 (`@happy` / `@edge` / `@error`), sort features by scenario count, and see at a glance — via
