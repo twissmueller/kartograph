@@ -99,7 +99,11 @@ const FINDINGS_SCHEMA = {
   },
 };
 
-const a = args || {};
+// `args` should arrive as an object. Tolerate a JSON-stringified object too — a common
+// mis-call of the Workflow tool that would otherwise yield empty args and a survey with
+// nothing in it (description/summary read as "(none provided)").
+let a = args || {};
+if (typeof a === 'string') { try { a = JSON.parse(a) || {}; } catch { a = {}; } }
 const mapPath = a.mapPath || 'kartograph.json';
 
 phase('Extract');

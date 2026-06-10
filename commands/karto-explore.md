@@ -24,6 +24,8 @@ files, or code. Its only output is a survey file you review before charting.
 5. Invoke the **Workflow** tool with:
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/discovery.js`
    - `args: { date, slug, description: "<the feature description>", conversationSummary: "<the summary>", mapPath: "kartograph.json" }` (add `issue` if one was referenced)
+   - Pass `args` as a real JSON **object**, never a JSON-stringified string — a stringified
+     payload reaches the workflow as one string and yields an empty survey.
 6. When it returns, **validate** the discovery document before saving it:
    - Write it to a temp file, then run
      `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-discovery.js <tempfile>`.

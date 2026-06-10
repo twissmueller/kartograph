@@ -96,7 +96,9 @@ const FINDINGS_SCHEMA = {
   },
 };
 
-const a = args || {};
+// Tolerate a JSON-stringified args object (a common Workflow mis-call), not just an object.
+let a = args || {};
+if (typeof a === 'string') { try { a = JSON.parse(a) || {}; } catch { a = {}; } }
 const root = a.root || '.';
 const where = a.scope ? `${root} (focus on the subtree: ${a.scope})` : root;
 const mapPath = a.mapPath || 'kartograph.json';
