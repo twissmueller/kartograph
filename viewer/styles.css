@@ -141,4 +141,31 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 .scn-tag.cls-error { background: #e2683c; }
 .scn-steps { display: none; margin: 0 0 8px; padding: 8px 10px; background: #00000033; border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; color: var(--ink); }
+
+/* Scenario board (Map | Board view) */
+#board { flex: 1; min-width: 0; display: none; flex-direction: column; overflow: hidden;
+  border-radius: 10px; background: var(--panel); padding: 12px; gap: 10px; }
+#board.show { display: flex; }
+.board-filter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.board-filter .flbl { color: var(--muted); font-size: 12px; margin-right: 4px; }
+.board-chip { background: #ffffff10; color: var(--ink); border: 1px solid #ffffff1f;
+  border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+.board-chip.on { background: #ffffff2e; border-color: #ffffff52; }
+.board-cols { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; min-height: 0; }
+.board-col { display: flex; flex-direction: column; background: #00000026; border-radius: 8px;
+  min-height: 0; }
+.board-col-head { font-size: 12px; text-transform: uppercase; color: var(--muted);
+  padding: 8px 10px; border-bottom: 1px solid #ffffff14; display: flex; justify-content: space-between; }
+.board-col-body { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.board-col.drop { outline: 2px dashed #6ea8ff80; outline-offset: -2px; }
+.board-card { background: var(--bg); border: 1px solid #ffffff1f; border-left-width: 4px;
+  border-radius: 6px; padding: 8px; cursor: grab; font-size: 13px; }
+.board-card:hover { border-color: #ffffff3d; }
+.board-card.dragging { opacity: 0.4; }
+.board-card .bc-name { color: var(--ink); }
+.board-card .bc-meta { display: flex; gap: 6px; margin-top: 5px; align-items: center; }
+.board-card .bc-cap { color: var(--muted); font-size: 11px; }
+.board-card .bc-cls { font-size: 10px; text-transform: uppercase; padding: 1px 5px; border-radius: 3px;
+  background: #ffffff1c; color: var(--muted); }
+.board-empty { color: var(--muted); font-size: 12px; padding: 8px; }
 .scn.open .scn-steps { display: block; }

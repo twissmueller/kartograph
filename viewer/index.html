@@ -10,6 +10,7 @@
   <header>
     <div><h1 id="title">Kartograph</h1><div class="stats" id="stats"></div></div>
     <div class="header-right">
+      <button type="button" id="viewToggle" class="reset">Board</button>
       <div class="stats" id="maturity"></div>
       <button type="button" id="toggleEdges" class="reset" aria-pressed="false">Hide edges</button>
       <button type="button" id="reset" class="reset">Reset layout</button>
@@ -24,6 +25,7 @@
                 markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6ea8ffcc" /></marker>
       </defs>
     </svg></div></div>
+    <div id="board" hidden></div>
     <aside id="sidebar">
       <button type="button" id="sidebarToggle" class="sidebar-toggle" title="Collapse panel" aria-label="Collapse panel">›</button>
       <div id="sidebarBody" class="sidebar-body">
