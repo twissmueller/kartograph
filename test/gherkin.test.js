@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseFeature, scenarioClass } from '../workflows/lib/gherkin.js';
-import { scenarioProgress, setScenarioProgress } from '../workflows/lib/gherkin.js';
+import { parseFeature, scenarioClass, scenarioProgress, setScenarioProgress } from '../workflows/lib/gherkin.js';
 
 const sample = `@watering
 Feature: Watering schedule

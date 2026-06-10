@@ -76,6 +76,8 @@ export function scenarioProgress(tags) {
 // becomes `progress` ('open'|'wip'|'test'|'done'). Existing progress tags are removed; class
 // tags (@happy/@edge/@error) and every other line are preserved. A scenario with no tag line
 // gains one (unless progress is 'open'). Returns the new file text. Pure — no IO.
+// Note: consecutive multi-line tag blocks above a scenario are collapsed into a single
+// tag line (the tags are preserved; only their line layout changes).
 export function setScenarioProgress(source, scenarioName, progress) {
   if (!(progress in PROGRESS_TAG)) throw new Error(`invalid progress: ${progress}`);
   const newTag = PROGRESS_TAG[progress];
