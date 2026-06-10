@@ -7,7 +7,7 @@ export const BOARD_COLUMNS = ['open', 'wip', 'test', 'done'];
 // Group scenarios into ordered columns keyed by their `progress` field (provided by the
 // server's GET /board). An unknown or missing progress falls into 'open'.
 export function boardColumns(scenarios) {
-  const cols = { open: [], wip: [], test: [], done: [] };
+  const cols = Object.fromEntries(BOARD_COLUMNS.map((c) => [c, []]));
   for (const s of scenarios || []) {
     (cols[s.progress] || cols.open).push(s);
   }
