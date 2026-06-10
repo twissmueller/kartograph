@@ -170,3 +170,33 @@ test('GET /features includes a Background block when present', async () => {
     server.close();
   }
 });
+
+test('GET /board aggregates scenarios across all capabilities with progress + class', async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), 'karto-'));
+  await writeFile(join(projectRoot, 'kartograph.json'), JSON.stringify({
+    version: '1', meta: { name: 'T' },
+    contexts: { care: { name: 'Care', definition: 'd' } },
+    capabilities: { watering: { name: 'Watering', context: 'care', definition: 'd' } },
+  }));
+  const dir = join(projectRoot, 'features', 'care', 'watering');
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, 'water.feature'),
+    `Feature: Watering\n\n  @happy @wip\n  Scenario: Water\n    Given a bed\n\n  @edge @done\n  Scenario: Rain\n    Given rain\n`);
+
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  const server = createServer({ projectRoot, viewerDir });
+  const port = await listen(server);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/board`);
+    assert.equal(res.status, 200);
+    const { scenarios } = await res.json();
+    assert.equal(scenarios.length, 2);
+    const water = scenarios.find((s) => s.name === 'Water');
+    assert.deepEqual(
+      { cap: water.capability, ctx: water.context, file: water.feature, cls: water.class, prog: water.progress },
+      { cap: 'watering', ctx: 'care', file: 'water.feature', cls: 'happy', prog: 'wip' });
+    assert.equal(scenarios.find((s) => s.name === 'Rain').progress, 'done');
+  } finally {
+    server.close();
+  }
+});
