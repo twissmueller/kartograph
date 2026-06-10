@@ -100,9 +100,12 @@ export function createServer({ projectRoot, viewerDir }) {
       try { map = JSON.parse(await readFile(join(projectRoot, 'kartograph.json'), 'utf8')); }
       catch { map = { capabilities: {} }; }
       // Every capability (even those with no scenarios) so the board can show and colour
-      // a chip for each — a scenario-less capability shows up red.
+      // a chip for each — a scenario-less capability shows up red. Plus the context list so
+      // the board can group the chips by context.
       const capabilities = Object.entries(map.capabilities || {})
-        .map(([slug, cap]) => ({ capability: slug, capabilityName: cap.name || slug }));
+        .map(([slug, cap]) => ({ capability: slug, capabilityName: cap.name || slug, context: cap.context }));
+      const contexts = Object.entries(map.contexts || {})
+        .map(([slug, ctx]) => ({ context: slug, name: ctx.name || slug, color: ctx.color }));
       const scenarios = [];
       for (const [slug, cap] of Object.entries(map.capabilities || {})) {
         const context = cap.context;
@@ -125,7 +128,7 @@ export function createServer({ projectRoot, viewerDir }) {
         }
       }
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ scenarios, capabilities }));
+      res.end(JSON.stringify({ scenarios, capabilities, contexts }));
       return;
     }
 

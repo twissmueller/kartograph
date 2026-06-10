@@ -211,7 +211,7 @@ test('GET /board aggregates scenarios across all capabilities with progress + cl
   const projectRoot = await mkdtemp(join(tmpdir(), 'karto-'));
   await writeFile(join(projectRoot, 'kartograph.json'), JSON.stringify({
     version: '1', meta: { name: 'T' },
-    contexts: { care: { name: 'Care', definition: 'd' } },
+    contexts: { care: { name: 'Care', definition: 'd', color: '#abc123' } },
     capabilities: {
       watering: { name: 'Watering', context: 'care', definition: 'd' },
       pruning: { name: 'Pruning', context: 'care', definition: 'd' },
@@ -228,18 +228,20 @@ test('GET /board aggregates scenarios across all capabilities with progress + cl
   try {
     const res = await fetch(`http://127.0.0.1:${port}/board`);
     assert.equal(res.status, 200);
-    const { scenarios, capabilities } = await res.json();
+    const { scenarios, capabilities, contexts } = await res.json();
     assert.equal(scenarios.length, 2);
     const water = scenarios.find((s) => s.name === 'Water');
     assert.deepEqual(
       { cap: water.capability, ctx: water.context, file: water.feature, fname: water.featureName, cls: water.class, prog: water.progress },
       { cap: 'watering', ctx: 'care', file: 'water.feature', fname: 'Watering', cls: 'happy', prog: 'wip' });
     assert.equal(scenarios.find((s) => s.name === 'Rain').progress, 'done');
-    // every capability is listed, including the scenario-less "pruning"
+    // every capability is listed (incl. the scenario-less "pruning"), each with its context
     assert.deepEqual(capabilities, [
-      { capability: 'watering', capabilityName: 'Watering' },
-      { capability: 'pruning', capabilityName: 'Pruning' },
+      { capability: 'watering', capabilityName: 'Watering', context: 'care' },
+      { capability: 'pruning', capabilityName: 'Pruning', context: 'care' },
     ]);
+    // the context list backs the chip grouping
+    assert.deepEqual(contexts, [{ context: 'care', name: 'Care', color: '#abc123' }]);
   } finally {
     server.close();
   }

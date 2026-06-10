@@ -1,7 +1,7 @@
 // DOM wiring for the scenario board. Pure grouping lives in board.js; this module fetches
 // /board, renders four columns of draggable cards with a capability filter, and writes a
 // card's new progress back via POST /board. No unit test (DOM) — verified by running the viewer.
-import { BOARD_COLUMNS, boardColumns, capabilityStatuses } from '/lib/board.js';
+import { BOARD_COLUMNS, boardColumns, capabilityStatuses, groupByContext } from '/lib/board.js';
 
 const COL_LABEL = { open: 'Open', wip: 'In Progress', test: 'Test', done: 'Done' };
 
@@ -9,7 +9,8 @@ let container = null;
 let getContextColor = () => ({});
 let onSelect = () => {};        // called with { capability, feature } when a card is clicked
 let scenarios = [];
-let capabilities = [];          // every capability [{ capability, capabilityName }], even scenario-less ones
+let capabilities = [];          // every capability [{ capability, capabilityName, context }], even scenario-less ones
+let contexts = [];              // [{ context, name, color }] for grouping the chips
 const capFilter = new Set();   // empty = show all
 let dragging = null;           // the scenario object being dragged
 let lastDragEnd = 0;           // timestamp of the last dragend, to suppress the click it may emit
@@ -32,7 +33,8 @@ export async function loadBoard() {
     const data = res.ok ? await res.json() : {};
     scenarios = data.scenarios || [];
     capabilities = data.capabilities || [];
-  } catch { scenarios = []; capabilities = []; }
+    contexts = data.contexts || [];
+  } catch { scenarios = []; capabilities = []; contexts = []; }
   render();
 }
 
@@ -51,13 +53,16 @@ function render() {
   // fall back to capabilities seen in scenarios if the server didn't send the list.
   const capList = capabilities.length
     ? capabilities
-    : [...new Map(scenarios.map((s) => [s.capability, s.capabilityName])).entries()]
-        .map(([capability, capabilityName]) => ({ capability, capabilityName }));
+    : [...new Map(scenarios.map((s) => [s.capability, [s.capabilityName, s.context]])).entries()]
+        .map(([capability, [capabilityName, context]]) => ({ capability, capabilityName, context }));
   const status = capabilityStatuses(scenarios, capList.map((c) => c.capability));
   const cols = boardColumns(visibleScenarios());
 
-  const chips = capList.map(({ capability, capabilityName }) =>
-    `<button type="button" class="board-chip cap-${status[capability] || 'red'}${capFilter.has(capability) ? ' on' : ''}" data-cap="${esc(capability)}">${esc(capabilityName)}</button>`).join('');
+  const chip = (c) =>
+    `<button type="button" class="board-chip cap-${status[c.capability] || 'red'}${capFilter.has(c.capability) ? ' on' : ''}" data-cap="${esc(c.capability)}">${esc(c.capabilityName)}</button>`;
+  // Group the chips by context, each context on its own labelled row.
+  const chips = groupByContext(capList, contexts).map((g) =>
+    `<div class="bf-group"><span class="bf-ctx"${g.color ? ` style="--ctx:${esc(g.color)}"` : ''}>${esc(g.name)}</span>${g.capabilities.map(chip).join('')}</div>`).join('');
 
   const card = (s) => {
     const color = colors[s.context] || '#666666';
@@ -91,7 +96,7 @@ function render() {
   }).join('');
 
   container.innerHTML = `
-    <div class="board-filter"><span class="flbl">Capability:</span>${chips || '<span class="board-empty">no capabilities</span>'}</div>
+    <div class="board-filter">${chips || '<span class="board-empty">no capabilities</span>'}</div>
     <div class="board-cols">${colHtml}</div>`;
   wireEvents();
 }

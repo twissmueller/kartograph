@@ -34,3 +34,24 @@ export function capabilityStatuses(scenarios, allCapabilities) {
   }
   return out;
 }
+
+// Group capabilities by their context for the board's filter bar. Contexts are ordered by the
+// given `contexts` list ([{ context, name, color }]); capabilities keep their order within a
+// context. A capability whose context is not in the list is grouped last under its own slug.
+// Returns [{ context, name, color, capabilities: [...] }].
+export function groupByContext(capabilities, contexts) {
+  const meta = Object.fromEntries((contexts || []).map((c) => [c.context, c]));
+  const byCtx = new Map();
+  for (const cap of capabilities || []) {
+    const key = cap.context ?? '';
+    if (!byCtx.has(key)) byCtx.set(key, []);
+    byCtx.get(key).push(cap);
+  }
+  const order = [...new Set([...(contexts || []).map((c) => c.context), ...byCtx.keys()])];
+  return order.filter((key) => byCtx.has(key)).map((key) => ({
+    context: key,
+    name: meta[key]?.name || key || 'Other',
+    color: meta[key]?.color,
+    capabilities: byCtx.get(key),
+  }));
+}

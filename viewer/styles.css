@@ -146,8 +146,11 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 #board { flex: 1; min-width: 0; display: none; flex-direction: column; overflow: hidden;
   border-radius: 10px; background: var(--panel); padding: 12px; gap: 10px; }
 #board.show { display: flex; }
-.board-filter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.board-filter .flbl { color: var(--muted); font-size: 12px; margin-right: 4px; }
+.board-filter { display: flex; flex-direction: column; gap: 6px; max-height: 30vh; overflow-y: auto; }
+.bf-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bf-ctx { display: inline-flex; align-items: center; gap: 6px; min-width: 150px; flex: none;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; font-weight: 600; color: var(--muted); }
+.bf-ctx::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ctx, #888); flex: none; }
 .board-chip { background: #ffffff10; color: var(--ink); border: 1px solid #ffffff1f;
   border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 12px; cursor: pointer; }
 /* Capability status: green = all scenarios done, yellow = some done, red = none done (or none exist) */

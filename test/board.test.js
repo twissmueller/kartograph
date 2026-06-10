@@ -1,6 +1,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BOARD_COLUMNS, boardColumns, capabilityStatuses } from '../viewer/lib/board.js';
+import { BOARD_COLUMNS, boardColumns, capabilityStatuses, groupByContext } from '../viewer/lib/board.js';
+
+test('groupByContext orders by the contexts list, preserves within-context order', () => {
+  const caps = [
+    { capability: 'a', context: 'care' },
+    { capability: 'b', context: 'admin' },
+    { capability: 'c', context: 'care' },
+  ];
+  const contexts = [{ context: 'admin', name: 'Admin', color: '#111' }, { context: 'care', name: 'Care' }];
+  const groups = groupByContext(caps, contexts);
+  assert.deepEqual(groups.map((g) => g.context), ['admin', 'care']);
+  assert.deepEqual(groups.map((g) => g.name), ['Admin', 'Care']);
+  assert.equal(groups[0].color, '#111');
+  assert.deepEqual(groups[1].capabilities.map((c) => c.capability), ['a', 'c']);
+});
+
+test('groupByContext puts capabilities with an unlisted context last, under their slug', () => {
+  const caps = [{ capability: 'x', context: 'ghost' }, { capability: 'y', context: 'care' }];
+  const groups = groupByContext(caps, [{ context: 'care', name: 'Care' }]);
+  assert.deepEqual(groups.map((g) => g.context), ['care', 'ghost']);
+  assert.equal(groups[1].name, 'ghost'); // falls back to the slug
+});
 
 test('capabilityStatuses: green=all done, yellow=some done, red=none done or no scenarios', () => {
   const scenarios = [
