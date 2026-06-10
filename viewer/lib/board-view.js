@@ -1,0 +1,118 @@
+// DOM wiring for the scenario board. Pure grouping lives in board.js; this module fetches
+// /board, renders four columns of draggable cards with a capability filter, and writes a
+// card's new progress back via POST /board. No unit test (DOM) — verified by running the viewer.
+import { BOARD_COLUMNS, boardColumns } from '/lib/board.js';
+
+const COL_LABEL = { open: 'Open', wip: 'In Progress', test: 'Test', done: 'Done' };
+
+let container = null;
+let getContextColor = () => ({});
+let onOpenScenario = () => {};
+let scenarios = [];
+const capFilter = new Set();   // empty = show all
+let dragging = null;           // the scenario object being dragged
+
+export function initBoard(opts) {
+  container = opts.container;
+  getContextColor = opts.getContextColor || getContextColor;
+  onOpenScenario = opts.onOpenScenario || onOpenScenario;
+}
+
+export async function loadBoard() {
+  try {
+    const res = await fetch('/board', { cache: 'no-store' });
+    scenarios = res.ok ? (await res.json()).scenarios || [] : [];
+  } catch { scenarios = []; }
+  render();
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+}
+
+function visibleScenarios() {
+  return capFilter.size ? scenarios.filter((s) => capFilter.has(s.capability)) : scenarios;
+}
+
+function render() {
+  if (!container) return;
+  const colors = getContextColor() || {};
+  const caps = [...new Map(scenarios.map((s) => [s.capability, s.capabilityName])).entries()];
+  const cols = boardColumns(visibleScenarios());
+
+  const chips = caps.map(([slug, name]) =>
+    `<button type="button" class="board-chip${capFilter.has(slug) ? ' on' : ''}" data-cap="${esc(slug)}">${esc(name)}</button>`).join('');
+
+  const colHtml = BOARD_COLUMNS.map((key) => {
+    const cards = cols[key].map((s) => {
+      const color = colors[s.context] || '#666666';
+      const cls = s.class ? `<span class="bc-cls">${esc(s.class)}</span>` : '';
+      return `<div class="board-card" draggable="true" style="border-left-color:${color}"
+        data-context="${esc(s.context)}" data-cap="${esc(s.capability)}"
+        data-feature="${esc(s.feature)}" data-scn="${esc(s.name)}">
+        <div class="bc-name">${esc(s.name)}</div>
+        <div class="bc-meta"><span class="bc-cap">${esc(s.capabilityName)}</span>${cls}</div>
+      </div>`;
+    }).join('') || '<div class="board-empty">—</div>';
+    return `<div class="board-col" data-col="${key}">
+      <div class="board-col-head"><span>${COL_LABEL[key]}</span><span>${cols[key].length}</span></div>
+      <div class="board-col-body">${cards}</div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="board-filter"><span class="flbl">Capability:</span>${chips || '<span class="board-empty">no capabilities</span>'}</div>
+    <div class="board-cols">${colHtml}</div>`;
+  wireEvents();
+}
+
+function wireEvents() {
+  for (const chip of container.querySelectorAll('.board-chip')) {
+    chip.addEventListener('click', () => {
+      const cap = chip.dataset.cap;
+      if (capFilter.has(cap)) capFilter.delete(cap); else capFilter.add(cap);
+      render();
+    });
+  }
+  for (const card of container.querySelectorAll('.board-card')) {
+    card.addEventListener('dragstart', () => {
+      dragging = {
+        context: card.dataset.context, capability: card.dataset.cap,
+        feature: card.dataset.feature, scenario: card.dataset.scn,
+      };
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragging = null; });
+    card.addEventListener('click', () => {
+      onOpenScenario({ capability: card.dataset.cap, feature: card.dataset.feature });
+    });
+  }
+  for (const col of container.querySelectorAll('.board-col')) {
+    col.addEventListener('dragover', (ev) => { ev.preventDefault(); col.classList.add('drop'); });
+    col.addEventListener('dragleave', () => col.classList.remove('drop'));
+    col.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      col.classList.remove('drop');
+      if (dragging) moveScenario(dragging, col.dataset.col);
+    });
+  }
+}
+
+async function moveScenario(card, progress) {
+  const s = scenarios.find((x) =>
+    x.capability === card.capability && x.feature === card.feature && x.name === card.scenario);
+  if (!s || s.progress === progress) return;
+  const prev = s.progress;
+  s.progress = progress;     // optimistic
+  render();
+  try {
+    const res = await fetch('/board', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...card, progress }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  } catch {
+    s.progress = prev;       // roll back
+    render();
+  }
+}

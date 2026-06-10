@@ -3,6 +3,7 @@ import { aggregateMaturity, nodeBrightness, WEIGHTS, maturityLabel } from '/lib/
 import { autoPlaceGrouped, boundsForGroups, separateBoxes } from '/lib/layout.js';
 import { coverage, sortByScenarioCount, filterScenarios, parseDescription } from '/lib/features.js';
 import { groupQuestionsByFeature, countQuestions } from '/lib/questions.js';
+import { initBoard, loadBoard } from '/lib/board-view.js';
 
 const canvas = document.getElementById('canvas');
 const world = document.getElementById('world');
@@ -15,6 +16,7 @@ let selected = null;  // slug of the capability shown in the detail panel
 let featureFiles = [];                                          // parsed files for the open capability
 const featureFilters = { happy: true, edge: true, error: true, sortByCount: true };
 let showEdges = true;   // global toggle: hide all dependency edges (header button)
+let boardMode = false;
 
 // View transform (pan/zoom). World coords (layout, edges, regions) are unchanged;
 // this only maps world -> screen. Kept as module state so a live-reload re-render
@@ -476,6 +478,21 @@ toggleEdges.addEventListener('click', () => {
   if (current) drawEdges(current.pos);
 });
 
+// Switch the main area between the graph (Map) and the scenario board (Board). View-only
+// module state; survives live reloads. Edge/reset controls are map-only, hidden on the board.
+const viewToggle = document.getElementById('viewToggle');
+const boardEl = document.getElementById('board');
+viewToggle.addEventListener('click', () => {
+  boardMode = !boardMode;
+  viewToggle.textContent = boardMode ? 'Map' : 'Board';
+  boardEl.hidden = !boardMode;
+  boardEl.classList.toggle('show', boardMode);
+  canvas.style.display = boardMode ? 'none' : '';
+  document.getElementById('toggleEdges').hidden = boardMode;
+  document.getElementById('reset').hidden = boardMode;
+  if (boardMode) loadBoard();
+});
+
 // Wheel zooms toward the cursor; dragging empty canvas pans. Dragging a node or a
 // context box is handled by their own pointer handlers, so panning only starts when
 // the gesture begins on the bare canvas/world (not on a node, region or label).
@@ -525,6 +542,14 @@ function wireSidebar() {
 async function boot() {
   wireSidebar();
   wireZoomPan();
+  initBoard({
+    container: document.getElementById('board'),
+    getContextColor: () => (current ? current.contextColor : {}),
+    onOpenScenario: ({ capability, feature }) => {
+      if (boardMode) document.getElementById('viewToggle').click(); // back to Map
+      openDetail(capability, feature);
+    },
+  });
   // Click a justifying feature in depends-on / required-by to open its capability and
   // scroll to that feature's scenarios (the concrete "how" of the dependency).
   detail.addEventListener('click', (ev) => {
@@ -535,6 +560,6 @@ async function boot() {
   layout = await loadJSON('/kartograph.layout.json', {});
   await reload();
   const es = new EventSource('/events');
-  es.onmessage = () => reload();
+  es.onmessage = () => { reload(); if (boardMode) loadBoard(); };
 }
 boot();
