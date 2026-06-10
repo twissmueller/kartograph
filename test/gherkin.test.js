@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseFeature, scenarioClass } from '../workflows/lib/gherkin.js';
+import { scenarioProgress, setScenarioProgress } from '../workflows/lib/gherkin.js';
 
 const sample = `@watering
 Feature: Watering schedule
@@ -103,4 +104,56 @@ test('parseFeature captures a structured Background block as shared steps', () =
 
 test('parseFeature leaves background undefined when there is no Background block', () => {
   assert.equal(parseFeature(sample).background, undefined);
+});
+
+test('scenarioProgress maps tags with precedence done > test > wip, else open', () => {
+  assert.equal(scenarioProgress([]), 'open');
+  assert.equal(scenarioProgress(['@happy']), 'open');
+  assert.equal(scenarioProgress(['@wip']), 'wip');
+  assert.equal(scenarioProgress(['@test']), 'test');
+  assert.equal(scenarioProgress(['@done']), 'done');
+  assert.equal(scenarioProgress(['@wip', '@test', '@done']), 'done');
+  assert.equal(scenarioProgress(['@wip', '@test']), 'test');
+});
+
+const FEATURE = `Feature: Watering
+
+  @happy @wip
+  Scenario: Water the bed
+    Given a bed
+    When I water it
+    Then it is wet
+
+  Scenario: Skip on rain
+    Given rain
+    Then watering is skipped
+`;
+
+test('setScenarioProgress swaps the progress tag and preserves class tags', () => {
+  const out = setScenarioProgress(FEATURE, 'Water the bed', 'test');
+  assert.match(out, /@happy @test\n {2}Scenario: Water the bed/);
+  assert.doesNotMatch(out, /@wip/);
+});
+
+test('setScenarioProgress to open removes the progress tag, keeping class tags', () => {
+  const out = setScenarioProgress(FEATURE, 'Water the bed', 'open');
+  assert.match(out, /@happy\n {2}Scenario: Water the bed/);
+  assert.doesNotMatch(out, /@wip/);
+});
+
+test('setScenarioProgress adds a tag line to a scenario that had none', () => {
+  const out = setScenarioProgress(FEATURE, 'Skip on rain', 'wip');
+  assert.match(out, /@wip\n {2}Scenario: Skip on rain/);
+  assert.match(out, /@happy @wip\n {2}Scenario: Water the bed/);
+});
+
+test('setScenarioProgress drops the tag line entirely when only a progress tag remains', () => {
+  const src = `Feature: F\n\n  @wip\n  Scenario: Solo\n    Given x\n`;
+  const out = setScenarioProgress(src, 'Solo', 'open');
+  assert.equal(out, `Feature: F\n\n  Scenario: Solo\n    Given x\n`);
+});
+
+test('setScenarioProgress throws on an unknown scenario or invalid progress', () => {
+  assert.throws(() => setScenarioProgress(FEATURE, 'Nope', 'wip'), /not found/);
+  assert.throws(() => setScenarioProgress(FEATURE, 'Water the bed', 'bogus'), /invalid progress/);
 });
