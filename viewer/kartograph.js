@@ -545,6 +545,9 @@ async function boot() {
   initBoard({
     container: document.getElementById('board'),
     getContextColor: () => (current ? current.contextColor : {}),
+    // Clicking a board card refreshes the sidebar detail for its capability+feature, while
+    // staying on the board (openDetail only writes the sidebar; it does not change the view).
+    onSelect: ({ capability, feature }) => openDetail(capability, feature),
   });
   // Click a justifying feature in depends-on / required-by to open its capability and
   // scroll to that feature's scenarios (the concrete "how" of the dependency).

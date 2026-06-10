@@ -7,6 +7,7 @@ const COL_LABEL = { open: 'Open', wip: 'In Progress', test: 'Test', done: 'Done'
 
 let container = null;
 let getContextColor = () => ({});
+let onSelect = () => {};        // called with { capability, feature } when a card is clicked
 let scenarios = [];
 const capFilter = new Set();   // empty = show all
 let dragging = null;           // the scenario object being dragged
@@ -21,6 +22,7 @@ function cardKey(o) {
 export function initBoard(opts) {
   container = opts.container;
   getContextColor = opts.getContextColor || getContextColor;
+  onSelect = opts.onSelect || onSelect;
 }
 
 export async function loadBoard() {
@@ -106,6 +108,7 @@ function wireEvents() {
       if (Date.now() - lastDragEnd < 200) return; // ignore the click an aborted drag can emit
       selectedKey = card.dataset.key;            // highlight this card; stay on the board
       for (const c of container.querySelectorAll('.board-card')) c.classList.toggle('selected', c === card);
+      onSelect({ capability: card.dataset.cap, feature: card.dataset.feature }); // refresh the detail pane
     });
   }
   for (const col of container.querySelectorAll('.board-col')) {
