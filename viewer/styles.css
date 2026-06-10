@@ -150,7 +150,12 @@ td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; 
 .board-filter .flbl { color: var(--muted); font-size: 12px; margin-right: 4px; }
 .board-chip { background: #ffffff10; color: var(--ink); border: 1px solid #ffffff1f;
   border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 12px; cursor: pointer; }
-.board-chip.on { background: #ffffff2e; border-color: #ffffff52; }
+/* Capability status: green = all scenarios done, yellow = some done, red = none done (or none exist) */
+.board-chip.cap-green { background: #2e7d4640; border-color: #5bb26b80; }
+.board-chip.cap-yellow { background: #9c7a1e40; border-color: #d4a13080; }
+.board-chip.cap-red { background: #9c393940; border-color: #e2683c80; }
+/* Selected filter: a ring, so the status colour still shows through */
+.board-chip.on { outline: 2px solid #6ea8ff; outline-offset: 1px; }
 .board-cols { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; min-height: 0; }
 .board-col { display: flex; flex-direction: column; background: #00000026; border-radius: 8px;
   min-height: 0; }

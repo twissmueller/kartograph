@@ -13,3 +13,24 @@ export function boardColumns(scenarios) {
   }
   return cols;
 }
+
+// Per-capability completion status from scenarios, as a slug -> status map:
+//   'green'  — every scenario is done
+//   'yellow' — some scenarios are done, but not all
+//   'red'    — no scenario is done (including capabilities with no scenarios at all)
+// `allCapabilities` is the full list of capability slugs so that ones with zero scenarios
+// are reported (as red).
+export function capabilityStatuses(scenarios, allCapabilities) {
+  const tally = {};
+  for (const slug of allCapabilities || []) tally[slug] = { total: 0, done: 0 };
+  for (const s of scenarios || []) {
+    const t = (tally[s.capability] ||= { total: 0, done: 0 });
+    t.total += 1;
+    if (s.progress === 'done') t.done += 1;
+  }
+  const out = {};
+  for (const [slug, { total, done }] of Object.entries(tally)) {
+    out[slug] = total > 0 && done === total ? 'green' : done > 0 ? 'yellow' : 'red';
+  }
+  return out;
+}

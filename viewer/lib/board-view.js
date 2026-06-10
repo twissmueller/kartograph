@@ -1,7 +1,7 @@
 // DOM wiring for the scenario board. Pure grouping lives in board.js; this module fetches
 // /board, renders four columns of draggable cards with a capability filter, and writes a
 // card's new progress back via POST /board. No unit test (DOM) — verified by running the viewer.
-import { BOARD_COLUMNS, boardColumns } from '/lib/board.js';
+import { BOARD_COLUMNS, boardColumns, capabilityStatuses } from '/lib/board.js';
 
 const COL_LABEL = { open: 'Open', wip: 'In Progress', test: 'Test', done: 'Done' };
 
@@ -9,6 +9,7 @@ let container = null;
 let getContextColor = () => ({});
 let onSelect = () => {};        // called with { capability, feature } when a card is clicked
 let scenarios = [];
+let capabilities = [];          // every capability [{ capability, capabilityName }], even scenario-less ones
 const capFilter = new Set();   // empty = show all
 let dragging = null;           // the scenario object being dragged
 let lastDragEnd = 0;           // timestamp of the last dragend, to suppress the click it may emit
@@ -28,8 +29,10 @@ export function initBoard(opts) {
 export async function loadBoard() {
   try {
     const res = await fetch('/board', { cache: 'no-store' });
-    scenarios = res.ok ? (await res.json()).scenarios || [] : [];
-  } catch { scenarios = []; }
+    const data = res.ok ? await res.json() : {};
+    scenarios = data.scenarios || [];
+    capabilities = data.capabilities || [];
+  } catch { scenarios = []; capabilities = []; }
   render();
 }
 
@@ -44,11 +47,17 @@ function visibleScenarios() {
 function render() {
   if (!container) return;
   const colors = getContextColor() || {};
-  const caps = [...new Map(scenarios.map((s) => [s.capability, s.capabilityName])).entries()];
+  // Chips come from the full capability list (so scenario-less capabilities show too);
+  // fall back to capabilities seen in scenarios if the server didn't send the list.
+  const capList = capabilities.length
+    ? capabilities
+    : [...new Map(scenarios.map((s) => [s.capability, s.capabilityName])).entries()]
+        .map(([capability, capabilityName]) => ({ capability, capabilityName }));
+  const status = capabilityStatuses(scenarios, capList.map((c) => c.capability));
   const cols = boardColumns(visibleScenarios());
 
-  const chips = caps.map(([slug, name]) =>
-    `<button type="button" class="board-chip${capFilter.has(slug) ? ' on' : ''}" data-cap="${esc(slug)}">${esc(name)}</button>`).join('');
+  const chips = capList.map(({ capability, capabilityName }) =>
+    `<button type="button" class="board-chip cap-${status[capability] || 'red'}${capFilter.has(capability) ? ' on' : ''}" data-cap="${esc(capability)}">${esc(capabilityName)}</button>`).join('');
 
   const card = (s) => {
     const color = colors[s.context] || '#666666';

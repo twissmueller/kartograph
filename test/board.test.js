@@ -1,6 +1,26 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BOARD_COLUMNS, boardColumns } from '../viewer/lib/board.js';
+import { BOARD_COLUMNS, boardColumns, capabilityStatuses } from '../viewer/lib/board.js';
+
+test('capabilityStatuses: green=all done, yellow=some done, red=none done or no scenarios', () => {
+  const scenarios = [
+    { capability: 'a', progress: 'done' },
+    { capability: 'a', progress: 'done' },
+    { capability: 'b', progress: 'done' },
+    { capability: 'b', progress: 'wip' },
+    { capability: 'c', progress: 'open' },
+  ];
+  const st = capabilityStatuses(scenarios, ['a', 'b', 'c', 'd']);
+  assert.equal(st.a, 'green');   // all done
+  assert.equal(st.b, 'yellow');  // some done
+  assert.equal(st.c, 'red');     // none done
+  assert.equal(st.d, 'red');     // no scenarios at all
+});
+
+test('capabilityStatuses on empty input is an empty map', () => {
+  assert.deepEqual(capabilityStatuses([], []), {});
+  assert.deepEqual(capabilityStatuses(undefined, undefined), {});
+});
 
 test('BOARD_COLUMNS is the four ordered progress states', () => {
   assert.deepEqual(BOARD_COLUMNS, ['open', 'wip', 'test', 'done']);
