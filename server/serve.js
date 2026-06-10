@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { createReadStream, watch } from 'node:fs';
 import { stat, readFile, writeFile, readdir } from 'node:fs/promises';
-import { parseFeature, scenarioClass, scenarioProgress } from '../workflows/lib/gherkin.js';
+import { parseFeature, scenarioClass, scenarioProgress, setScenarioProgress } from '../workflows/lib/gherkin.js';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -59,6 +59,37 @@ export function createServer({ projectRoot, viewerDir }) {
       } catch (e) {
         res.writeHead(400);
         res.end(String(e.message));
+      }
+      return;
+    }
+
+    // POST /board { context, capability, feature, scenario, progress } — set one scenario's
+    // progress tag in its .feature file. Mirrors POST /layout's write pattern.
+    if (url.pathname === '/board' && req.method === 'POST') {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      let p;
+      try { p = JSON.parse(body || '{}'); }
+      catch { res.writeHead(400); res.end('bad json'); return; }
+      const isSlug = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(s);
+      const isFeature = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*\.feature$/.test(s);
+      const VALID = ['open', 'wip', 'test', 'done'];
+      if (!isSlug(p.context) || !isSlug(p.capability) || !isFeature(p.feature) || !p.scenario || !VALID.includes(p.progress)) {
+        res.writeHead(400); res.end('bad request'); return;
+      }
+      const filePath = join(projectRoot, 'features', p.context, p.capability, p.feature);
+      let src;
+      try { src = await readFile(filePath, 'utf8'); }
+      catch { res.writeHead(404); res.end('feature not found'); return; }
+      let updated;
+      try { updated = setScenarioProgress(src, p.scenario, p.progress); }
+      catch (e) { res.writeHead(404); res.end(String(e.message)); return; }
+      try {
+        await writeFile(filePath, updated);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('{"ok":true}');
+      } catch (e) {
+        res.writeHead(500); res.end(String(e.message));
       }
       return;
     }

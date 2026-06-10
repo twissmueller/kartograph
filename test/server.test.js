@@ -171,6 +171,42 @@ test('GET /features includes a Background block when present', async () => {
   }
 });
 
+test('POST /board writes the progress tag to the scenario and nothing else', async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), 'karto-'));
+  await writeFile(join(projectRoot, 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T' } }));
+  const dir = join(projectRoot, 'features', 'care', 'watering');
+  await mkdir(dir, { recursive: true });
+  const file = join(dir, 'water.feature');
+  await writeFile(file, `Feature: Watering\n\n  @happy\n  Scenario: Water\n    Given a bed\n`);
+
+  const viewerDir = new URL('../viewer/', import.meta.url).pathname;
+  const server = createServer({ projectRoot, viewerDir });
+  const port = await listen(server);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/board`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: 'care', capability: 'watering', feature: 'water.feature', scenario: 'Water', progress: 'done' }),
+    });
+    assert.equal(res.status, 200);
+    const saved = await readFile(file, 'utf8');
+    assert.match(saved, /@happy @done\n {2}Scenario: Water/);
+
+    const bad = await fetch(`http://127.0.0.1:${port}/board`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: 'care', capability: 'watering', feature: 'water.feature', scenario: 'Water', progress: 'nope' }),
+    });
+    assert.equal(bad.status, 400);
+
+    const missing = await fetch(`http://127.0.0.1:${port}/board`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: 'care', capability: 'watering', feature: 'water.feature', scenario: 'Ghost', progress: 'wip' }),
+    });
+    assert.equal(missing.status, 404);
+  } finally {
+    server.close();
+  }
+});
+
 test('GET /board aggregates scenarios across all capabilities with progress + class', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'karto-'));
   await writeFile(join(projectRoot, 'kartograph.json'), JSON.stringify({
