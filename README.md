@@ -6,10 +6,12 @@
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/twissmueller)
 
 Kartograph is a [Claude Code](https://code.claude.com) plugin that keeps a **living map**
-of what your application does — its areas (Kontexte), its abilities (Capabilities), and how
-mature each one is. The map lives in your repo as a single JSON file, is rendered by a
-static, live-reloading viewer, and is grown through AI workflows that always keep a human in
-the loop. It gives you orientation — today, and after months away from the code.
+of what your application does. The map is built on a small, explicit **ontology** of your
+system, its behavior is captured as **executable specifications** (Gherkin scenarios in
+version control), and new code is grown with **double-loop TDD** — acceptance scenarios as
+the outer loop, unit tests as the inner loop. The map lives in your repo as a single
+validated JSON file, is rendered by a static, live-reloading viewer, and is grown through
+AI workflows that always keep a human at the checkpoints.
 
 ![The Kartograph viewer rendering a demo map](docs/assets/viewer.png)
 
@@ -17,49 +19,79 @@ the loop. It gives you orientation — today, and after months away from the cod
 
 ## Why
 
-Every codebase drifts. Six months later nobody remembers which features are solid, which are
-half-built, and *why* certain architectural choices were made. Kartograph turns that implicit
-knowledge into an explicit, validated, browsable map that you and the AI maintain as you work.
+Agentic AI assistants are extraordinary at writing code — and just as good at confidently
+drifting away from what you actually meant. The hard part of software was never typing; it
+is building a shared, precise understanding of the problem and keeping that understanding
+true over time. That part the AI cannot do for you — but it can be held to it.
 
-The mental model is cartography (cities, regions, roads) — but that metaphor stays in your
-head: the tool itself speaks plain domain language.
+Kartograph gives you and your AI assistant exactly that:
 
-## The vocabulary
+- **A shared language.** A ten-term ontology plus a project glossary, so "what the system
+  does" is stated in named, defined terms — not re-derived from the code on every prompt.
+- **Executable specifications.** Every behavior is a Gherkin scenario in version control:
+  deterministic, reviewable, and stable while implementations come and go. The scenario is
+  the contract the agent works against — a fitness function it iterates toward.
+- **A verifiable definition of done.** A capability's maturity is *computed* from its
+  acceptance scenarios, never claimed — not by the AI, and not by you.
 
-Kartograph describes any application with ten terms (bilingual, *canonical (translation)*):
+Six months later — or six prompts later — the map tells you which behaviors are specified,
+which are implemented, which are hardened with edge and error paths, and *why* the
+architecture is the way it is.
 
-**Akteur (Actor)** · **Capability (Fähigkeit)** · **Ereignis (Event)** ·
-**Feature (Funktion)** · **Glossar (Glossary)** · **Kontext (Context)** ·
-**Regel (Rule)** · **Subjekt (Subject)** · **Szenario (Scenario)** ·
-**ADR (Architecture Decision Record)**
+## The ontology
+
+Kartograph describes any application with ten terms:
+
+**Actor** · **Capability** · **Context** · **Event** · **Feature** ·
+**Glossary** · **Rule** · **Scenario** · **Subject** · **ADR**
 
 > *An application takes **Subjects** in and transforms them by **Rules** into other Subjects
 > or **Events**. **Capabilities** are the abilities to do that; **Features** are their
 > deliverable parts; **Scenarios** are concrete examples; **Actors** trigger them;
-> **Contexts** group everything into areas.*
+> **Contexts** group everything into areas; the **Glossary** pins down the words; **ADRs**
+> record why.*
 
-## How it works
+This is deliberately small. It is not a modeling exercise — it is the minimum structure an
+AI assistant needs to reason about your system without misunderstanding it, and the minimum
+a human needs to find their way around it. Everything is slug-keyed and cross-referenced,
+and every reference is checked: the ontology is a guardrail, not documentation.
 
-Three core phases — Explore, Chart, Build — plus commands to view and maintain the map, each
-a checkpoint you wave through:
+## The workflow: BDD with an agent in the loop
 
-| Phase | Command | What it does |
-| --- | --- | --- |
-| **Explore** | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + grill), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
-| **Chart** | `/karto-chart` | Record the approved survey onto the map: update `kartograph.json`, grow the glossary, write `.feature` scenarios, add ADRs. |
-| **Build** | `/karto-build <capability>` | Implement the open scenarios with double-loop TDD (Gherkin outer loop, unit-test inner loop). |
-| **Show** | `/karto-show` | Open the live viewer in your browser. |
-| **Init** | `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
-| **Sync** | `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
+Kartograph's three core phases line up with the three practices of BDD — **discovery**,
+**formulation**, **automation** — with a human checkpoint and deterministic validation
+between each:
 
-Two ideas make it trustworthy:
+| Phase | BDD practice | Command | What it does |
+| --- | --- | --- | --- |
+| **Explore** | Discovery | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + a converging interview), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
+| **Chart** | Formulation | `/karto-chart` | Record the approved survey onto the map: update `kartograph.json`, grow the glossary, write `.feature` scenarios in Gherkin, add ADRs. |
+| **Build** | Automation (ATDD) | `/karto-build <capability>` | Implement the open scenarios with **double-loop TDD**: the acceptance scenario is the outer loop, red–green–refactor unit testing is the inner loop. |
+
+The outer loop is what makes agentic development converge instead of drift: the agent's
+starting prompt *is* a set of acceptance criteria, it can self-verify against them, and the
+scenarios remain the stable truth in version control after the implementation has been
+rewritten three times.
+
+Three more commands view and maintain the map:
+
+| Command | What it does |
+| --- | --- |
+| `/karto-show` | Open the live viewer in your browser. |
+| `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
+| `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
+
+## Guardrails: what makes the map trustworthy
 
 - **Deterministic gates.** Every write is validated against a JSON Schema *and* a
   referential-integrity check (no dangling references), then swapped in atomically. A failed
-  write is a no-op — the map is never left half-written.
-- **Maturity is derived, never claimed.** A Capability's level is computed from its
+  write is a no-op — the map is never left half-written. The creative work is the LLM's;
+  the correctness is deterministic code's.
+- **Maturity is derived, never declared.** A Capability's level is computed from its
   `.feature` files, not hand-set: `vision` → `sketched` → `building` → `usable` → `stable`,
-  driven by how many scenario paths (`@happy`, `@edge`, `@error`) are covered.
+  driven by which scenario paths (`@happy`, `@edge`, `@error`) actually exist. `usable`
+  requires an edge path; `stable` requires edge *and* error. No scenario, no credit —
+  for humans and AI alike.
 
 ## Quickstart
 
