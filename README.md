@@ -20,11 +20,18 @@ AI workflows that always keep a human at the checkpoints.
 ## Why
 
 Agentic AI assistants are extraordinary at writing code — and just as good at confidently
-drifting away from what you actually meant. The hard part of software was never typing; it
-is building a shared, precise understanding of the problem and keeping that understanding
-true over time. That part the AI cannot do for you — but it can be held to it.
+drifting away from what you actually meant.
 
-Kartograph gives you and your AI assistant exactly that:
+For decades, the disciplined practices — TDD, ATDD, BDD — were the first thing squeezed
+out of a project: writing the code consumed all the time, money, and mental energy. So we
+started coding before our intent was clear, refactoring kept being postponed, and every
+time the client changed their mind the mess compounded. Bad code was rarely a typing
+problem; it was unclear intent, frozen into software.
+
+AI inverts those economics. Code is no longer the bottleneck — clarity is. The scarce
+skill now is laying your thoughts out in front of you, as a map, precisely enough to see
+where you want to go — and holding the AI to it. That is what Kartograph gives you and
+your AI assistant:
 
 - **A shared language.** A ten-term ontology plus a project glossary, so "what the system
   does" is stated in named, defined terms — not re-derived from the code on every prompt.
