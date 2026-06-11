@@ -33,9 +33,14 @@ files, or code. Its only output is a survey file you review before charting.
      not save an invalid survey.
 7. On success, save it to `kartograph/surveys/<date>-<slug>.discovery.json` (create the
    `kartograph/surveys/` directory if needed). This file is the append-only expedition log.
+8. Render a readable HTML view next to the JSON:
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/survey-to-html.js kartograph/surveys/<date>-<slug>.discovery.json`.
+   This writes `kartograph/surveys/<date>-<slug>.discovery.html` deterministically from the
+   JSON — a self-contained, structured survey you can open in a browser.
 
 ## Phase C — Handoff
 
-8. Summarize the findings for the user, then **pause and ask**: continue with `/karto-chart`
-   now, or review `kartograph/surveys/<date>-<slug>.discovery.json` first? Do not chart
-   automatically.
+9. Summarize the findings for the user, then **pause and ask**: continue with `/karto-chart`
+   now, or review the survey first? Point them at the readable
+   `kartograph/surveys/<date>-<slug>.discovery.html` (the `.discovery.json` next to it is the
+   canonical append-only log). Do not chart automatically.
