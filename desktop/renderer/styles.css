@@ -17,3 +17,13 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .project-side { width: 320px; border-left: 1px solid #2a2f37; overflow: auto; padding: 12px; }
 .error { padding: 24px; color: #ff9b9b; }
 .error pre { white-space: pre-wrap; background: #1b1e24; padding: 12px; border-radius: 6px; color: #ddd; }
+.map-canvas { position: absolute; inset: 0; overflow: auto; }
+.map-world { position: relative; width: 4000px; height: 3000px; }
+.map-node { position: absolute; width: 160px; min-height: 64px; padding: 8px 10px; border-radius: 8px; background: #262b33; border: 1px solid #3a4150; cursor: grab; display: flex; flex-direction: column; gap: 4px; user-select: none; }
+.map-node:active { cursor: grabbing; }
+.map-node span { color: #8a909a; font-size: 11px; }
+.map-node.maturity-vision { border-left: 4px solid #6b7280; }
+.map-node.maturity-sketched { border-left: 4px solid #a78bfa; }
+.map-node.maturity-building { border-left: 4px solid #3a86ff; }
+.map-node.maturity-usable { border-left: 4px solid #34d399; }
+.map-node.maturity-stable { border-left: 4px solid #10b981; }
