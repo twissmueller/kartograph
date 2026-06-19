@@ -1,7 +1,8 @@
 import http from 'node:http';
 import { createReadStream, watch } from 'node:fs';
 import { stat, readFile, writeFile, readdir } from 'node:fs/promises';
-import { parseFeature, scenarioClass, scenarioProgress, setScenarioProgress } from '../workflows/lib/gherkin.js';
+import { parseFeature, scenarioClass, setScenarioProgress } from '../workflows/lib/gherkin.js';
+import { buildBoard } from '../workflows/lib/board-data.js';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -96,39 +97,9 @@ export function createServer({ projectRoot, viewerDir }) {
 
     // GET /board — every scenario across every capability, with its progress + class.
     if (url.pathname === '/board' && req.method === 'GET') {
-      let map;
-      try { map = JSON.parse(await readFile(join(projectRoot, 'kartograph.json'), 'utf8')); }
-      catch { map = { capabilities: {} }; }
-      // Every capability (even those with no scenarios) so the board can show and colour
-      // a chip for each — a scenario-less capability shows up red. Plus the context list so
-      // the board can group the chips by context.
-      const capabilities = Object.entries(map.capabilities || {})
-        .map(([slug, cap]) => ({ capability: slug, capabilityName: cap.name || slug, context: cap.context }));
-      const contexts = Object.entries(map.contexts || {})
-        .map(([slug, ctx]) => ({ context: slug, name: ctx.name || slug, color: ctx.color }));
-      const scenarios = [];
-      for (const [slug, cap] of Object.entries(map.capabilities || {})) {
-        const context = cap.context;
-        if (!context) continue;
-        const dir = join(projectRoot, 'features', context, slug);
-        let names = [];
-        try { names = (await readdir(dir)).filter((n) => n.endsWith('.feature')).sort(); }
-        catch { continue; }
-        for (const name of names) {
-          let parsed;
-          try { parsed = parseFeature(await readFile(join(dir, name), 'utf8')); }
-          catch { continue; }
-          for (const s of parsed.scenarios) {
-            scenarios.push({
-              capability: slug, capabilityName: cap.name || slug, context,
-              feature: name, featureName: parsed.feature || name, name: s.name,
-              class: scenarioClass(s.tags), progress: scenarioProgress(s.tags),
-            });
-          }
-        }
-      }
+      const board = await buildBoard(projectRoot);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ scenarios, capabilities, contexts }));
+      res.end(JSON.stringify(board));
       return;
     }
 
