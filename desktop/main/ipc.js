@@ -1,10 +1,13 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import { ipcMain, dialog, BrowserWindow, app } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, extname } from 'node:path';
 import { buildBoard } from '../../workflows/lib/board-data.js';
 import { readCapabilityFeatures, listFeatureTree, isSlug, isFeatureName } from '../../workflows/lib/feature-read.js';
 import { setScenarioProgress } from '../../workflows/lib/gherkin.js';
 import { resolveProjectFromPicked, isSafeRelPath } from './project.js';
+import { loadSession, saveSession, addRecent } from './session.js';
+
+const sessionFile = () => join(app.getPath('userData'), 'session.json');
 
 const RAW_EXT = new Set(['.feature', '.json', '.md']);
 
@@ -53,5 +56,14 @@ export function registerIpc() {
   ipcMain.handle('save-layout', async (_e, root, layout) => {
     await writeFile(join(root, 'kartograph.layout.json'), JSON.stringify(layout, null, 2));
     return { ok: true };
+  });
+
+  ipcMain.handle('session:load', () => loadSession(sessionFile()));
+  ipcMain.handle('session:save', async (_e, state) => { await saveSession(sessionFile(), state); return { ok: true }; });
+  ipcMain.handle('session:add-recent', async (_e, root) => {
+    const s = await loadSession(sessionFile());
+    const recent = addRecent(s.recent, root);
+    await saveSession(sessionFile(), { ...s, recent });
+    return recent;
   });
 }

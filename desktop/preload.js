@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld('karto', {
   readRaw: (root, relPath) => ipcRenderer.invoke('read-raw', root, relPath),
   setBoardProgress: (p) => ipcRenderer.invoke('set-board-progress', p),
   saveLayout: (root, layout) => ipcRenderer.invoke('save-layout', root, layout),
+  loadSession: () => ipcRenderer.invoke('session:load'),
+  saveSession: (state) => ipcRenderer.invoke('session:save', state),
+  addRecent: (root) => ipcRenderer.invoke('session:add-recent', root),
   onFileChange: (cb) => ipcRenderer.on('file-change', (_e, root) => cb(root)),
   onMenuOpenProject: (cb) => ipcRenderer.on('menu:open-project', () => cb()),
 });
