@@ -1,0 +1,6 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; color: #e6e8ec; }
+#tabstrip { display: flex; gap: 2px; background: #0f1115; padding: 6px 6px 0; min-height: 38px; }
+#workspace { height: calc(100vh - 38px); overflow: hidden; position: relative; }
+.empty { color: #8a909a; padding: 24px; }
