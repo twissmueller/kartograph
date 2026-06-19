@@ -1,8 +1,9 @@
 import http from 'node:http';
 import { createReadStream, watch } from 'node:fs';
-import { stat, readFile, writeFile, readdir } from 'node:fs/promises';
-import { parseFeature, scenarioClass, setScenarioProgress } from '../workflows/lib/gherkin.js';
+import { stat, readFile, writeFile } from 'node:fs/promises';
+import { setScenarioProgress } from '../workflows/lib/gherkin.js';
 import { buildBoard } from '../workflows/lib/board-data.js';
+import { readCapabilityFeatures } from '../workflows/lib/feature-read.js';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -109,37 +110,14 @@ export function createServer({ projectRoot, viewerDir }) {
     const fm = /^\/features\/([^/]+)\/([^/]+)\/?$/.exec(url.pathname);
     if (fm && req.method === 'GET') {
       const [, context, slug] = fm;
-      const isSlug = (s) => /^[a-z0-9][a-z0-9-]*$/.test(s);
-      if (!isSlug(context) || !isSlug(slug)) {
-        res.writeHead(400);
-        res.end('bad request');
-        return;
-      }
-      const dir = join(projectRoot, 'features', context, slug);
-      let names = [];
-      try { names = (await readdir(dir)).filter((n) => n.endsWith('.feature')).sort(); }
-      catch { names = []; }
-      const files = [];
       try {
-        for (const name of names) {
-          const parsed = parseFeature(await readFile(join(dir, name), 'utf8'));
-          files.push({
-            file: name,
-            feature: parsed.feature,
-            description: parsed.description,
-            background: parsed.background,
-            scenarios: parsed.scenarios.map((s) => ({
-              name: s.name, tags: s.tags, class: scenarioClass(s.tags), steps: s.steps,
-            })),
-          });
-        }
+        const out = await readCapabilityFeatures(projectRoot, context, slug);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(out));
       } catch (e) {
-        res.writeHead(500);
-        res.end(String(e.message));
-        return;
+        res.writeHead(/invalid/.test(e.message) ? 400 : 500);
+        res.end(/invalid/.test(e.message) ? 'bad request' : String(e.message));
       }
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ files }));
       return;
     }
 
