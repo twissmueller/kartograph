@@ -37,3 +37,10 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .card.class-error { border-left-color: #ff6b6b; }
 .card-title { font-size: 13px; }
 .card-meta { color: #8a909a; font-size: 11px; margin-top: 4px; }
+.panel { margin-bottom: 16px; }
+.panel h2 { font-size: 12px; text-transform: uppercase; color: #8a909a; margin: 0 0 8px; }
+.panel table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.panel td { padding: 3px 4px; vertical-align: top; border-bottom: 1px solid #23272f; }
+.panel .muted { color: #6b7280; font-size: 12px; }
+.mat-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+.panel ul { margin: 0; padding-left: 18px; font-size: 12px; }
