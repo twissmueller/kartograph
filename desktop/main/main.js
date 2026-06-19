@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, ipcMain } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { registerIpc } from './ipc.js';
+import { registerIpc, closeAllWatchers } from './ipc.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -50,6 +50,8 @@ app.whenReady().then(() => {
   buildMenu();
   createWindow();
 });
+
+app.on('before-quit', () => closeAllWatchers());
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

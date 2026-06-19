@@ -14,4 +14,6 @@ contextBridge.exposeInMainWorld('karto', {
   addRecent: (root) => ipcRenderer.invoke('session:add-recent', root),
   onFileChange: (cb) => ipcRenderer.on('file-change', (_e, root) => cb(root)),
   onMenuOpenProject: (cb) => ipcRenderer.on('menu:open-project', () => cb()),
+  watchStart: (root) => ipcRenderer.invoke('watch:start', root),
+  watchStop: (root) => ipcRenderer.invoke('watch:stop', root),
 });

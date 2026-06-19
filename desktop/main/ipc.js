@@ -6,6 +6,9 @@ import { readCapabilityFeatures, listFeatureTree, isSlug, isFeatureName } from '
 import { setScenarioProgress } from '../../workflows/lib/gherkin.js';
 import { resolveProjectFromPicked, isSafeRelPath } from './project.js';
 import { loadSession, saveSession, addRecent } from './session.js';
+import { watchProject } from './watcher.js';
+
+const watchers = new Map(); // root -> { close }
 
 const sessionFile = () => join(app.getPath('userData'), 'session.json');
 
@@ -66,4 +69,23 @@ export function registerIpc() {
     await saveSession(sessionFile(), { ...s, recent });
     return recent;
   });
+
+  ipcMain.handle('watch:start', (event, root) => {
+    if (watchers.has(root)) return { ok: true };
+    const sender = event.sender;
+    watchers.set(root, watchProject(root, () => {
+      if (!sender.isDestroyed()) sender.send('file-change', root);
+    }));
+    return { ok: true };
+  });
+  ipcMain.handle('watch:stop', (_e, root) => {
+    watchers.get(root)?.close();
+    watchers.delete(root);
+    return { ok: true };
+  });
+}
+
+export function closeAllWatchers() {
+  for (const w of watchers.values()) w.close();
+  watchers.clear();
 }
