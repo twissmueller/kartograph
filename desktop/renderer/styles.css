@@ -27,3 +27,13 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .map-node.maturity-building { border-left: 4px solid #3a86ff; }
 .map-node.maturity-usable { border-left: 4px solid #34d399; }
 .map-node.maturity-stable { border-left: 4px solid #10b981; }
+.board { display: flex; gap: 12px; padding: 12px; height: 100%; align-items: flex-start; }
+.board-col { flex: 1; background: #1b1e24; border-radius: 8px; padding: 8px; min-height: 120px; }
+.board-col.drop { outline: 2px dashed #3a86ff; }
+.board-col h3 { margin: 4px 6px 10px; font-size: 12px; text-transform: uppercase; color: #8a909a; }
+.card { background: #262b33; border-radius: 6px; padding: 8px; margin-bottom: 8px; cursor: grab; border-left: 3px solid #6b7280; }
+.card.class-happy { border-left-color: #34d399; }
+.card.class-edge { border-left-color: #e0b341; }
+.card.class-error { border-left-color: #ff6b6b; }
+.card-title { font-size: 13px; }
+.card-meta { color: #8a909a; font-size: 11px; margin-top: 4px; }
