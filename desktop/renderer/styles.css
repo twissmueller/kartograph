@@ -19,7 +19,7 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .error pre { white-space: pre-wrap; background: #1b1e24; padding: 12px; border-radius: 6px; color: #ddd; }
 .map-canvas { position: absolute; inset: 0; overflow: auto; }
 .map-world { position: relative; width: 4000px; height: 3000px; }
-.map-node { position: absolute; width: 160px; min-height: 64px; padding: 8px 10px; border-radius: 8px; background: #262b33; border: 1px solid #3a4150; cursor: grab; display: flex; flex-direction: column; gap: 4px; user-select: none; }
+.map-node { position: absolute; width: 160px; min-height: 64px; padding: 8px 10px; border-radius: 8px; background: #262b33; border: 1px solid #3a4150; cursor: grab; display: flex; flex-direction: column; gap: 4px; user-select: none; transform: translate(-50%, -50%); }
 .map-node:active { cursor: grabbing; }
 .map-node span { color: #8a909a; font-size: 11px; }
 .map-node.maturity-vision { border-left: 4px solid #6b7280; }

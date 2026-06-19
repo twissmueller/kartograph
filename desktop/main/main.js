@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { registerIpc, closeAllWatchers } from './ipc.js';
@@ -13,13 +13,14 @@ function createWindow() {
     height: 900,
     title: 'Kartograph Desktop',
     webPreferences: {
-      preload: join(__dirname, '../preload.js'),
+      preload: join(__dirname, '../preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
   });
   win.loadFile(join(__dirname, '../renderer/index.html'));
+  win.on('closed', () => { win = null; });
 }
 
 function buildMenu() {
