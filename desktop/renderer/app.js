@@ -79,6 +79,9 @@ function renderWorkspace() {
     workspaceEl.querySelector('#retry').onclick = () => refreshTab(tab);
     return;
   }
+  // Not loaded yet: a tab is shown immediately on open, before refreshTab() fills
+  // tab.data. Render a placeholder rather than handing null data to a view.
+  if (!tab.data) { workspaceEl.innerHTML = '<p class="empty">Loading…</p>'; return; }
   // View switcher
   const bar = document.createElement('div');
   bar.className = 'viewbar';
@@ -98,8 +101,12 @@ function renderWorkspace() {
   layout.append(main, side);
   workspaceEl.appendChild(layout);
 
-  VIEWS[tab.view](main, tab);
-  renderSidebar(side, tab);
+  // Render the view and sidebar independently: a throw in one must not blank the
+  // other (and must surface, not fail silently).
+  try { VIEWS[tab.view](main, tab); }
+  catch (e) { main.innerHTML = '<div class="error"><p>Failed to render this view.</p><pre></pre></div>'; main.querySelector('pre').textContent = String(e && e.stack || e); }
+  try { renderSidebar(side, tab); }
+  catch (e) { side.innerHTML = '<p class="muted">Sidebar failed to render.</p>'; console.error(e); }
 }
 
 async function doOpen() {
