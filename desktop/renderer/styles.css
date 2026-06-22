@@ -17,8 +17,19 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .project-side { width: 320px; border-left: 1px solid #2a2f37; overflow: auto; padding: 12px; }
 .error { padding: 24px; color: #ff9b9b; }
 .error pre { white-space: pre-wrap; background: #1b1e24; padding: 12px; border-radius: 6px; color: #ddd; }
-.map-canvas { position: absolute; inset: 0; overflow: auto; }
-.map-world { position: relative; width: 4000px; height: 3000px; }
+.map-canvas { position: absolute; inset: 0; overflow: hidden; cursor: grab; }
+.map-canvas.panning { cursor: grabbing; }
+.map-world { position: relative; width: 1px; height: 1px; transform-origin: 0 0; }
+.context-region { position: absolute; border: 1px solid #555; border-radius: 14px; cursor: grab; }
+.context-region:hover { filter: brightness(1.25); }
+.context-label { position: absolute; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: grab; }
+.map-edges { position: absolute; inset: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+.map-edges line { stroke: #ffffff33; stroke-width: 1; }
+.map-edges line.focus { stroke: #6ea8ffcc; stroke-width: 1.5; }
+.map-node.selected { outline: 2px solid #6ea8ff; outline-offset: 2px; }
+.map-edges-toggle { position: absolute; top: 10px; right: 12px; z-index: 5; background: #262b33; color: #c2c7d0;
+  border: 1px solid #3a4150; border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; }
+.map-edges-toggle:hover { background: #2f353f; }
 .map-node { position: absolute; width: 160px; min-height: 64px; padding: 8px 10px; border-radius: 8px; background: #262b33; border: 1px solid #3a4150; cursor: grab; display: flex; flex-direction: column; gap: 4px; user-select: none; transform: translate(-50%, -50%); }
 .map-node:active { cursor: grabbing; }
 .map-node span { color: #8a909a; font-size: 11px; }
