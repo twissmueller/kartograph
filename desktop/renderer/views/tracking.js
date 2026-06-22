@@ -48,7 +48,10 @@ export function renderTracking(container, tab) {
   }
 
   // feature is a .feature filename (focus one feature) or null (whole capability).
-  const state = { context: null, capability: null, feature: null };
+  // Selection persists on the tab so a re-render (incl. the live-reload our own
+  // setBoardProgress write triggers via the .feature watcher) keeps the user's place.
+  if (!tab.trackingSel) tab.trackingSel = { context: null, capability: null, feature: null };
+  const state = tab.trackingSel;
   let loaded = null; // readFeatures result for the selected capability
 
   searchEl.oninput = render;
@@ -56,6 +59,7 @@ export function renderTracking(container, tab) {
   tagsEl.onchange = render;
 
   drawTree();
+  if (state.capability) load(); // restore the detail pane for the persisted selection
 
   // Left navigation: context (collapsible) -> capability (collapsible) -> feature, with
   // acceptance status dots/counts from the board data.
