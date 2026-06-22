@@ -1,7 +1,6 @@
 import { renderMap } from './views/map.js';
-import { renderBoard } from './views/board.js';
+import { renderTracking } from './views/tracking.js';
 import { renderSidebar } from './views/sidebar.js';
-import { renderFeatures } from './views/features.js';
 
 const tabs = [];           // { root, name, data, view, dirty, el, paneEl }
 let activeRoot = null;
@@ -9,7 +8,7 @@ let activeRoot = null;
 const stripEl = document.getElementById('tabstrip');
 const workspaceEl = document.getElementById('workspace');
 
-const VIEWS = { map: renderMap, board: renderBoard, features: renderFeatures };
+const VIEWS = { map: renderMap, tracking: renderTracking };
 
 async function loadProjectData(root) {
   const { map, layout } = await window.karto.readMap(root);
@@ -85,7 +84,7 @@ function renderWorkspace() {
   // View switcher
   const bar = document.createElement('div');
   bar.className = 'viewbar';
-  for (const key of ['map', 'board', 'features']) {
+  for (const key of ['map', 'tracking']) {
     const b = document.createElement('button');
     b.textContent = key[0].toUpperCase() + key.slice(1);
     b.className = tab.view === key ? 'active' : '';
