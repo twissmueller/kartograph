@@ -123,3 +123,8 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .fb-card { border: 1px solid #2a2f37; border-radius: 8px; margin-bottom: 14px; overflow: hidden; background: #16181d; }
 .fb-feat-head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; background: #1b1e24; border-bottom: 1px solid #2a2f37; font-weight: 600; }
 .fb-card-body { padding: 10px 12px; }
+
+/* Copyable locator IDs */
+.idchip { font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: #6b7280; background: #1b1e24; border: 1px solid #2a2f37; border-radius: 4px; padding: 0 5px; cursor: pointer; white-space: nowrap; user-select: none; }
+.idchip:hover { color: #c2c7d0; border-color: #3a4150; }
+.idchip.copied { color: #34d399; border-color: #34d399; }

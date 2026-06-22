@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow, app } from 'electron';
+import { ipcMain, dialog, BrowserWindow, app, clipboard } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, extname } from 'node:path';
 import { buildBoard } from '../../workflows/lib/board-data.js';
@@ -60,6 +60,8 @@ export function registerIpc() {
     await writeFile(join(root, 'kartograph.layout.json'), JSON.stringify(layout, null, 2));
     return { ok: true };
   });
+
+  ipcMain.handle('clipboard:write', (_e, text) => { clipboard.writeText(String(text ?? '')); return { ok: true }; });
 
   ipcMain.handle('session:load', () => loadSession(sessionFile()));
   ipcMain.handle('session:save', async (_e, state) => { await saveSession(sessionFile(), state); return { ok: true }; });

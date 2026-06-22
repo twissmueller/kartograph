@@ -16,4 +16,5 @@ contextBridge.exposeInMainWorld('karto', {
   onMenuOpenProject: (cb) => ipcRenderer.on('menu:open-project', () => cb()),
   watchStart: (root) => ipcRenderer.invoke('watch:start', root),
   watchStop: (root) => ipcRenderer.invoke('watch:stop', root),
+  copy: (text) => ipcRenderer.invoke('clipboard:write', text),
 });
