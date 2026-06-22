@@ -111,3 +111,16 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .fb-cap-name { flex: 1; }
 .fb-feat-head { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-weight: 600; border-bottom: 1px solid #23272f; padding-bottom: 4px; }
 .fb-scenario .seg { margin-top: 6px; }
+
+/* Tracking: capability rows, feature rows, and feature cards */
+.fb-cap-row { display: flex; align-items: center; gap: 2px; border-radius: 4px; }
+.fb-cap-row.active { background: #2b313b; }
+.fb-cap-row .bt-chevron { cursor: pointer; padding: 0 2px; }
+.fb-cap-row .fb-cap { width: auto; flex: 1; }
+.fb-feat { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; background: none; border: none; color: #b6bcc6; padding: 3px 8px 3px 30px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.fb-feat:hover { background: #262b33; }
+.fb-feat.active { background: #2b313b; color: #e6e8ec; }
+.fb-feat-name { flex: 1; }
+.fb-card { border: 1px solid #2a2f37; border-radius: 8px; margin-bottom: 14px; overflow: hidden; background: #16181d; }
+.fb-feat-head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; background: #1b1e24; border-bottom: 1px solid #2a2f37; font-weight: 600; }
+.fb-card-body { padding: 10px 12px; }

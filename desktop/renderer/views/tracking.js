@@ -11,7 +11,8 @@ const STATES = [
 ];
 
 export function renderTracking(container, tab) {
-  if (!tab.trackingCollapsed) tab.trackingCollapsed = new Set();
+  if (!tab.trackingCollapsed) tab.trackingCollapsed = new Set(); // collapsed CONTEXT keys (default open)
+  if (!tab.trackingCapsOpen) tab.trackingCapsOpen = new Set();   // expanded CAPABILITY keys (default closed)
   const root = tab.data.root;
 
   container.innerHTML = `
@@ -23,7 +24,7 @@ export function renderTracking(container, tab) {
           <label><input type="checkbox" class="fb-raw" /> Raw</label>
           <span class="fb-tags"></span>
         </div>
-        <div class="fb-content"><p class="muted">Pick a capability on the left.</p></div>
+        <div class="fb-content"><p class="muted">Pick a capability or feature on the left.</p></div>
       </div>
     </div>`;
 
@@ -39,8 +40,9 @@ export function renderTracking(container, tab) {
     tagsEl.appendChild(lbl);
   }
 
-  const state = { context: null, capability: null };
-  let loaded = null; // { files } for the selected capability
+  // feature is a .feature filename (focus one feature) or null (whole capability).
+  const state = { context: null, capability: null, feature: null };
+  let loaded = null; // readFeatures result for the selected capability
 
   searchEl.oninput = render;
   rawEl.onchange = load;
@@ -48,34 +50,63 @@ export function renderTracking(container, tab) {
 
   drawTree();
 
-  // Left navigation: collapsible context groups + capability rows, with acceptance
-  // status dots/counts from the board data. Selecting a capability loads its detail.
+  // Left navigation: context (collapsible) -> capability (collapsible) -> feature, with
+  // acceptance status dots/counts from the board data.
   function drawTree() {
     const board = tab.data.board || { scenarios: [], contexts: [], capabilities: [] };
     const tree = buildAcceptanceTree(board.scenarios, { contexts: board.contexts, capabilities: board.capabilities });
     const collapsed = tab.trackingCollapsed;
+    const capsOpen = tab.trackingCapsOpen;
     treeEl.innerHTML = '';
     for (const ctx of tree.contexts) {
       const ctxKey = `ctx:${ctx.context}`;
-      const open = !collapsed.has(ctxKey);
+      const ctxOpen = !collapsed.has(ctxKey);
       const cg = document.createElement('div');
       cg.className = 'fb-ctx';
       const head = document.createElement('div');
       head.className = 'fb-ctx-head';
-      head.innerHTML = `<span class="bt-chevron">${open ? '▾' : '▸'}</span>` +
+      head.innerHTML = `<span class="bt-chevron">${ctxOpen ? '▾' : '▸'}</span>` +
         `<span class="fb-ctx-name">${esc(ctx.name)}</span>` +
         `<span class="bt-meta">${dot(ctx.status)}<span class="bt-count">${ctx.doneCount}/${ctx.total}</span></span>`;
       head.onclick = () => { toggle(collapsed, ctxKey); drawTree(); };
       cg.appendChild(head);
-      if (open) {
-        for (const cap of ctx.capabilities) {
-          const active = state.context === ctx.context && state.capability === cap.capability;
-          const cb = document.createElement('button');
-          cb.className = 'fb-cap' + (active ? ' active' : '');
-          cb.innerHTML = `${dot(cap.status)}<span class="fb-cap-name">${esc(cap.name)}</span>` +
-            `<span class="bt-count">${cap.doneCount}/${cap.total}</span>`;
-          cb.onclick = () => { state.context = ctx.context; state.capability = cap.capability; drawTree(); load(); };
-          cg.appendChild(cb);
+      if (!ctxOpen) { treeEl.appendChild(cg); continue; }
+
+      for (const cap of ctx.capabilities) {
+        const capKey = `cap:${ctx.context}/${cap.capability}`;
+        const capOpen = capsOpen.has(capKey);
+        const capActive = state.context === ctx.context && state.capability === cap.capability && !state.feature;
+        const row = document.createElement('div');
+        row.className = 'fb-cap-row' + (capActive ? ' active' : '');
+        const chev = document.createElement('span');
+        chev.className = 'bt-chevron';
+        chev.textContent = capOpen ? '▾' : '▸';
+        chev.onclick = () => { toggle(capsOpen, capKey); drawTree(); };
+        const lbl = document.createElement('button');
+        lbl.className = 'fb-cap';
+        lbl.innerHTML = `${dot(cap.status)}<span class="fb-cap-name">${esc(cap.name)}</span>` +
+          `<span class="bt-count">${cap.doneCount}/${cap.total}</span>`;
+        lbl.onclick = () => {
+          state.context = ctx.context; state.capability = cap.capability; state.feature = null;
+          capsOpen.add(capKey); // selecting a capability also expands its feature list
+          drawTree(); load();
+        };
+        row.appendChild(chev); row.appendChild(lbl);
+        cg.appendChild(row);
+
+        if (capOpen) {
+          for (const f of cap.features) {
+            const fActive = state.context === ctx.context && state.capability === cap.capability && state.feature === f.feature;
+            const fb = document.createElement('button');
+            fb.className = 'fb-feat' + (fActive ? ' active' : '');
+            fb.innerHTML = `${dot(f.status)}<span class="fb-feat-name">${esc(f.featureName || f.feature)}</span>` +
+              `<span class="bt-count">${f.accepted}/${f.total}</span>`;
+            fb.onclick = () => {
+              state.context = ctx.context; state.capability = cap.capability; state.feature = f.feature;
+              drawTree(); load();
+            };
+            cg.appendChild(fb);
+          }
         }
       }
       treeEl.appendChild(cg);
@@ -93,15 +124,17 @@ export function renderTracking(container, tab) {
     return [...tagsEl.querySelectorAll('input:checked')].map((i) => i.value);
   }
 
-  // Detail: the selected capability's features with full Gherkin and a per-scenario
-  // state control. Search + tag filter narrow the visible scenarios.
+  // Detail: each feature as a bordered card (header: status dot + name + accepted/total),
+  // scenarios inside with a per-scenario state control. When a feature is selected, only
+  // that card shows. Search + tag filter narrow scenarios within the cards.
   function render() {
     if (rawEl.checked) return;
-    if (!loaded) { contentEl.innerHTML = '<p class="muted">Pick a capability on the left.</p>'; return; }
+    if (!loaded) { contentEl.innerHTML = '<p class="muted">Pick a capability or feature on the left.</p>'; return; }
     const q = searchEl.value.trim().toLowerCase();
     const tags = activeTags();
+    const files = state.feature ? loaded.files.filter((f) => f.file === state.feature) : loaded.files;
     contentEl.innerHTML = '';
-    for (const f of loaded.files) {
+    for (const f of files) {
       const scenarios = f.scenarios.filter((s) => {
         const tagOk = tags.every((t) => (s.tags || []).includes(t));
         const text = (s.name + ' ' + (s.steps || []).join(' ')).toLowerCase();
@@ -109,15 +142,17 @@ export function renderTracking(container, tab) {
       });
       if (!scenarios.length) continue;
       const accepted = f.scenarios.filter((s) => scenarioProgress(s.tags) === 'done').length;
-      const fe = document.createElement('article');
-      fe.className = 'fb-feature';
+      const card = document.createElement('article');
+      card.className = 'fb-card';
       const fhead = document.createElement('div');
       fhead.className = 'fb-feat-head';
-      fhead.innerHTML = `<span class="bt-name">${esc(f.feature || f.file)}</span>` +
+      fhead.innerHTML = `${dot(featStatus(f.scenarios))}<span class="bt-name">${esc(f.feature || f.file)}</span>` +
         `<span class="bt-meta"><span class="bt-count">${accepted}/${f.scenarios.length}</span></span>`;
-      fe.appendChild(fhead);
-      if (f.description) { const d = document.createElement('p'); d.className = 'fb-desc'; d.textContent = f.description; fe.appendChild(d); }
-      if (f.background) { const bg = document.createElement('pre'); bg.className = 'fb-bg'; bg.textContent = 'Background:\n' + f.background.join('\n'); fe.appendChild(bg); }
+      card.appendChild(fhead);
+      const body = document.createElement('div');
+      body.className = 'fb-card-body';
+      if (f.description) { const d = document.createElement('p'); d.className = 'fb-desc'; d.textContent = f.description; body.appendChild(d); }
+      if (f.background) { const bg = document.createElement('pre'); bg.className = 'fb-bg'; bg.textContent = 'Background:\n' + f.background.join('\n'); body.appendChild(bg); }
       for (const s of scenarios) {
         const se = document.createElement('div');
         se.className = `fb-scenario class-${s.class || 'none'}`;
@@ -136,21 +171,28 @@ export function renderTracking(container, tab) {
           seg.appendChild(b);
         }
         se.appendChild(seg);
-        fe.appendChild(se);
+        body.appendChild(se);
       }
-      contentEl.appendChild(fe);
+      card.appendChild(body);
+      contentEl.appendChild(card);
     }
     if (!contentEl.children.length) contentEl.innerHTML = '<p class="muted">No scenarios match.</p>';
   }
 
-  // Raw .feature source for the selected capability. File list comes from tab.data.tree
-  // (listFeatures), which includes every .feature file (even scenario-less ones).
+  // Raw .feature source: the selected feature's file, or all of the capability's files
+  // (from tab.data.tree, which lists every .feature file) when no single feature is selected.
   async function renderRaw() {
     contentEl.innerHTML = '<p class="muted">Loading…</p>';
-    const tree2 = (tab.data.tree?.contexts || []).find((c) => c.context === state.context);
-    const cap = tree2?.capabilities.find((c) => c.capability === state.capability);
+    let files;
+    if (state.feature) {
+      files = [state.feature];
+    } else {
+      const tree2 = (tab.data.tree?.contexts || []).find((c) => c.context === state.context);
+      const cap = tree2?.capabilities.find((c) => c.capability === state.capability);
+      files = cap?.files || [];
+    }
     const parts = [];
-    for (const file of (cap?.files || [])) {
+    for (const file of files) {
       const rel = `features/${state.context}/${state.capability}/${file}`;
       const { text } = await window.karto.readRaw(root, rel);
       parts.push(`<h4>${esc(file)}</h4><pre class="fb-rawpre">${esc(text)}</pre>`);
@@ -158,8 +200,8 @@ export function renderTracking(container, tab) {
     contentEl.innerHTML = parts.join('') || '<p class="muted">No files.</p>';
   }
 
-  // Write the scenario's tag, then re-fetch board (tree dots) + features (detail) and
-  // redraw in place — selection, collapse, search, tag filter, and raw toggle persist.
+  // Write the scenario's tag, then re-fetch board (tree dots) + features (detail) and redraw
+  // in place — selection (incl. feature), collapse, search, tag filter, and raw toggle persist.
   async function setState(ref, progress) {
     try {
       await window.karto.setBoardProgress({ root, ...ref, progress });
@@ -175,4 +217,14 @@ export function renderTracking(container, tab) {
 
 function dot(status) { return `<span class="dot dot-${status}"></span>`; }
 function toggle(set, key) { if (set.has(key)) set.delete(key); else set.add(key); }
+
+// Derive a feature's status from its scenarios' progress, mirroring buildAcceptanceTree's rule:
+// done = >=1 scenario and all done; untouched = no scenarios or all open; else progress.
+function featStatus(scenarios) {
+  if (!scenarios.length) return 'untouched';
+  const prog = scenarios.map((s) => scenarioProgress(s.tags));
+  if (prog.every((p) => p === 'done')) return 'done';
+  return prog.some((p) => p !== 'open') ? 'progress' : 'untouched';
+}
+
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
