@@ -47,16 +47,24 @@ export function renderTracking(container, tab) {
     tagsEl.appendChild(lbl);
   }
 
+  // Selection AND the control state (search/tags/raw) persist on the tab, so a
+  // re-render — including the live-reload our own setBoardProgress write triggers via
+  // the .feature watcher — keeps the user's place, filters, and search text.
   // feature is a .feature filename (focus one feature) or null (whole capability).
-  // Selection persists on the tab so a re-render (incl. the live-reload our own
-  // setBoardProgress write triggers via the .feature watcher) keeps the user's place.
   if (!tab.trackingSel) tab.trackingSel = { context: null, capability: null, feature: null };
+  if (!tab.trackingUI) tab.trackingUI = { search: '', tags: [], raw: false };
   const state = tab.trackingSel;
+  const ui = tab.trackingUI;
   let loaded = null; // readFeatures result for the selected capability
 
-  searchEl.oninput = render;
-  rawEl.onchange = load;
-  tagsEl.onchange = render;
+  // Restore the controls from the persisted UI state.
+  searchEl.value = ui.search;
+  rawEl.checked = ui.raw;
+  for (const box of tagsEl.querySelectorAll('input[type=checkbox]')) box.checked = ui.tags.includes(box.value);
+
+  searchEl.oninput = () => { ui.search = searchEl.value; render(); };
+  rawEl.onchange = () => { ui.raw = rawEl.checked; load(); };
+  tagsEl.onchange = () => { ui.tags = activeTags(); render(); };
 
   drawTree();
   if (state.capability) load(); // restore the detail pane for the persisted selection
