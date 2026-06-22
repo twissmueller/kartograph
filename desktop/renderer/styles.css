@@ -76,3 +76,31 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .fb-tags-line span { font-size: 10px; color: #8a909a; margin-right: 6px; }
 .fb-scn-name { font-weight: 600; margin: 4px 0; }
 .muted { color: #6b7280; }
+
+/* Board acceptance tree */
+.board-tree { padding: 12px 16px; overflow: auto; height: 100%; }
+.bt-ctx { margin-bottom: 14px; }
+.bt-ctx-head, .bt-cap-head { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.bt-ctx-head { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #8a909a; margin: 8px 0 6px; }
+.bt-cap-head { color: #e6e8ec; font-weight: 600; padding: 4px 0 4px 14px; }
+.bt-chevron { width: 12px; color: #8a909a; font-size: 10px; }
+.bt-meta { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.bt-count { color: #8a909a; font-size: 12px; }
+.bt-feature { margin: 4px 0 8px 28px; }
+.bt-feat-head { display: flex; align-items: center; gap: 8px; color: #c2c7d0; font-size: 13px; padding: 3px 0; border-bottom: 1px solid #23272f; }
+.bt-scenario { display: flex; align-items: center; gap: 8px; padding: 4px 0 4px 8px; }
+.bt-scenario .bt-name { flex: 1; font-size: 13px; }
+.bt-tag { width: 8px; height: 8px; border-radius: 2px; background: #6b7280; flex: none; }
+.bt-tag.class-happy { background: #34d399; }
+.bt-tag.class-edge { background: #e0b341; }
+.bt-tag.class-error { background: #ff6b6b; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; background: #6b7280; }
+.dot-untouched { background: #6b7280; }
+.dot-progress { background: #3a86ff; }
+.dot-done { background: #34d399; }
+.seg { display: inline-flex; border: 1px solid #3a4150; border-radius: 6px; overflow: hidden; flex: none; }
+.seg button { background: #1b1e24; color: #c2c7d0; border: none; border-right: 1px solid #3a4150; padding: 3px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+.seg button:last-child { border-right: none; }
+.seg button:hover { background: #262b33; }
+.seg button.active { background: #3a86ff; color: #fff; }
+.bt-empty { padding: 4px 0 4px 28px; font-size: 12px; }
