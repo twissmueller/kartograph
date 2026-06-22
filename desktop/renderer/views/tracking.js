@@ -20,6 +20,7 @@ export function renderTracking(container, tab) {
   container.innerHTML = `
     <div class="fb">
       <div class="fb-tree"></div>
+      <div class="fb-resizer" title="Drag to resize"></div>
       <div class="fb-main">
         <div class="fb-controls">
           <input class="fb-search" type="search" placeholder="Search scenarios…" />
@@ -35,6 +36,10 @@ export function renderTracking(container, tab) {
   const searchEl = container.querySelector('.fb-search');
   const rawEl = container.querySelector('.fb-raw');
   const tagsEl = container.querySelector('.fb-tags');
+  const resizerEl = container.querySelector('.fb-resizer');
+
+  applyTreeWidth(treeEl);
+  wireResizer(resizerEl, treeEl);
 
   for (const t of [...PATH_TAGS, ...PROGRESS_TAGS]) {
     const lbl = document.createElement('label');
@@ -220,6 +225,36 @@ export function renderTracking(container, tab) {
       alert('Could not update scenario: ' + (err && err.message || err));
     }
   }
+}
+
+const TREE_W_KEY = 'karto.trackingTreeWidth';
+const TREE_W_MIN = 160, TREE_W_MAX = 600;
+
+// Apply the saved tree width (persisted across restarts via localStorage).
+function applyTreeWidth(treeEl) {
+  const saved = Number(localStorage.getItem(TREE_W_KEY));
+  if (saved >= TREE_W_MIN && saved <= TREE_W_MAX) treeEl.style.width = saved + 'px';
+}
+
+// Drag the divider to resize the tree column (clamped); persist the width on release.
+function wireResizer(resizerEl, treeEl) {
+  resizerEl.onpointerdown = (e) => {
+    e.preventDefault();
+    resizerEl.setPointerCapture(e.pointerId);
+    const startX = e.clientX;
+    const startW = treeEl.getBoundingClientRect().width;
+    const move = (ev) => {
+      const w = Math.max(TREE_W_MIN, Math.min(TREE_W_MAX, startW + (ev.clientX - startX)));
+      treeEl.style.width = w + 'px';
+    };
+    const up = () => {
+      resizerEl.removeEventListener('pointermove', move);
+      resizerEl.removeEventListener('pointerup', up);
+      try { localStorage.setItem(TREE_W_KEY, String(Math.round(treeEl.getBoundingClientRect().width))); } catch { /* ignore */ }
+    };
+    resizerEl.addEventListener('pointermove', move);
+    resizerEl.addEventListener('pointerup', up);
+  };
 }
 
 function dot(status) { return `<span class="dot dot-${status}"></span>`; }

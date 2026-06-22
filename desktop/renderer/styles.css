@@ -56,7 +56,9 @@ body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #14161a; col
 .mat-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
 .panel ul { margin: 0; padding-left: 18px; font-size: 12px; }
 .fb { display: flex; height: 100%; }
-.fb-tree { width: 240px; border-right: 1px solid #2a2f37; overflow: auto; padding: 8px; }
+.fb-tree { width: 240px; flex: none; border-right: 1px solid #2a2f37; overflow: auto; padding: 8px; }
+.fb-resizer { flex: none; width: 5px; cursor: col-resize; background: transparent; }
+.fb-resizer:hover { background: #3a4150; }
 .fb-ctx-name { font-size: 11px; text-transform: uppercase; color: #8a909a; margin: 10px 4px 4px; }
 .fb-cap { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; background: none; border: none; color: #c2c7d0; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
 .fb-cap:hover { background: #262b33; }
