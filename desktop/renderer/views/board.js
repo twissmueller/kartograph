@@ -103,4 +103,4 @@ function header(cls, open, name, status, count, onToggle) {
 
 function dot(status) { return `<span class="dot dot-${status}"></span>`; }
 function toggle(set, key) { if (set.has(key)) set.delete(key); else set.add(key); }
-function esc(s) { return String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
