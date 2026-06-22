@@ -1,5 +1,7 @@
 import { buildAcceptanceTree } from '../../../viewer/lib/board.js';
 import { scenarioProgress } from '../../../workflows/lib/gherkin.js';
+import { contextId, capabilityId, featureId, scenarioId } from '../../../viewer/lib/ids.js';
+import { idChip } from '../idchip.js';
 
 const PATH_TAGS = ['@happy', '@edge', '@error'];
 const PROGRESS_TAGS = ['@wip', '@test', '@done'];
@@ -68,6 +70,7 @@ export function renderTracking(container, tab) {
       head.innerHTML = `<span class="bt-chevron">${ctxOpen ? '▾' : '▸'}</span>` +
         `<span class="fb-ctx-name">${esc(ctx.name)}</span>` +
         `<span class="bt-meta">${dot(ctx.status)}<span class="bt-count">${ctx.doneCount}/${ctx.total}</span></span>`;
+      head.appendChild(idChip(contextId(ctx.context)));
       head.onclick = () => { toggle(collapsed, ctxKey); drawTree(); };
       cg.appendChild(head);
       if (!ctxOpen) { treeEl.appendChild(cg); continue; }
@@ -86,6 +89,7 @@ export function renderTracking(container, tab) {
         lbl.className = 'fb-cap';
         lbl.innerHTML = `${dot(cap.status)}<span class="fb-cap-name">${esc(cap.name)}</span>` +
           `<span class="bt-count">${cap.doneCount}/${cap.total}</span>`;
+        lbl.appendChild(idChip(capabilityId(cap.capability)));
         lbl.onclick = () => {
           state.context = ctx.context; state.capability = cap.capability; state.feature = null;
           capsOpen.add(capKey); // selecting a capability also expands its feature list
@@ -101,6 +105,7 @@ export function renderTracking(container, tab) {
             fb.className = 'fb-feat' + (fActive ? ' active' : '');
             fb.innerHTML = `${dot(f.status)}<span class="fb-feat-name">${esc(f.featureName || f.feature)}</span>` +
               `<span class="bt-count">${f.accepted}/${f.total}</span>`;
+            fb.appendChild(idChip(featureId(cap.capability, f.feature)));
             fb.onclick = () => {
               state.context = ctx.context; state.capability = cap.capability; state.feature = f.feature;
               drawTree(); load();
@@ -148,6 +153,7 @@ export function renderTracking(container, tab) {
       fhead.className = 'fb-feat-head';
       fhead.innerHTML = `${dot(featStatus(f.scenarios))}<span class="bt-name">${esc(f.feature || f.file)}</span>` +
         `<span class="bt-meta"><span class="bt-count">${accepted}/${f.scenarios.length}</span></span>`;
+      fhead.appendChild(idChip(featureId(state.capability, f.file)));
       card.appendChild(fhead);
       const body = document.createElement('div');
       body.className = 'fb-card-body';
@@ -159,6 +165,7 @@ export function renderTracking(container, tab) {
         se.innerHTML = `<div class="fb-tags-line">${(s.tags || []).map((t) => `<span>${esc(t)}</span>`).join('')}</div>` +
           `<div class="fb-scn-name">${esc(s.name)}</div>` +
           `<pre>${esc((s.steps || []).join('\n'))}</pre>`;
+        se.querySelector('.fb-scn-name').appendChild(idChip(scenarioId(state.capability, f.file, s.name)));
         const cur = scenarioProgress(s.tags);
         const seg = document.createElement('span');
         seg.className = 'seg';

@@ -1,5 +1,7 @@
 import { markDirty } from '../app.js';
 import { autoPlaceGrouped, boundsForGroups } from '../../../viewer/lib/layout.js';
+import { contextId, capabilityId } from '../../../viewer/lib/ids.js';
+import { idChip } from '../idchip.js';
 
 const ZOOM_MIN = 0.2, ZOOM_MAX = 3;
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -48,6 +50,7 @@ export function renderMap(container, tab) {
     node.style.left = pos.x + 'px';
     node.style.top = pos.y + 'px';
     node.innerHTML = `<strong>${esc(cap.name)}</strong><span>${esc(cap.context || '')} · ${esc(cap.maturity)}</span>`;
+    node.appendChild(idChip(capabilityId(cap.slug)));
     makeNodeDraggable(node, cap.slug, positions, tab, drawContainers, drawEdges, setSelected);
     world.appendChild(node);
   }
@@ -117,6 +120,7 @@ export function renderMap(container, tab) {
       label.style.top = (b.y + 8) + 'px';
       label.style.color = tint(color, 0.95);
       label.textContent = contextName[ctx] || ctx;
+      label.appendChild(idChip(contextId(ctx)));
       // Behind the nodes so the cards stay on top, but interactive (draggable).
       world.insertBefore(region, firstNode);
       world.insertBefore(label, firstNode);
