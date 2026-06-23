@@ -22,6 +22,13 @@ async function openProjectByRoot(root, name, saved) {
   const tab = { root, name: name || root, data: null, view, dirty: false, error: null };
   if (saved && saved.sel) tab.trackingSel = saved.sel;   // restore Tracking selection across restarts
   if (saved && saved.ui) tab.trackingUI = saved.ui;      // restore Tracking search/tags/raw
+  if (saved && saved.map && saved.map.transform) {       // restore Map zoom/pan + selection + edges toggle
+    tab.mapView = saved.map.transform;
+    tab.mapShowEdges = saved.map.showEdges !== false;
+    tab.mapSelected = saved.map.selected ?? null;
+  }
+  if (saved && Array.isArray(saved.collapsed)) tab.trackingCollapsed = new Set(saved.collapsed); // restore tree collapse
+  if (saved && Array.isArray(saved.capsOpen)) tab.trackingCapsOpen = new Set(saved.capsOpen);
   tabs.push(tab);
   await window.karto.watchStart(root);
   await window.karto.addRecent(root);
@@ -117,7 +124,7 @@ async function doOpen() {
 }
 
 // Persist enough to restore the workspace verbatim on next launch: open projects (+order),
-// the active tab, and each tab's view + Tracking selection/filters.
+// the active tab, and each tab's view + Tracking selection/filters/collapse + Map view state.
 export function persistSession() {
   window.karto.saveSession({
     openRoots: tabs.map((t) => t.root),
@@ -126,8 +133,18 @@ export function persistSession() {
       view: t.view,
       sel: t.trackingSel || null,
       ui: t.trackingUI || null,
+      map: t.mapView ? { transform: t.mapView, showEdges: t.mapShowEdges !== false, selected: t.mapSelected ?? null } : null,
+      collapsed: t.trackingCollapsed ? [...t.trackingCollapsed] : null,  // Set -> array for JSON
+      capsOpen: t.trackingCapsOpen ? [...t.trackingCapsOpen] : null,
     }])),
   });
+}
+
+// Debounced variant for high-frequency map gestures (wheel zoom) so we don't write on every event.
+let _persistTimer = null;
+export function persistSessionSoon() {
+  clearTimeout(_persistTimer);
+  _persistTimer = setTimeout(persistSession, 400);
 }
 
 // Live reload: refresh the matching tab.

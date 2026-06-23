@@ -89,7 +89,7 @@ export function renderTracking(container, tab) {
         `<span class="fb-ctx-name">${esc(ctx.name)}</span>` +
         `<span class="bt-meta">${dot(ctx.status)}<span class="bt-count">${ctx.doneCount}/${ctx.total}</span></span>`;
       head.appendChild(idChip(contextId(ctx.context)));
-      head.onclick = () => { toggle(collapsed, ctxKey); drawTree(); };
+      head.onclick = () => { toggle(collapsed, ctxKey); drawTree(); persistSession(); };
       cg.appendChild(head);
       if (!ctxOpen) { treeEl.appendChild(cg); continue; }
 
@@ -102,7 +102,7 @@ export function renderTracking(container, tab) {
         const chev = document.createElement('span');
         chev.className = 'bt-chevron';
         chev.textContent = capOpen ? '▾' : '▸';
-        chev.onclick = () => { toggle(capsOpen, capKey); drawTree(); };
+        chev.onclick = () => { toggle(capsOpen, capKey); drawTree(); persistSession(); };
         const lbl = document.createElement('button');
         lbl.className = 'fb-cap';
         lbl.innerHTML = `${dot(cap.status)}<span class="fb-cap-name">${esc(cap.name)}</span>` +

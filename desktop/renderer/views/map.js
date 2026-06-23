@@ -1,4 +1,4 @@
-import { markDirty } from '../app.js';
+import { markDirty, persistSession, persistSessionSoon } from '../app.js';
 import { autoPlaceGrouped, boundsForGroups } from '../../../viewer/lib/layout.js';
 import { contextId, capabilityId } from '../../../viewer/lib/ids.js';
 import { idChip } from '../idchip.js';
@@ -20,6 +20,7 @@ export function renderMap(container, tab) {
   const caps = Object.entries(map.capabilities || {})
     .map(([slug, c]) => ({ slug, name: c.name || slug, context: c.context, maturity: (c.derived && c.derived.maturity) || 'vision' }));
   const capSet = new Set(caps.map((c) => c.slug));
+  if (tab.mapSelected && !capSet.has(tab.mapSelected)) tab.mapSelected = null; // drop a stale restored selection
   const edges = (Array.isArray(map.dependencies) ? map.dependencies : Object.values(map.dependencies || {}))
     .filter((d) => d && capSet.has(d.from) && capSet.has(d.to));
   const positions = autoPlaceGrouped(caps.map((c) => ({ slug: c.slug, context: c.context })), layout, {});
@@ -132,16 +133,17 @@ export function renderMap(container, tab) {
     tab.mapSelected = (tab.mapSelected === slug) ? null : slug;
     highlightSelected();
     drawEdges();
+    persistSession();
   }
   function highlightSelected() {
     for (const el of world.querySelectorAll('.map-node')) el.classList.toggle('selected', el.dataset.slug === tab.mapSelected);
   }
   function updateToggle() { toggleBtn.textContent = tab.mapShowEdges ? 'Hide edges' : 'Show edges'; }
 
-  toggleBtn.onclick = () => { tab.mapShowEdges = !tab.mapShowEdges; updateToggle(); drawEdges(); };
+  toggleBtn.onclick = () => { tab.mapShowEdges = !tab.mapShowEdges; updateToggle(); drawEdges(); persistSession(); };
 
   wireZoomPan(canvas, world, tab, () => { // click on empty canvas clears the selection
-    if (tab.mapSelected !== null) { tab.mapSelected = null; highlightSelected(); drawEdges(); }
+    if (tab.mapSelected !== null) { tab.mapSelected = null; highlightSelected(); drawEdges(); persistSession(); }
   });
 }
 
@@ -165,6 +167,7 @@ function wireZoomPan(canvas, world, tab, onBareClick) {
       v.x -= ev.deltaX; v.y -= ev.deltaY;
     }
     apply();
+    persistSessionSoon(); // wheel has no end event — debounce the save
   }, { passive: false });
 
   let px = null, panMoved = false;
@@ -183,6 +186,7 @@ function wireZoomPan(canvas, world, tab, onBareClick) {
   });
   const end = () => {
     if (px && !panMoved) onBareClick();
+    else if (px && panMoved) persistSession(); // save the final pan position
     px = null; canvas.classList.remove('panning');
   };
   canvas.addEventListener('pointerup', end);
