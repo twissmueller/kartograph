@@ -104,6 +104,12 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   (`@happy`/`@edge`/`@error`) plus an optional progress tag (`@wip`/`@test`/`@done`). Path tags
   feed maturity; progress tags are tracking-only (the Board) and never change maturity.
   `workflows/lib/gherkin.js` parses these.
+- **Scenarios are user-walkable, not technical.** Features and scenarios are written for a
+  non-technical stakeholder to walk through and confirm in front of the running system: plain
+  domain language (glossary terms), only observable behaviour (Given = recognisable situation,
+  When = user action, Then = confirmable outcome), and **no leaked implementation detail**
+  (no DBs, endpoints, status codes, function/file names, internal IDs, frameworks). The authoring
+  rules live in `workflows/internal/chart.js`.
 - **Tests gate the pure layer only.** Live command/workflow behavior is verified by running
   the commands in Claude Code, not by the suite — keep the deterministic transforms covered by
   `node:test`.

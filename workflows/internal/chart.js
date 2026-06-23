@@ -33,11 +33,23 @@ write a Gherkin .feature file at:
 (create directories as needed).
 
 Rules:
+- Write for a NON-TECHNICAL stakeholder. Anyone sitting in front of the running system — with
+  little prior knowledge — must be able to walk through each scenario by hand and confirm it.
+  Feature and scenario titles, and every step, use plain DOMAIN language (the project glossary's
+  canonical terms — read them from the map), never developer jargon.
+- Describe ONLY observable behaviour — what an actor does and what they can see or get back.
+  Given = a situation the user can recognise; When = an action the user takes; Then = an outcome
+  the user can directly observe and confirm.
+- NO internal/implementation detail may leak. Do not mention databases/tables/columns, API
+  endpoints or HTTP status codes, function/class/file names, internal IDs, queues, env vars, log
+  entries, frameworks, or code structure. If a step cannot be observed and confirmed by the
+  person at the screen, rewrite it in terms of what they can.
 - Every Scenario MUST carry exactly one tag on the line above it: @happy, @edge, or @error.
 - Start with at least the happy path; add @edge and @error scenarios where the survey's
-  subjects, rules, and edge cases imply them.
-- Use Given/When/Then steps and the project glossary's canonical terms (read them from the map).
-- Keep one Feature per file; name files with a lowercase-hyphen feature slug.
+  subjects, rules, and edge cases imply them — phrased as situations the user could actually
+  encounter and recognise.
+- Use Given/When/Then steps. Keep one Feature per file; the Feature describes a capability in
+  user terms; name files with a lowercase-hyphen feature slug.
 - If the survey's findings.dependencies reference a feature filename for a capability you are
   writing (the "features" list on a dependency whose "from" is that capability), name that
   capability's .feature file with the EXACT filename referenced, so the recorded dependency
