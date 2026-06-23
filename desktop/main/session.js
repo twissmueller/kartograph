@@ -7,8 +7,10 @@ export async function loadSession(file) {
     return {
       openRoots: Array.isArray(j.openRoots) ? j.openRoots : [],
       recent: Array.isArray(j.recent) ? j.recent : [],
+      activeRoot: typeof j.activeRoot === 'string' ? j.activeRoot : null,
+      tabs: (j.tabs && typeof j.tabs === 'object') ? j.tabs : {},
     };
-  } catch { return { openRoots: [], recent: [] }; }
+  } catch { return { openRoots: [], recent: [], activeRoot: null, tabs: {} }; }
 }
 
 export async function saveSession(file, state) {
@@ -16,6 +18,8 @@ export async function saveSession(file, state) {
   await writeFile(file, JSON.stringify({
     openRoots: state.openRoots || [],
     recent: state.recent || [],
+    activeRoot: state.activeRoot ?? null,
+    tabs: state.tabs || {},
   }, null, 2));
 }
 

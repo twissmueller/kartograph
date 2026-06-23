@@ -64,7 +64,11 @@ export function registerIpc() {
   ipcMain.handle('clipboard:write', (_e, text) => { clipboard.writeText(String(text ?? '')); return { ok: true }; });
 
   ipcMain.handle('session:load', () => loadSession(sessionFile()));
-  ipcMain.handle('session:save', async (_e, state) => { await saveSession(sessionFile(), state); return { ok: true }; });
+  ipcMain.handle('session:save', async (_e, state) => {
+    const cur = await loadSession(sessionFile()); // merge so a partial save preserves other fields (e.g. recent)
+    await saveSession(sessionFile(), { ...cur, ...state });
+    return { ok: true };
+  });
   ipcMain.handle('session:add-recent', async (_e, root) => {
     const s = await loadSession(sessionFile());
     const recent = addRecent(s.recent, root);

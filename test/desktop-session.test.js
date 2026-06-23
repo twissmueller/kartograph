@@ -7,14 +7,22 @@ import { loadSession, saveSession, addRecent } from '../desktop/main/session.js'
 
 test('loadSession returns defaults when the file is absent', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'karto-sess-'));
-  assert.deepEqual(await loadSession(join(dir, 'nope.json')), { openRoots: [], recent: [] });
+  assert.deepEqual(await loadSession(join(dir, 'nope.json')), { openRoots: [], recent: [], activeRoot: null, tabs: {} });
 });
 
-test('saveSession then loadSession round-trips', async () => {
+test('saveSession then loadSession round-trips, defaulting missing fields', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'karto-sess-'));
   const file = join(dir, 'session.json');
   await saveSession(file, { openRoots: ['/a'], recent: ['/a'] });
-  assert.deepEqual(await loadSession(file), { openRoots: ['/a'], recent: ['/a'] });
+  assert.deepEqual(await loadSession(file), { openRoots: ['/a'], recent: ['/a'], activeRoot: null, tabs: {} });
+});
+
+test('saveSession then loadSession round-trips activeRoot and per-tab state', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'karto-sess-'));
+  const file = join(dir, 'session.json');
+  const tabs = { '/a': { view: 'tracking', sel: { context: 'c', capability: 'cap', feature: 'f.feature' }, ui: { search: 'q', tags: ['@wip'], raw: false } } };
+  await saveSession(file, { openRoots: ['/a'], recent: [], activeRoot: '/a', tabs });
+  assert.deepEqual(await loadSession(file), { openRoots: ['/a'], recent: [], activeRoot: '/a', tabs });
 });
 
 test('addRecent dedups, newest first, caps at 10', () => {

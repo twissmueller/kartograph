@@ -16,9 +16,12 @@ async function loadProjectData(root) {
   return { root, map, layout, board, tree };
 }
 
-async function openProjectByRoot(root, name) {
+async function openProjectByRoot(root, name, saved) {
   if (tabs.find((t) => t.root === root)) { setActive(root); return; }
-  const tab = { root, name: name || root, data: null, view: 'map', dirty: false, error: null };
+  const view = saved && (saved.view === 'tracking' || saved.view === 'map') ? saved.view : 'map';
+  const tab = { root, name: name || root, data: null, view, dirty: false, error: null };
+  if (saved && saved.sel) tab.trackingSel = saved.sel;   // restore Tracking selection across restarts
+  if (saved && saved.ui) tab.trackingUI = saved.ui;      // restore Tracking search/tags/raw
   tabs.push(tab);
   await window.karto.watchStart(root);
   await window.karto.addRecent(root);
@@ -34,7 +37,7 @@ async function refreshTab(tab) {
   if (tab.root === activeRoot) renderWorkspace();
 }
 
-function setActive(root) { activeRoot = root; renderStrip(); renderWorkspace(); }
+function setActive(root) { activeRoot = root; renderStrip(); renderWorkspace(); persistSession(); }
 
 function closeTab(root) {
   const i = tabs.findIndex((t) => t.root === root);
@@ -88,7 +91,7 @@ function renderWorkspace() {
     const b = document.createElement('button');
     b.textContent = key[0].toUpperCase() + key.slice(1);
     b.className = tab.view === key ? 'active' : '';
-    b.onclick = () => { tab.view = key; renderWorkspace(); };
+    b.onclick = () => { tab.view = key; renderWorkspace(); persistSession(); };
     bar.appendChild(b);
   }
   workspaceEl.appendChild(bar);
@@ -113,8 +116,18 @@ async function doOpen() {
   if (picked) await openProjectByRoot(picked.root, picked.name);
 }
 
-function persistSession() {
-  window.karto.saveSession({ openRoots: tabs.map((t) => t.root) });
+// Persist enough to restore the workspace verbatim on next launch: open projects (+order),
+// the active tab, and each tab's view + Tracking selection/filters.
+export function persistSession() {
+  window.karto.saveSession({
+    openRoots: tabs.map((t) => t.root),
+    activeRoot,
+    tabs: Object.fromEntries(tabs.map((t) => [t.root, {
+      view: t.view,
+      sel: t.trackingSel || null,
+      ui: t.trackingUI || null,
+    }])),
+  });
 }
 
 // Live reload: refresh the matching tab.
@@ -125,12 +138,14 @@ window.karto.onFileChange((root) => {
 
 window.karto.onMenuOpenProject(() => doOpen());
 
-// Restore previous session on launch.
+// Restore previous session on launch: reopen each project with its saved view +
+// Tracking state, then re-activate the previously active tab.
 (async () => {
-  const { openRoots } = await window.karto.loadSession();
-  for (const root of openRoots) {
-    try { await openProjectByRoot(root, root.split(/[\\/]/).pop()); } catch { /* skip dead roots */ }
+  const sess = await window.karto.loadSession();
+  for (const root of sess.openRoots) {
+    try { await openProjectByRoot(root, root.split(/[\\/]/).pop(), sess.tabs && sess.tabs[root]); } catch { /* skip dead roots */ }
   }
+  if (sess.activeRoot && tabs.find((t) => t.root === sess.activeRoot)) setActive(sess.activeRoot);
   renderStrip(); renderWorkspace();
 })();
 

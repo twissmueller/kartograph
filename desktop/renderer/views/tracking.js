@@ -2,6 +2,7 @@ import { buildAcceptanceTree } from '../../../viewer/lib/board.js';
 import { scenarioProgress } from '../../../workflows/lib/gherkin.js';
 import { contextId, capabilityId, featureId, scenarioId } from '../../../viewer/lib/ids.js';
 import { idChip } from '../idchip.js';
+import { persistSession } from '../app.js';
 
 const PATH_TAGS = ['@happy', '@edge', '@error'];
 const PROGRESS_TAGS = ['@wip', '@test', '@done'];
@@ -62,9 +63,9 @@ export function renderTracking(container, tab) {
   rawEl.checked = ui.raw;
   for (const box of tagsEl.querySelectorAll('input[type=checkbox]')) box.checked = ui.tags.includes(box.value);
 
-  searchEl.oninput = () => { ui.search = searchEl.value; render(); };
-  rawEl.onchange = () => { ui.raw = rawEl.checked; load(); };
-  tagsEl.onchange = () => { ui.tags = activeTags(); render(); };
+  searchEl.oninput = () => { ui.search = searchEl.value; render(); persistSession(); };
+  rawEl.onchange = () => { ui.raw = rawEl.checked; load(); persistSession(); };
+  tagsEl.onchange = () => { ui.tags = activeTags(); render(); persistSession(); };
 
   drawTree();
   if (state.capability) load(); // restore the detail pane for the persisted selection
@@ -110,7 +111,7 @@ export function renderTracking(container, tab) {
         lbl.onclick = () => {
           state.context = ctx.context; state.capability = cap.capability; state.feature = null;
           capsOpen.add(capKey); // selecting a capability also expands its feature list
-          drawTree(); load();
+          drawTree(); load(); persistSession();
         };
         row.appendChild(chev); row.appendChild(lbl);
         cg.appendChild(row);
@@ -125,7 +126,7 @@ export function renderTracking(container, tab) {
             fb.appendChild(idChip(featureId(cap.capability, f.feature)));
             fb.onclick = () => {
               state.context = ctx.context; state.capability = cap.capability; state.feature = f.feature;
-              drawTree(); load();
+              drawTree(); load(); persistSession();
             };
             cg.appendChild(fb);
           }
