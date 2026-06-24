@@ -5,7 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this repo is
 
 Kartograph is **both** a Claude Code plugin and a small Node project. It ships commands,
-skills, and workflows that maintain a "living map" of a software system (`kartograph.json`),
+skills, and workflows that maintain a "living map" of a software system
+(`.kartograph/kartograph.json`),
 and it contains the deterministic Node code (validators, transforms, a viewer/server) that
 those commands call. There is **no framework and no build step** — vanilla JavaScript, ESM
 (`"type": "module"`), Node built-ins only, plus `ajv` for schema validation.
@@ -35,20 +36,21 @@ Respect this split — it is what makes writes trustworthy:
 
 1. **Commands** (`commands/*.md`) — orchestration prose run by Claude. They sequence the
    steps, run the deterministic scripts, invoke the LLM workflows, and own the **atomic swap**
-   of `kartograph.json`.
+   of `.kartograph/kartograph.json`.
 2. **Deterministic Node** (`scripts/*.js`, `workflows/lib/*.js`) — does **all** validation,
    the discovery→map transform, maturity reconciliation, and the temp-file→rename write.
    This is where correctness lives, and where the tests are.
 3. **Dynamic LLM workflows** (`workflows/internal/*.js`) — only generate *creative* content
-   (survey findings, Gherkin scenarios, ADR prose). **They never mutate `kartograph.json`
-   directly.** They run inside the Claude Code Workflow runtime with injected globals
+   (survey findings, Gherkin scenarios, ADR prose). **They never mutate
+   `.kartograph/kartograph.json` directly.** They run inside the Claude Code Workflow runtime with injected globals
    (`agent`, `phase`, `args`, `parallel`, …); the script body **cannot import modules or touch
    the filesystem** — the agent reads/writes files via its own tools.
 
 Example (`/karto-chart`): the command applies the survey to a working copy
-(`kartograph.tmp.json`) via `apply-discovery.js`, runs the chart workflow to write `.feature`
-and ADR files, runs `reconcile.js` to recompute maturity and re-validate, and only then
-renames the temp file over `kartograph.json`. Any failure leaves the real map untouched.
+(`.kartograph/kartograph.tmp.json`) via `apply-discovery.js`, runs the chart workflow to write
+`.feature` and ADR files, runs `reconcile.js` to recompute maturity and re-validate, and only
+then renames the temp file over `.kartograph/kartograph.json`. Any failure leaves the real map
+untouched.
 
 ### Two write gates (`scripts/validate-kartograph.js`)
 
@@ -74,8 +76,9 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
 - `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`).
 - `workflows/lib/` — **pure, testable** helpers shared by scripts and the server
-  (`apply-discovery`, `gherkin`, `maturity-derive`, `map-drift`, `open-scenarios`, `survey`,
-  `survey-html`).
+  (`apply-discovery`, `gherkin`, `maturity-derive`, `map-drift`, `open-scenarios`, `paths`,
+  `survey`, `survey-html`). `paths.js` is the single source of truth for where the map and
+  layout live.
 - `scripts/` — deterministic CLIs (`validate-kartograph`, `validate-discovery`, `reconcile`,
   `survey-to-html`). Each is a pure function + a thin `import.meta.url`-guarded CLI.
 - `server/serve.js` — zero-dependency static server for the viewer: serves viewer assets then
@@ -91,6 +94,14 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 - **Pure-function + CLI split.** New deterministic logic goes in a pure exported function
   (unit-tested) with a thin CLI wrapper guarded by
   `if (process.argv[1] === fileURLToPath(import.meta.url))`. Follow the existing files.
+- **Map files live under `.kartograph/`.** The map (`kartograph.json`) and the viewer layout
+  (`kartograph.layout.json`) live in a hidden `.kartograph/` directory at the project root —
+  never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `KARTO_DIR`) is
+  the only place that constructs these paths; Node code imports it, while the viewer fetches
+  `/.kartograph/…` and the commands hardcode the same relative paths. Surveys
+  (`kartograph/surveys/`), decisions (`kartograph/decisions/`), and `.feature` files
+  (`features/`) keep their existing top-level locations — only the JSON map + layout moved.
+  There is **no fallback** to the old project-root location.
 - **Slugs are the key space.** Everything is keyed by lowercase-hyphen slugs
   (`^[a-z0-9][a-z0-9-]*$`); cross-references are slugs and must resolve (integrity gate).
 - **Survey artifacts.** `/karto-explore` writes `kartograph/surveys/<date>-<slug>.discovery.json`

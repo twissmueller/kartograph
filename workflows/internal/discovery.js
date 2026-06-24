@@ -104,7 +104,7 @@ const FINDINGS_SCHEMA = {
 // nothing in it (description/summary read as "(none provided)").
 let a = args || {};
 if (typeof a === 'string') { try { a = JSON.parse(a) || {}; } catch { a = {}; } }
-const mapPath = a.mapPath || 'kartograph.json';
+const mapPath = a.mapPath || '.kartograph/kartograph.json';
 
 phase('Extract');
 const extracted = await agent(

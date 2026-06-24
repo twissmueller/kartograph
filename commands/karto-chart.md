@@ -2,40 +2,43 @@
 description: Record an approved survey onto the map — update kartograph.json, grow the glossary, write tagged scenarios and ADRs, and reconcile maturity. Writing, but no code.
 ---
 
-Run the **chart** phase: fold the latest (or specified) survey into the map. The map write is
-**atomic** — on any failure nothing in `kartograph.json` changes.
+Run the **chart** phase: fold the latest (or specified) survey into the map. The map lives at
+`.kartograph/kartograph.json`; the working copy is `.kartograph/kartograph.tmp.json`. The map
+write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` changes.
 
 1. **Pick the survey.** Use the file named in `$ARGUMENTS`, else the most recent
    `kartograph/surveys/*.discovery.json`. Validate it:
    `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-discovery.js <survey>`. Stop if invalid.
 
-2. **Apply it to a working copy of the map** (deterministic, idempotent):
+2. **Apply it to a working copy of the map** (deterministic, idempotent). Ensure the
+   `.kartograph/` directory exists first (`mkdir -p .kartograph`):
    ```bash
-   node -e "import('${CLAUDE_PLUGIN_ROOT}/workflows/lib/apply-discovery.js').then(async m=>{const fs=require('fs');const map=fs.existsSync('kartograph.json')?JSON.parse(fs.readFileSync('kartograph.json')):JSON.parse(fs.readFileSync('${CLAUDE_PLUGIN_ROOT}/examples/kartograph.seed.json'));const disc=JSON.parse(fs.readFileSync('<survey>'));fs.writeFileSync('kartograph.tmp.json', JSON.stringify(m.applyDiscovery(map,disc),null,2)+'\n');})"
+   mkdir -p .kartograph && node -e "import('${CLAUDE_PLUGIN_ROOT}/workflows/lib/apply-discovery.js').then(async m=>{const fs=require('fs');const map=fs.existsSync('.kartograph/kartograph.json')?JSON.parse(fs.readFileSync('.kartograph/kartograph.json')):JSON.parse(fs.readFileSync('${CLAUDE_PLUGIN_ROOT}/examples/kartograph.seed.json'));const disc=JSON.parse(fs.readFileSync('<survey>'));fs.writeFileSync('.kartograph/kartograph.tmp.json', JSON.stringify(m.applyDiscovery(map,disc),null,2)+'\n');})"
    ```
    This adds capability candidates (born `vision`), subjects/actors/events, glossary
-   additions, rules, and proposed-ADR metadata to `kartograph.tmp.json`.
+   additions, rules, and proposed-ADR metadata to `.kartograph/kartograph.tmp.json`.
 
 3. **Groom** the working copy (metadata only — no files written yet): use
    **`karto-groom-glossary`** to canonicalize the new glossary terms (synonyms →
    `aliasesToAvoid`) and **`karto-groom-adr`** to tidy ADR status/supersession. The ADR ids
    were already assigned in step 2 — **reuse them**, do not renumber. Apply the proposed
-   metadata edits to `kartograph.tmp.json`. The ADR `.md` files are written in step 4.
+   metadata edits to `.kartograph/kartograph.tmp.json`. The ADR `.md` files are written in step 4.
 
 4. **Generate the prose** via the **Workflow** tool:
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/chart.js`
-   - `args: { discoveryPath: "<survey>", mapPath: "kartograph.tmp.json" }`
+   - `args: { discoveryPath: "<survey>", mapPath: ".kartograph/kartograph.tmp.json" }`
    It writes `.feature` files (tagged `@happy`/`@edge`/`@error`) under
    `features/<context>/<capability>/` and ADR `.md` files under `kartograph/decisions/`.
 
 5. **Reconcile maturity** from the freshly written scenarios and validate, writing the result
    back into the working copy:
-   `node ${CLAUDE_PLUGIN_ROOT}/scripts/reconcile.js kartograph.tmp.json`
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/reconcile.js .kartograph/kartograph.tmp.json`
    (reconcile recomputes every `derived` block and fails if the result is not schema-valid).
 
-6. **Atomic swap.** Only if reconcile succeeded, move `kartograph.tmp.json` → `kartograph.json`.
-   On any earlier failure, delete `kartograph.tmp.json` and report — `kartograph.json` is
-   untouched. (The generated `.feature`/`.md` files are additive and harmless if a run aborts.)
+6. **Atomic swap.** Only if reconcile succeeded, move `.kartograph/kartograph.tmp.json` →
+   `.kartograph/kartograph.json`. On any earlier failure, delete `.kartograph/kartograph.tmp.json`
+   and report — `.kartograph/kartograph.json` is untouched. (The generated `.feature`/`.md`
+   files are additive and harmless if a run aborts.)
 
 7. **Pause and ask:** continue with `/karto-build <capability>` now, or review the diff
    (`git diff`, or `/karto-show`) first? Do not build automatically.

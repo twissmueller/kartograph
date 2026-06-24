@@ -1,13 +1,13 @@
 ---
 name: karto-groom-adr
 user-invocable: false
-description: Create and maintain Kartograph ADRs — MADR-style decision records in kartograph/decisions, sequential numbering, supersession, the worthiness test, with kartograph.json adr metadata kept in sync. Use during /karto-chart or on demand via /karto-sync.
+description: Create and maintain Kartograph ADRs — MADR-style decision records in kartograph/decisions, sequential numbering, supersession, the worthiness test, with .kartograph/kartograph.json adr metadata kept in sync. Use during /karto-chart or on demand via /karto-sync.
 ---
 
 # Karto-Groom-ADR
 
 Maintain the architecture decision records: the prose in `kartograph/decisions/NNNN-slug.md`
-and the metadata in `kartograph.json` (the `adrs` object). Prose and metadata must stay in sync.
+and the metadata in `.kartograph/kartograph.json` (the `adrs` object). Prose and metadata must stay in sync.
 
 ## Worthiness test
 
@@ -35,17 +35,17 @@ ADR-NNNN | deprecated | rejected`), **Considered Options**, **Consequences**.
 ## Numbering & supersession
 
 - **Number** by scanning for the highest `NNNN` across **both** the existing
-  `kartograph.json` `adrs` keys **and** `kartograph/decisions/*.md`, then incrementing
+  `.kartograph/kartograph.json` `adrs` keys **and** `kartograph/decisions/*.md`, then incrementing
   (zero-padded to four digits). Slug is a lowercase-hyphen of the title. This keeps numbering
   consistent whether you are grooming a freshly-charted map (ids already in `adrs{}` but no
   `.md` yet) or an existing one.
-- **Never renumber an ADR that already has an id** in `kartograph.json.adrs` — reuse it.
+- **Never renumber an ADR that already has an id** in `.kartograph/kartograph.json.adrs` — reuse it.
 - When a new decision replaces an old one, set the new ADR's `supersedes` to the old id and
-  mark the old one `superseded` (in both its `.md` and its `kartograph.json` metadata).
+  mark the old one `superseded` (in both its `.md` and its `.kartograph/kartograph.json` metadata).
 
 ## Metadata sync
 
-Each `.md` has a matching entry in `kartograph.json.adrs`:
+Each `.md` has a matching entry in `.kartograph/kartograph.json.adrs`:
 `{ id, title, status, date, contexts, capabilities, supersedes }`. The `id` equals the
 filename without `.md` and must match the map key. Keep them identical.
 
@@ -55,4 +55,4 @@ Propose the `adrs` **metadata** edits and the decision **text** for each ADR. Th
 decides who writes the `.md` files: when invoked from `/karto-chart`, the chart workflow
 writes them (don't write them here — only propose metadata and text); when invoked from
 `/karto-sync`, write/adjust the `.md` files directly. Either way the caller validates the map
-with `scripts/validate-kartograph.js` and writes `kartograph.json` atomically.
+with `scripts/validate-kartograph.js` and writes `.kartograph/kartograph.json` atomically.

@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sep, join } from 'node:path';
-import { resolveProjectFromPicked, isSafeRelPath } from '../desktop/main/project.js';
+import { resolveProjectFromDir, isSafeRelPath } from '../desktop/main/project.js';
 
-test('resolveProjectFromPicked uses the file folder as root and its basename as name', () => {
-  const picked = join(sep, 'home', 'me', 'acme', 'kartograph.json');
-  const r = resolveProjectFromPicked(picked);
+test('resolveProjectFromDir uses the picked directory as root and its basename as name', () => {
+  const picked = join(sep, 'home', 'me', 'acme');
+  const r = resolveProjectFromDir(picked);
   assert.equal(r.root, join(sep, 'home', 'me', 'acme'));
   assert.equal(r.name, 'acme');
 });

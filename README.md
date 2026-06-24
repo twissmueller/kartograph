@@ -72,7 +72,7 @@ between each:
 | Phase | BDD practice | Command | What it does |
 | --- | --- | --- | --- |
 | **Explore** | Discovery | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + a converging interview), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
-| **Chart** | Formulation | `/karto-chart` | Record the approved survey onto the map: update `kartograph.json`, grow the glossary, write `.feature` scenarios in Gherkin, add ADRs. |
+| **Chart** | Formulation | `/karto-chart` | Record the approved survey onto the map: update `.kartograph/kartograph.json`, grow the glossary, write `.feature` scenarios in Gherkin, add ADRs. |
 | **Build** | Automation (ATDD) | `/karto-build <capability>` | Implement the open scenarios with **double-loop TDD**: the acceptance scenario is the outer loop, red–green–refactor unit testing is the inner loop. |
 
 The outer loop is what makes agentic development converge instead of drift: the agent's
@@ -110,12 +110,12 @@ npm test                                    # run the test suite
 npm run validate                            # validate the seed map
 
 # preview the demo map in your browser
-cp examples/demo.kartograph.json kartograph.json
+mkdir -p .kartograph && cp examples/demo.kartograph.json .kartograph/kartograph.json
 npm run show                                # → http://127.0.0.1:4123
 ```
 
-Drag nodes to arrange them (positions are saved to `kartograph.layout.json`); edit
-`kartograph.json` and the page reloads itself.
+Drag nodes to arrange them (positions are saved to `.kartograph/kartograph.layout.json`); edit
+`.kartograph/kartograph.json` and the page reloads itself.
 
 The viewer has two views, switched from the header: the **Map** (the capability graph) and
 the **Board** — a cross-capability Kanban of every scenario by progress (Open / In Progress /
@@ -174,8 +174,9 @@ Uninstall + reinstall forces it too.
 ## What lives in your repo
 
 ```
-kartograph.json            the map (validated, slug-keyed)
-kartograph.layout.json     node positions (viewer-written)
+.kartograph/
+  kartograph.json          the map (validated, slug-keyed)
+  kartograph.layout.json   node positions (viewer-written)
 kartograph/
   surveys/                 dated survey notes from /karto-explore
   decisions/               ADRs (Markdown, MADR style)

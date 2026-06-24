@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseFeature, scenarioClass, scenarioProgress } from './gherkin.js';
+import { mapPath } from './paths.js';
 
 // Build the cross-capability board model for a project: every context, every
 // capability (even scenario-less ones), and every scenario across all .feature
@@ -8,7 +9,7 @@ import { parseFeature, scenarioClass, scenarioProgress } from './gherkin.js';
 // from disk. Tolerant: a missing/garbled map yields empty arrays.
 export async function buildBoard(projectRoot) {
   let map;
-  try { map = JSON.parse(await readFile(join(projectRoot, 'kartograph.json'), 'utf8')); }
+  try { map = JSON.parse(await readFile(mapPath(projectRoot), 'utf8')); }
   catch { map = { capabilities: {} }; }
 
   const capabilities = Object.entries(map.capabilities || {})

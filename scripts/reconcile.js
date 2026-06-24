@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFeature, scenarioClass } from '../workflows/lib/gherkin.js';
 import { deriveMaturity } from '../workflows/lib/maturity-derive.js';
+import { mapPath as defaultMapPath } from '../workflows/lib/paths.js';
 import { validateKartograph } from './validate-kartograph.js';
 
 // Pure: recompute every capability's derived block from pre-read features.
@@ -67,11 +68,11 @@ async function readFeaturesByCapability(root, map) {
   return out;
 }
 
-// CLI: node scripts/reconcile.js [kartograph.json] — recompute derived blocks,
-// validate, then write via a temp file + rename so the map is never half-written.
+// CLI: node scripts/reconcile.js [.kartograph/kartograph.json] — recompute derived
+// blocks, validate, then write via a temp file + rename so the map is never half-written.
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = process.cwd();
-  const mapPath = process.argv[2] || join(root, 'kartograph.json');
+  const mapPath = process.argv[2] || defaultMapPath(root);
   const map = JSON.parse(await readFile(mapPath, 'utf8'));
   const featuresByCapability = await readFeaturesByCapability(root, map);
   const next = reconcileMap(map, featuresByCapability);

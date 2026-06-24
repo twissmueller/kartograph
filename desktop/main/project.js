@@ -1,9 +1,9 @@
-import { dirname, basename, normalize, isAbsolute } from 'node:path';
+import { basename, normalize, isAbsolute } from 'node:path';
 
-// A picked kartograph.json defines the project: root = its folder, name = folder name.
-export function resolveProjectFromPicked(filePath) {
-  const root = dirname(filePath);
-  return { root, name: basename(root) };
+// A picked project directory defines the project: root = the directory, name =
+// its basename. Kartograph's map is found at `<root>/.kartograph/kartograph.json`.
+export function resolveProjectFromDir(dirPath) {
+  return { root: dirPath, name: basename(dirPath) };
 }
 
 // Guard for readRaw: a project-relative path that stays inside the root.

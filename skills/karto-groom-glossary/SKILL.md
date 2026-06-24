@@ -6,13 +6,13 @@ description: Groom the Kartograph project glossary — enforce one canonical ter
 
 # Karto-Groom-Glossary
 
-Maintain the **semantic** quality of the project glossary in `kartograph.json` (the `glossary`
+Maintain the **semantic** quality of the project glossary in `.kartograph/kartograph.json` (the `glossary`
 object). The workflows guarantee the glossary's *structure*; this skill guarantees its
 *meaning*. Synonyms are the enemy — they cause language drift between human and AI.
 
 ## What to do
 
-1. Load the current `glossary` from `kartograph.json` and the new terms being added.
+1. Load the current `glossary` from `.kartograph/kartograph.json` and the new terms being added.
 2. For every concept, enforce **one canonical term**. When two words mean the same thing,
    pick the best one and record the others under `aliasesToAvoid`.
 3. **Flag collisions** (two terms, one meaning) and **ambiguities** (one term, two meanings):
@@ -32,7 +32,7 @@ object). The workflows guarantee the glossary's *structure*; this skill guarante
 
 ## Output
 
-Propose the groomed `glossary` object. You do **not** write `kartograph.json` yourself — the
+Propose the groomed `glossary` object. You do **not** write `.kartograph/kartograph.json` yourself — the
 caller (`/karto-chart` or `/karto-sync`) applies your changes, validates with
 `scripts/validate-kartograph.js`, and writes atomically. Report the merges, splits, and new
 `aliasesToAvoid` entries you made.

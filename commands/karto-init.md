@@ -19,11 +19,12 @@ Optional focus subtree: `$ARGUMENTS`
      re-run the validator until it passes** — do not write an invalid map. In particular,
      correct any wrong field names (e.g. a rule must use `statement` + a single `subject`, not
      `definition`/`appliesToSubjects`; a glossary `type` must be one of subjekt/capability/
-     kontext/akteur/ereignis/regel/term, never `begriff`). Only write `kartograph.json` once
-     the validator reports OK.
-4. If `kartograph.json` already exists and is **not** the seed map (its capabilities are more
-   than just `start-here`), do **not** overwrite it without explicitly confirming with the
-   user. Otherwise write the validated draft to `kartograph.json`.
+     kontext/akteur/ereignis/regel/term, never `begriff`). Only write
+     `.kartograph/kartograph.json` once the validator reports OK.
+4. If `.kartograph/kartograph.json` already exists and is **not** the seed map (its capabilities
+   are more than just `start-here`), do **not** overwrite it without explicitly confirming with
+   the user. Otherwise create the `.kartograph/` directory (`mkdir -p .kartograph`) and write the
+   validated draft to `.kartograph/kartograph.json`.
 5. **Pause and ask** the user to review the draft, and suggest running **`/karto-show`** to
    see it. Note that maturity was derived conservatively and can be refined by charting and
    building real scenarios.

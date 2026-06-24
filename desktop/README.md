@@ -1,7 +1,8 @@
 # Kartograph Desktop
 
-An Electron app for viewing Kartograph maps. Open a project's `kartograph.json`
-directly; each project opens in its own tab and several can be open at once.
+An Electron app for viewing Kartograph maps. Open a project folder — the app reads its
+map from `<folder>/.kartograph/kartograph.json`; each project opens in its own tab and
+several can be open at once.
 
 ## Run
 
@@ -9,12 +10,13 @@ directly; each project opens in its own tab and several can be open at once.
     npm install
     npm start
 
-File → Open Project… (or the `+` tab) picks a `kartograph.json`; its folder becomes
-the project root. Open tabs and a recent list are restored on the next launch.
+File → Open Project… (or the `+` tab) picks a project folder; Kartograph reads its map
+from `<folder>/.kartograph/kartograph.json`. Open tabs and a recent list are restored on
+the next launch.
 
 ## Views
 
-- **Map** — capability graph; drag nodes to lay them out (saved to `kartograph.layout.json`).
+- **Map** — capability graph; drag nodes to lay them out (saved to `.kartograph/kartograph.layout.json`).
 - **Board** — scenario Kanban; drag a card to change its progress tag in the `.feature` file.
 - **Features** — browse all `.feature` files, full Gherkin render, tag filter + search, raw view.
 - **Sidebar** — maturity, glossary, ADRs, open questions.

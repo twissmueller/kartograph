@@ -21,7 +21,7 @@ export const meta = {
 let a = args || {};
 if (typeof a === 'string') { try { a = JSON.parse(a) || {}; } catch { a = {}; } }
 const discoveryPath = a.discoveryPath;
-const mapPath = a.mapPath || 'kartograph.json';
+const mapPath = a.mapPath || '.kartograph/kartograph.json';
 
 phase('Scenarios');
 const featureFiles = await agent(

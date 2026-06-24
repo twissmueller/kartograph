@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseFeature, scenarioClass } from './gherkin.js';
+import { mapPath } from './paths.js';
 
 export const isSlug = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(s);
 export const isFeatureName = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*\.feature$/.test(s);
@@ -34,7 +35,7 @@ export async function readCapabilityFeatures(projectRoot, context, slug) {
 // an empty files list. Tolerant of a missing/garbled map.
 export async function listFeatureTree(projectRoot) {
   let map;
-  try { map = JSON.parse(await readFile(join(projectRoot, 'kartograph.json'), 'utf8')); }
+  try { map = JSON.parse(await readFile(mapPath(projectRoot), 'utf8')); }
   catch { map = {}; }
   const ctxMeta = map.contexts || {};
   const caps = Object.entries(map.capabilities || {});

@@ -7,7 +7,8 @@ import { createServer } from '../server/serve.js';
 
 async function tmpProject() {
   const dir = await mkdtemp(join(tmpdir(), 'karto-'));
-  await writeFile(join(dir, 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T' } }));
+  await mkdir(join(dir, '.kartograph'), { recursive: true });
+  await writeFile(join(dir, '.kartograph', 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T' } }));
   return dir;
 }
 
@@ -15,13 +16,13 @@ function listen(server) {
   return new Promise((resolve) => server.listen(0, () => resolve(server.address().port)));
 }
 
-test('serves kartograph.json from the project root', async () => {
+test('serves kartograph.json from the project .kartograph/ directory', async () => {
   const projectRoot = await tmpProject();
   const viewerDir = new URL('../viewer/', import.meta.url).pathname;
   const server = createServer({ projectRoot, viewerDir });
   const port = await listen(server);
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/kartograph.json`);
+    const res = await fetch(`http://127.0.0.1:${port}/.kartograph/kartograph.json`);
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.meta.name, 'T');
@@ -30,7 +31,7 @@ test('serves kartograph.json from the project root', async () => {
   }
 });
 
-test('POST /layout writes kartograph.layout.json to the project root', async () => {
+test('POST /layout writes kartograph.layout.json to the project .kartograph/ directory', async () => {
   const projectRoot = await tmpProject();
   const viewerDir = new URL('../viewer/', import.meta.url).pathname;
   const server = createServer({ projectRoot, viewerDir });
@@ -42,7 +43,7 @@ test('POST /layout writes kartograph.layout.json to the project root', async () 
       body: JSON.stringify({ 'start-here': { x: 5, y: 9 } }),
     });
     assert.equal(res.status, 200);
-    const saved = JSON.parse(await readFile(join(projectRoot, 'kartograph.layout.json'), 'utf8'));
+    const saved = JSON.parse(await readFile(join(projectRoot, '.kartograph', 'kartograph.layout.json'), 'utf8'));
     assert.deepEqual(saved['start-here'], { x: 5, y: 9 });
   } finally {
     server.close();
@@ -60,7 +61,7 @@ test('a file change pushes a "changed" SSE event', async () => {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
 
-    setTimeout(() => writeFile(join(projectRoot, 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T2' } })), 150);
+    setTimeout(() => writeFile(join(projectRoot, '.kartograph', 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T2' } })), 150);
 
     let received = '';
     const deadline = Date.now() + 4000;
@@ -173,7 +174,8 @@ test('GET /features includes a Background block when present', async () => {
 
 test('POST /board writes the progress tag to the scenario and nothing else', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'karto-'));
-  await writeFile(join(projectRoot, 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T' } }));
+  await mkdir(join(projectRoot, '.kartograph'), { recursive: true });
+  await writeFile(join(projectRoot, '.kartograph', 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T' } }));
   const dir = join(projectRoot, 'features', 'care', 'watering');
   await mkdir(dir, { recursive: true });
   const file = join(dir, 'water.feature');
@@ -209,7 +211,8 @@ test('POST /board writes the progress tag to the scenario and nothing else', asy
 
 test('GET /board aggregates scenarios across all capabilities with progress + class', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'karto-'));
-  await writeFile(join(projectRoot, 'kartograph.json'), JSON.stringify({
+  await mkdir(join(projectRoot, '.kartograph'), { recursive: true });
+  await writeFile(join(projectRoot, '.kartograph', 'kartograph.json'), JSON.stringify({
     version: '1', meta: { name: 'T' },
     contexts: { care: { name: 'Care', definition: 'd', color: '#abc123' } },
     capabilities: {

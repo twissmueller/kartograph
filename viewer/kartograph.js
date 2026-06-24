@@ -457,7 +457,7 @@ function makeContextDraggable(region, label, ctx) {
 }
 
 async function reload() {
-  const k = await loadJSON('/kartograph.json', { meta: { name: 'Kartograph' }, contexts: {}, capabilities: {} });
+  const k = await loadJSON('/.kartograph/kartograph.json', { meta: { name: 'Kartograph' }, contexts: {}, capabilities: {} });
   render(k);
 }
 
@@ -556,7 +556,7 @@ async function boot() {
     if (!link) return;
     openDetail(link.dataset.cap, link.dataset.feature);
   });
-  layout = await loadJSON('/kartograph.layout.json', {});
+  layout = await loadJSON('/.kartograph/kartograph.layout.json', {});
   await reload();
   const es = new EventSource('/events');
   es.onmessage = () => { reload(); if (boardMode) loadBoard(); };

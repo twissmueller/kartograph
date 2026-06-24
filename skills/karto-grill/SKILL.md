@@ -13,7 +13,7 @@ vocabulary — ready to hand to the discovery workflow.
 ## Read first (read-only)
 
 - The **meta-glossary** (the ten framework terms) at `${CLAUDE_PLUGIN_ROOT}/reference/glossary.md`.
-- The **project glossary and current map** in `kartograph.json` (if it exists). Load the
+- The **project glossary and current map** in `.kartograph/kartograph.json` (if it exists). Load the
   existing contexts, capabilities, subjects, and glossary terms so you can challenge new
   language against them.
 - If the user references a GitHub issue, fetch it (`gh issue view <n>`) and fold it in.
@@ -46,7 +46,7 @@ As you go, actively:
 
 ## Hard rule — read-only
 
-**Do not write anything except, ultimately, the survey.** Never modify `kartograph.json`, the
+**Do not write anything except, ultimately, the survey.** Never modify `.kartograph/kartograph.json`, the
 glossary, `.feature` files, ADR files, or code. You *capture* glossary additions and ADR
 candidates as proposals; the separate `/karto-chart` phase is the only thing that writes them.
 This division is deliberate: it preserves the human review gate and the atomic, schema-gated

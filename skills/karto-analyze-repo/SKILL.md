@@ -7,7 +7,7 @@ description: Reverse-engineer a draft Kartograph map from an existing codebase �
 # Karto-Analyze-Repo — bootstrap a map from existing code
 
 Guidance for the `/karto-init` workflow: read an existing codebase and produce a **draft**
-`kartograph.json` for the human to review. This is the reverse of `explore` — you read code
+`.kartograph/kartograph.json` for the human to review. This is the reverse of `explore` — you read code
 instead of a feature description.
 
 ## What to extract
@@ -49,4 +49,4 @@ contradiction the validator now rejects. When unsure, choose the **lower** matur
 For a very large repo, analyze a **subtree first** (one context) to gauge cost and calibrate,
 then widen. Slugs must be stable, lowercase-hyphenated, and unique. The draft is a *proposal*:
 it goes through the same schema + referential-integrity gate and a human review before it
-becomes the project's `kartograph.json`.
+becomes the project's `.kartograph/kartograph.json`.

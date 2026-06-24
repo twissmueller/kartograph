@@ -6,7 +6,7 @@ description: Back-fill existing Kartograph dependency edges with a one-line reas
 
 # Karto-Groom-Dependencies
 
-Make every `dependencies` edge in `kartograph.json` **explainable**. A dependency is a
+Make every `dependencies` edge in `.kartograph/kartograph.json` **explainable**. A dependency is a
 directed capability→capability relation `{ from, to, reason?, features? }`. Many edges —
 especially ones created by `/karto-init` or charted before annotations existed — have neither
 a `reason` nor `features`. This skill back-fills them from evidence already in the repo. It is
@@ -14,10 +14,10 @@ a `reason` nor `features`. This skill back-fills them from evidence already in t
 
 ## What to do
 
-1. Load `kartograph.json`. List the edges needing work (missing a `reason` or any `features`):
+1. Load `.kartograph/kartograph.json`. List the edges needing work (missing a `reason` or any `features`):
 
    ```bash
-   node -e "import('${CLAUDE_PLUGIN_ROOT}/workflows/lib/apply-discovery.js').then(m=>{const map=JSON.parse(require('fs').readFileSync('kartograph.json'));for(const d of m.unannotatedDependencies(map))console.log(d.from,'->',d.to);})"
+   node -e "import('${CLAUDE_PLUGIN_ROOT}/workflows/lib/apply-discovery.js').then(m=>{const map=JSON.parse(require('fs').readFileSync('.kartograph/kartograph.json'));for(const d of m.unannotatedDependencies(map))console.log(d.from,'->',d.to);})"
    ```
 
 2. For each such edge `from → to`, read the `from` capability's scenarios at

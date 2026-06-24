@@ -4,9 +4,9 @@ description: Open the Kartograph viewer in the browser on the current project's 
 
 Launch the Kartograph viewer for the current project.
 
-1. Confirm a `kartograph.json` exists in the project root. If it does not, copy the seed
-   map so there is something to show:
-   `cp "${CLAUDE_PLUGIN_ROOT}/examples/kartograph.seed.json" kartograph.json`
+1. Confirm a `.kartograph/kartograph.json` exists in the project. If it does not, copy the
+   seed map so there is something to show:
+   `mkdir -p .kartograph && cp "${CLAUDE_PLUGIN_ROOT}/examples/kartograph.seed.json" .kartograph/kartograph.json`
 2. Start the ephemeral dev server in the background, serving the project root and the
    plugin's viewer, on port 4123 (try 4124+ if busy):
 
@@ -20,7 +20,7 @@ Launch the Kartograph viewer for the current project.
    attempt (set `dangerouslyDisableSandbox: true`) — it only serves localhost
    from the project root, so there is no failed sandboxed try to retry.
 3. Open the browser at `http://127.0.0.1:4123` (`open` on macOS, `xdg-open` on Linux).
-4. Tell the user the viewer is live, that edits to `kartograph.json`,
+4. Tell the user the viewer is live, that edits to `.kartograph/kartograph.json`,
    `kartograph/decisions/`, and `features/**` auto-refresh the page, and that dragging
-   nodes saves `kartograph.layout.json`. Remind them to stop the background server when
-   done.
+   nodes saves `.kartograph/kartograph.layout.json`. Remind them to stop the background
+   server when done.

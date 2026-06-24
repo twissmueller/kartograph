@@ -80,7 +80,7 @@ function renderStrip() {
 function renderWorkspace() {
   workspaceEl.innerHTML = '';
   const tab = tabs.find((t) => t.root === activeRoot);
-  if (!tab) { workspaceEl.innerHTML = '<p class="empty">Open a kartograph.json to begin (File → Open).</p>'; return; }
+  if (!tab) { workspaceEl.innerHTML = '<p class="empty">Open a project folder to begin (File → Open). Kartograph reads its map from the folder\'s <code>.kartograph/</code> directory.</p>'; return; }
   if (tab.error) {
     workspaceEl.innerHTML = `<div class="error"><p>Could not load this project.</p><pre></pre>
       <button id="retry">Retry</button></div>`;

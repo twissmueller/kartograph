@@ -7,7 +7,8 @@ import { buildBoard } from '../workflows/lib/board-data.js';
 
 async function tmpProject(map, features = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'karto-board-'));
-  await writeFile(join(dir, 'kartograph.json'), JSON.stringify(map));
+  await mkdir(join(dir, '.kartograph'), { recursive: true });
+  await writeFile(join(dir, '.kartograph', 'kartograph.json'), JSON.stringify(map));
   for (const [rel, text] of Object.entries(features)) {
     const full = join(dir, 'features', rel);
     await mkdir(join(full, '..'), { recursive: true });

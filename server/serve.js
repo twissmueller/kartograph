@@ -4,6 +4,7 @@ import { stat, readFile, writeFile } from 'node:fs/promises';
 import { setScenarioProgress } from '../workflows/lib/gherkin.js';
 import { buildBoard } from '../workflows/lib/board-data.js';
 import { readCapabilityFeatures } from '../workflows/lib/feature-read.js';
+import { mapPath, layoutPath, isLayoutFile } from '../workflows/lib/paths.js';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -55,7 +56,7 @@ export function createServer({ projectRoot, viewerDir }) {
       for await (const chunk of req) body += chunk;
       try {
         const json = JSON.parse(body || '{}');
-        await writeFile(join(projectRoot, 'kartograph.layout.json'), JSON.stringify(json, null, 2));
+        await writeFile(layoutPath(projectRoot), JSON.stringify(json, null, 2));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end('{"ok":true}');
       } catch (e) {
@@ -121,7 +122,7 @@ export function createServer({ projectRoot, viewerDir }) {
       return;
     }
 
-    // viewer assets first, then project files (kartograph.json, .feature, .md, layout)
+    // viewer assets first, then project files (.kartograph/*.json, .feature, .md, layout)
     if (await tryServeFile(res, viewerDir, path)) return;
     if (await tryServeFile(res, projectRoot, path)) return;
     res.writeHead(404);
@@ -141,7 +142,7 @@ export function createServer({ projectRoot, viewerDir }) {
 
   const onChange = (_event, filename) => {
     // The viewer writes kartograph.layout.json itself; don't reload on our own writes.
-    if (filename === 'kartograph.layout.json') return;
+    if (isLayoutFile(filename)) return;
     if (!filename) return notify();
     if (/kartograph|\.feature$|decisions|\.json$/.test(filename)) notify();
   };
@@ -150,9 +151,9 @@ export function createServer({ projectRoot, viewerDir }) {
   try {
     watcher = watch(projectRoot, { recursive: true }, onChange);
   } catch {
-    // recursive watch unsupported on this platform; watch the root file only if present
+    // recursive watch unsupported on this platform; watch the map file only if present
     try {
-      watcher = watch(join(projectRoot, 'kartograph.json'), notify);
+      watcher = watch(mapPath(projectRoot), notify);
     } catch {
       watcher = null;
     }

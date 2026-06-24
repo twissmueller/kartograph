@@ -4,7 +4,8 @@ import { join, extname } from 'node:path';
 import { buildBoard } from '../../workflows/lib/board-data.js';
 import { readCapabilityFeatures, listFeatureTree, isSlug, isFeatureName } from '../../workflows/lib/feature-read.js';
 import { setScenarioProgress } from '../../workflows/lib/gherkin.js';
-import { resolveProjectFromPicked, isSafeRelPath } from './project.js';
+import { resolveProjectFromDir, isSafeRelPath } from './project.js';
+import { mapPath, layoutPath } from '../../workflows/lib/paths.js';
 import { loadSession, saveSession, addRecent } from './session.js';
 import { watchProject } from './watcher.js';
 
@@ -18,18 +19,18 @@ export function registerIpc() {
   ipcMain.handle('open-project', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     const r = await dialog.showOpenDialog(win, {
-      title: 'Open kartograph.json',
-      properties: ['openFile'],
-      filters: [{ name: 'Kartograph map', extensions: ['json'] }],
+      title: 'Open project folder',
+      message: 'Choose a project folder containing a .kartograph map',
+      properties: ['openDirectory'],
     });
     if (r.canceled || !r.filePaths.length) return null;
-    return resolveProjectFromPicked(r.filePaths[0]);
+    return resolveProjectFromDir(r.filePaths[0]);
   });
 
   ipcMain.handle('read-map', async (_e, root) => {
-    const map = JSON.parse(await readFile(join(root, 'kartograph.json'), 'utf8'));
+    const map = JSON.parse(await readFile(mapPath(root), 'utf8'));
     let layout = {};
-    try { layout = JSON.parse(await readFile(join(root, 'kartograph.layout.json'), 'utf8')); }
+    try { layout = JSON.parse(await readFile(layoutPath(root), 'utf8')); }
     catch { layout = {}; }
     return { map, layout };
   });
@@ -57,7 +58,7 @@ export function registerIpc() {
   });
 
   ipcMain.handle('save-layout', async (_e, root, layout) => {
-    await writeFile(join(root, 'kartograph.layout.json'), JSON.stringify(layout, null, 2));
+    await writeFile(layoutPath(root), JSON.stringify(layout, null, 2));
     return { ok: true };
   });
 

@@ -4,11 +4,12 @@ description: Implement a capability's open scenarios with double-loop TDD — Gh
 
 Build the capability named in `$ARGUMENTS` by implementing its **open** scenarios (those not
 yet tagged `@done`) with **double-loop, outside-in TDD**. Everything build needs lives in the
-map: `kartograph.json` and its `.feature` files. There is **no separate config** — the only
-files Kartograph keeps are `kartograph.json` (the content) and `kartograph.layout.json` (UI
-layout only).
+map: `.kartograph/kartograph.json` and its `.feature` files. There is **no separate config** —
+the only files Kartograph keeps are `.kartograph/kartograph.json` (the content) and
+`.kartograph/kartograph.layout.json` (UI layout only).
 
-1. **Find open scenarios.** Locate the capability in `kartograph.json` to get its context, then
+1. **Find open scenarios.** Locate the capability in `.kartograph/kartograph.json` to get its
+   context, then
    read `features/<context>/<capability>/*.feature`. The open scenarios are those **not** tagged
    `@done`. Work them in order: `@happy` → `@edge` → `@error` (this walks the maturity ladder).
 
