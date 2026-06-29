@@ -103,6 +103,17 @@ test('build command leans on superpowers TDD and works from the map, with no sep
   assert.doesNotMatch(src, /config\.json/);
 });
 
+test('build-all workflow declares meta and defensively parses args', async () => {
+  const src = await read('workflows/internal/build-all.js');
+  assert.match(src, /export const meta = \{/);
+  assert.match(src, /name: 'karto-build-all'/);
+  // standing Kartograph guard: tolerate a JSON-stringified args object
+  assert.match(src, /typeof a === 'string'/);
+  // never writes the map directly; advances state via set-tracking.js (run by subagents)
+  assert.match(src, /set-tracking\.js/);
+  assert.doesNotMatch(src, /writeMap|kartograph\.json'/);
+});
+
 test('plugin.json registers all commands and skills', async () => {
   const p = JSON.parse(await read('.claude-plugin/plugin.json'));
   for (const c of [
