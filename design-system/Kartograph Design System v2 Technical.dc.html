@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #f4f1ec; }
+  :root {
+    --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #eef1f5; --surface-3: #e4e9f0;
+    --border: #dde3ec; --border-strong: #c4ccd8;
+    --text: #0f1729; --text-muted: #4a5568; --text-soft: #8895a7;
+    --blue-50:#eff4ff; --blue-100:#dde8ff; --blue-200:#c2d4ff; --blue-300:#97b4ff; --blue-400:#6790ff;
+    --blue-500:#2f63e6; --blue-600:#214fc7; --blue-700:#1c40a0; --blue-800:#1b3a87; --blue-900:#1a3372;
+    --primary: #2257e0; --primary-600: #1a47c0; --primary-soft: #e4ecfd; --primary-contrast: #ffffff;
+    --happy-fg:#0a8466; --happy-bg:#d6efe9; --happy-bd:#9bdbcb;
+    --edge-fg:#8f6a16; --edge-bg:#f4ead2; --edge-bd:#e3cb93;
+    --error-fg:#c2403f; --error-bg:#f9e1e1; --error-bd:#eeb4b4;
+    --success:#0f9469; --success-bg:#d6efe6;
+    --open-dot:#a4afbe; --open-fg:#788596;
+    --dev-dot:#2f63e6; --dev-fg:#2f63e6;
+    --acc-dot:#2f9e6f; --acc-fg:#23895f;
+    --radius-sm:4px; --radius:6px; --radius-lg:9px; --radius-xl:12px;
+    --shadow-1: 0 1px 2px rgba(15,23,42,.06), 0 1px 1px rgba(15,23,42,.04);
+    --shadow-2: 0 1px 3px rgba(15,23,42,.07), 0 6px 18px rgba(15,23,42,.06);
+    --shadow-3: 0 10px 34px rgba(15,23,42,.14);
+    --focus: 0 0 0 3px rgba(34,87,224,.32);
+    --ease: cubic-bezier(.2,.7,.3,1);
+  }
+  [data-theme="dark"] {
+    --bg: #0d1117; --surface: #161b22; --surface-2: #1c232d; --surface-3: #232c38;
+    --border: #2a313c; --border-strong: #3a434f;
+    --text: #e6edf3; --text-muted: #9aa7b5; --text-soft: #6b7888;
+    --blue-500:#6f9bff; --blue-600:#5b8bff;
+    --primary: #5a8dff; --primary-600: #4d80ff; --primary-soft: #1a2944; --primary-contrast: #07101f;
+    --happy-fg:#4fd0a8; --happy-bg:#0e2c24; --happy-bd:#1d5443;
+    --edge-fg:#dcb158; --edge-bg:#2c2410; --edge-bd:#514220;
+    --error-fg:#ef8f88; --error-bg:#311c1b; --error-bd:#52302e;
+    --success:#4fc78c; --success-bg:#0e2c24;
+    --open-dot:#5a6470; --open-fg:#8b97a6;
+    --dev-dot:#6f9bff; --dev-fg:#8db0ff;
+    --acc-dot:#56c78f; --acc-fg:#62cf99;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-2: 0 1px 3px rgba(0,0,0,.45), 0 6px 18px rgba(0,0,0,.35);
+    --shadow-3: 0 10px 34px rgba(0,0,0,.55);
+    --focus: 0 0 0 3px rgba(111,155,255,.42);
+  }
+  @keyframes karto-pop { 0%{transform:scale(.6);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  @keyframes karto-fade { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</helmet>
+
+<div data-theme="{{ theme }}"><div key="{{ themeKey }}" style="min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--font-sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;transition:background .25s var(--ease),color .25s var(--ease)">
+
+  <header style="position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);background:color-mix(in srgb, var(--bg) 82%, transparent);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;gap:16px">
+    <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(150deg,var(--blue-400),var(--primary-600));display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-1)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2V7z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 5v12M15 7v12" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;font-size:17px;letter-spacing:-.01em">Kartograph</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:-2px">Design System · Tracking view</div>
+    </div>
+    <nav style="display:flex;gap:4px;font-size:14px;font-weight:500">
+      <a href="#tokens" style="color:var(--text-muted);text-decoration:none;padding:7px 12px;border-radius:8px">Tokens</a>
+      <a href="#components" style="color:var(--text-muted);text-decoration:none;padding:7px 12px;border-radius:8px">Components</a>
+      <a href="#tracking" style="color:var(--text-muted);text-decoration:none;padding:7px 12px;border-radius:8px">Tracking view</a>
+    </nav>
+    <button onClick="{{ toggleTheme }}" title="Toggle theme" style="display:flex;align-items:center;gap:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;font-weight:600;padding:8px 13px;border-radius:999px;cursor:pointer;box-shadow:var(--shadow-1)">
+      <span style="font-size:14px">{{ themeIcon }}</span>{{ themeLabel }}
+    </button>
+  </header>
+
+  <main style="max-width:1180px;margin:0 auto;padding:0 32px 96px">
+
+    <!-- HERO -->
+    <section style="padding:64px 0 40px;max-width:760px">
+      <div style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--primary);background:var(--primary-soft);padding:6px 12px;border-radius:999px;letter-spacing:.02em;text-transform:uppercase">A living map of what a product does</div>
+      <h1 style="font-size:44px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:20px 0 0">A calm, human design system<br>for reading two dimensions at once.</h1>
+      <p style="font-size:18px;line-height:1.6;color:var(--text-muted);margin:18px 0 0;max-width:620px">Maturity tells you how thoroughly a behaviour is specified. Progress tells you how far it's actually been built. Kartograph keeps them side by side — never blended into one bar — so technical and non-technical people can both follow along.</p>
+    </section>
+
+    <!-- TOKENS -->
+    <section id="tokens" style="scroll-margin-top:84px;padding-top:24px">
+      <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:28px">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-soft)">01</span>
+        <h2 style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0">Design tokens</h2>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:0 0 14px">Blue ramp — the brand anchor</h3>
+      <div style="display:flex;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-1);border:1px solid var(--border)">
+        <sc-for list="{{ blueRamp }}" as="s" hint-placeholder-count="10">
+          <div style="flex:1;display:flex;flex-direction:column">
+            <div style="height:72px;background:{{ s.hex }}"></div>
+            <div style="padding:9px 6px;background:var(--surface);text-align:center">
+              <div style="font-size:11px;font-weight:700;color:var(--text)">{{ s.step }}</div>
+              <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-soft);margin-top:1px">{{ s.hex }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:32px 0 14px">Semantic roles</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px">
+        <sc-for list="{{ semanticRoles }}" as="r" hint-placeholder-count="8">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-1)">
+            <div style="height:40px;border-radius:8px;background:{{ r.swatch }};border:1px solid rgba(0,0,0,.06)"></div>
+            <div style="font-weight:600;font-size:14px;margin-top:11px">{{ r.name }}</div>
+            <div style="font-size:12.5px;color:var(--text-muted);line-height:1.4;margin-top:2px">{{ r.use }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px;margin-top:36px">
+        <!-- TYPE -->
+        <div>
+          <h3 style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:0 0 14px">Typography</h3>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);overflow:hidden">
+            <div style="padding:18px 20px 6px;display:flex;gap:18px;border-bottom:1px solid var(--border)">
+              <div style="font-size:13px"><span style="color:var(--text-soft)">UI · </span><span style="font-weight:700">Hanken Grotesk</span><div style="color:var(--text-muted);font-size:12px">humanist sans</div></div>
+              <div style="font-size:13px"><span style="color:var(--text-soft)">Code · </span><span style="font-weight:700;font-family:var(--font-mono)">JetBrains Mono</span><div style="color:var(--text-muted);font-size:12px">Gherkin & slugs</div></div>
+            </div>
+            <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="6">
+              <div style="display:flex;align-items:baseline;gap:16px;padding:11px 20px;border-bottom:1px solid var(--border)">
+                <div style="width:118px;flex:none;font-family:var(--font-mono);font-size:11.5px;color:var(--text-soft)">{{ t.spec }}</div>
+                <div style="{{ t.style }};color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.sample }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <!-- SCALES -->
+        <div>
+          <h3 style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:0 0 14px">Spacing · radius · elevation · motion</h3>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:18px 20px">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);margin-bottom:9px">Spacing · 4px base</div>
+            <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:20px">
+              <sc-for list="{{ spacingScale }}" as="sp" hint-placeholder-count="7">
+                <div style="text-align:center">
+                  <div style="width:18px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:3px;height:{{ sp.h }}"></div>
+                  <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-soft);margin-top:4px">{{ sp.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);margin-bottom:9px">Radius</div>
+            <div style="display:flex;gap:10px;margin-bottom:20px">
+              <sc-for list="{{ radiusScale }}" as="rd" hint-placeholder-count="4">
+                <div style="text-align:center">
+                  <div style="width:46px;height:40px;background:var(--surface-2);border:1px solid var(--border-strong);border-top-left-radius:{{ rd.v }};border-top-right-radius:{{ rd.v }}"></div>
+                  <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-soft);margin-top:4px">{{ rd.name }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);margin-bottom:11px">Elevation</div>
+            <div style="display:flex;gap:14px;margin-bottom:20px">
+              <div style="flex:1;height:42px;background:var(--surface);border-radius:9px;box-shadow:var(--shadow-1);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted)">e1</div>
+              <div style="flex:1;height:42px;background:var(--surface);border-radius:9px;box-shadow:var(--shadow-2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted)">e2</div>
+              <div style="flex:1;height:42px;background:var(--surface);border-radius:9px;box-shadow:var(--shadow-3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted)">e3</div>
+            </div>
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);margin-bottom:6px">Motion</div>
+            <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-muted);line-height:1.7">ease · cubic-bezier(.2,.7,.3,1)<br>fast 120ms · base 180ms · slow 240ms</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPONENTS -->
+    <section id="components" style="scroll-margin-top:84px;padding-top:56px">
+      <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:28px">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-soft)">02</span>
+        <h2 style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0">Components</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+        <!-- copy chip -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:20px">
+          <div style="font-weight:700;font-size:15px">Copy-ID chip</div>
+          <p style="font-size:13px;color:var(--text-muted);margin:4px 0 16px">A tasteful monospace slug beside any name. One click copies it; a check confirms.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+            <sc-for list="{{ chipDemos }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.onCopy }}" style="{{ c.style }}" title="Click to copy">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="flex:none"><rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="2"/></svg>
+                <span style="font-family:var(--font-mono)">{{ c.label }}</span>
+                <sc-if value="{{ c.copied }}" hint-placeholder-val="">
+                  <span style="font-family:var(--font-sans);font-weight:700;color:var(--acc-fg);margin-left:2px">copied!</span>
+                </sc-if>
+              </button>
+            </sc-for>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-soft);margin-top:14px;font-family:var(--font-mono)">default · hover · copied</div>
+        </div>
+
+        <!-- maturity -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:20px">
+          <div style="font-weight:700;font-size:15px">Maturity indicator</div>
+          <p style="font-size:13px;color:var(--text-muted);margin:4px 0 16px">Three path pips — happy / edge / error — filled when that path is specified. Shape (filled vs hollow) carries meaning without colour.</p>
+          <div style="display:flex;flex-direction:column;gap:13px">
+            <sc-for list="{{ maturityDemos }}" as="m" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:13px">
+                <div style="display:flex;gap:3px" title="{{ m.title }}">
+                  <sc-for list="{{ m.pips }}" as="p" hint-placeholder-count="3">
+                    <span style="{{ p.style }}"></span>
+                  </sc-for>
+                </div>
+                <span style="font-size:13px;color:var(--text-muted)">{{ m.caption }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:16px;font-size:11.5px">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--happy-fg)"></span>happy</span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--edge-fg)"></span>edge</span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--error-fg)"></span>error</span>
+          </div>
+        </div>
+
+        <!-- segmented control -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:20px">
+          <div style="font-weight:700;font-size:15px">Three-state segmented control</div>
+          <p style="font-size:13px;color:var(--text-muted);margin:4px 0 16px">Open → Developed → Accepted. Forward motion; the current state is unmistakably selected.</p>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ segDemos }}" as="sd" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:3px">
+                  <sc-for list="{{ sd.segs }}" as="g" hint-placeholder-count="3">
+                    <span style="{{ g.style }}">{{ g.glyph }} {{ g.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- status dot + rollup -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:20px">
+          <div style="font-weight:700;font-size:15px">Status dot + roll-up</div>
+          <p style="font-size:13px;color:var(--text-muted);margin:4px 0 16px">A collapsed node still tells you how far along it is: a state dot plus an accepted / total count.</p>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ rollupDemos }}" as="ru" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:11px;height:11px;border-radius:50%;flex:none;background:{{ ru.dot }};box-shadow:0 0 0 3px {{ ru.halo }}"></span>
+                <span style="font-weight:600;font-size:14px">{{ ru.name }}</span>
+                <span style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);background:var(--surface-2);padding:2px 8px;border-radius:999px;margin-left:auto">{{ ru.count }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TRACKING VIEW -->
+    <section id="tracking" style="scroll-margin-top:84px;padding-top:56px">
+      <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:24px">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-soft)">03</span>
+        <h2 style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0">The Tracking view, assembled</h2>
+      </div>
+      <p style="font-size:15px;color:var(--text-muted);margin:0 0 20px;max-width:680px">Live sample data from <span style="font-family:var(--font-mono);font-size:13px">TerraGarden</span>. Browse the tree, copy any ID, filter by path tag, and click a scenario's segmented control to move it forward — both dimensions stay independently readable.</p>
+
+      <div style="background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);box-shadow:var(--shadow-3);overflow:hidden">
+        <!-- window bar -->
+        <div style="display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
+          <span style="display:flex;gap:6px"><span style="width:11px;height:11px;border-radius:50%;background:#e6685c"></span><span style="width:11px;height:11px;border-radius:50%;background:#e6b04c"></span><span style="width:11px;height:11px;border-radius:50%;background:#5cc081"></span></span>
+          <span style="font-size:12.5px;color:var(--text-muted);margin-left:8px;font-weight:500">TerraGarden — Tracking</span>
+        </div>
+
+        <div style="display:flex;min-height:560px">
+          <!-- TREE -->
+          <div style="width:286px;flex:none;border-right:1px solid var(--border);background:var(--surface);padding:12px 10px;overflow:auto">
+            <sc-for list="{{ tree }}" as="ctx" hint-placeholder-count="3">
+              <div style="margin-bottom:3px">
+                <button onClick="{{ ctx.onToggle }}" style="width:100%;display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;font-family:inherit;color:var(--text);padding:7px 8px;border-radius:8px;text-align:left">
+                  <span style="font-size:10px;color:var(--text-soft);width:10px;transition:transform .18s var(--ease);transform:rotate({{ ctx.rot }})">▶</span>
+                  <span style="width:9px;height:9px;border-radius:50%;flex:none;background:{{ ctx.dot }}"></span>
+                  <span style="font-weight:700;font-size:13.5px;flex:1;min-width:0;letter-spacing:.01em">{{ ctx.name }}</span>
+                  <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-soft)">{{ ctx.count }}</span>
+                </button>
+                <sc-if value="{{ ctx.open }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin:2px 0 6px">
+                    <sc-for list="{{ ctx.caps }}" as="cap" hint-placeholder-count="2">
+                      <div>
+                        <div style="{{ cap.rowStyle }}">
+                          <span onClick="{{ cap.onToggle }}" style="font-size:10px;color:var(--text-soft);width:14px;height:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;transform:rotate({{ cap.rot }})">▶</span>
+                          <button onClick="{{ cap.onSelect }}" style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;font-family:inherit;color:inherit;padding:6px 4px;text-align:left">
+                            <span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ cap.dot }}"></span>
+                            <span style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cap.name }}</span>
+                            <span style="display:flex;gap:2px;flex:none">
+                              <sc-for list="{{ cap.pips }}" as="p" hint-placeholder-count="3"><span style="{{ p.styleSm }}"></span></sc-for>
+                            </span>
+                            <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-soft);flex:none">{{ cap.count }}</span>
+                          </button>
+                        </div>
+                        <sc-if value="{{ cap.open }}" hint-placeholder-val="{{ true }}">
+                          <div style="margin-left:18px;border-left:1px solid var(--border);padding-left:4px">
+                            <sc-for list="{{ cap.feats }}" as="f" hint-placeholder-count="2">
+                              <button onClick="{{ f.onSelect }}" style="{{ f.style }}">
+                                <span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ f.dot }}"></span>
+                                <span style="font-size:12.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.name }}</span>
+                                <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-soft);flex:none">{{ f.count }}</span>
+                              </button>
+                            </sc-for>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- MAIN -->
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)">
+            <!-- controls -->
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface)">
+              <div style="position:relative;flex:1;min-width:180px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-soft)"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Search scenarios…" style="width:100%;font-family:inherit;font-size:14px;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:9px 14px 9px 34px;outline:none" />
+              </div>
+              <div style="display:flex;gap:6px">
+                <sc-for list="{{ tagFilters }}" as="t" hint-placeholder-count="3">
+                  <button onClick="{{ t.onToggle }}" style="{{ t.style }}">{{ t.label }}</button>
+                </sc-for>
+              </div>
+              <button onClick="{{ onToggleRaw }}" style="{{ rawStyle }}">Raw</button>
+            </div>
+
+            <!-- cards / raw -->
+            <div style="flex:1;overflow:auto;padding:20px">
+              <sc-if value="{{ raw }}" hint-placeholder-val="">
+                <div>
+                  <sc-for list="{{ rawFiles }}" as="rf" hint-placeholder-count="2">
+                    <div style="margin-bottom:18px">
+                      <div style="font-family:var(--font-mono);font-size:12.5px;font-weight:600;color:var(--text-muted);margin-bottom:6px">{{ rf.file }}</div>
+                      <pre style="margin:0;font-family:var(--font-mono);font-size:12.5px;line-height:1.7;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow:auto;white-space:pre-wrap">{{ rf.text }}</pre>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showCards }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:18px">
+                  <sc-for list="{{ cards }}" as="card" hint-placeholder-count="2">
+                    <article style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);overflow:hidden">
+                      <div style="display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+                        <span style="width:11px;height:11px;border-radius:50%;flex:none;background:{{ card.dot }};box-shadow:0 0 0 3px {{ card.halo }}"></span>
+                        <span style="font-weight:700;font-size:16px;letter-spacing:-.01em">{{ card.name }}</span>
+                        <button onClick="{{ card.chip.onCopy }}" style="{{ card.chip.style }}" title="Click to copy">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="flex:none"><rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="2"/></svg>
+                          <span style="font-family:var(--font-mono)">{{ card.chip.label }}</span>
+                          <sc-if value="{{ card.chip.copied }}" hint-placeholder-val=""><span style="font-weight:700;color:var(--acc-fg)">✓</span></sc-if>
+                        </button>
+                        <span style="margin-left:auto;display:flex;align-items:center;gap:12px">
+                          <span style="display:flex;gap:3px" title="{{ card.matTitle }}">
+                            <sc-for list="{{ card.pips }}" as="p" hint-placeholder-count="3"><span style="{{ p.style }}"></span></sc-for>
+                          </span>
+                          <span style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);background:var(--surface-2);padding:3px 9px;border-radius:999px">{{ card.count }}</span>
+                        </span>
+                      </div>
+                      <div style="padding:6px 18px 16px">
+                        <p style="font-size:13.5px;color:var(--text-muted);margin:12px 0 6px">{{ card.description }}</p>
+                        <sc-for list="{{ card.scenarios }}" as="s" hint-placeholder-count="3">
+                          <div style="position:relative;border:1px solid var(--border);border-left:3px solid {{ s.accent }};border-radius:var(--radius);padding:14px 16px;margin-top:12px;background:var(--surface)">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                              <sc-for list="{{ s.tags }}" as="tg" hint-placeholder-count="1">
+                                <span style="{{ tg.style }}">{{ tg.label }}</span>
+                              </sc-for>
+                              <span style="font-weight:700;font-size:14.5px">{{ s.name }}</span>
+                              <button onClick="{{ s.chip.onCopy }}" style="{{ s.chip.style }}" title="Click to copy">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="flex:none"><rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="2"/></svg>
+                                <sc-if value="{{ s.chip.copied }}" hint-placeholder-val=""><span style="font-weight:700;color:var(--acc-fg)">✓</span></sc-if>
+                              </button>
+                            </div>
+                            <pre style="margin:11px 0 0;font-family:var(--font-mono);font-size:13px;line-height:1.75;color:var(--text);background:var(--surface-2);border-radius:var(--radius-sm);padding:12px 14px;white-space:pre-wrap;overflow:auto">{{ s.gherkin }}</pre>
+                            <div style="display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:3px;margin-top:12px">
+                              <sc-for list="{{ s.segs }}" as="g" hint-placeholder-count="3">
+                                <button onClick="{{ g.onClick }}" style="{{ g.style }}">{{ g.glyph }} {{ g.label }}</button>
+                              </sc-for>
+                            </div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </article>
+                  </sc-for>
+                  <sc-if value="{{ noMatches }}" hint-placeholder-val=""><p style="color:var(--text-muted);font-size:14px;text-align:center;padding:40px">No scenarios match your filters.</p></sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RATIONALE -->
+    <section style="padding-top:56px">
+      <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:28px">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-soft)">04</span>
+        <h2 style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0">Rationale</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:22px">
+          <div style="font-weight:700;font-size:15px;margin-bottom:8px">Why blue, on cool slate</div>
+          <p style="font-size:14px;color:var(--text-muted);margin:0;line-height:1.65">A precise, technical blue anchors focus and trust. It sits on cool slate neutrals and crisp high-contrast surfaces — sharp but never harsh — so the tool reads as exact and calm. Path accents (green / amber / soft red) are desaturated to live inside the same family, signalling without shouting a traffic-light.</p>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:22px">
+          <div style="font-weight:700;font-size:15px;margin-bottom:8px">Why these types</div>
+          <p style="font-size:14px;color:var(--text-muted);margin:0;line-height:1.65">Hanken Grotesk is a humanist sans with open, approachable shapes — readable for non-technical stakeholders at a generous 16px+ base. JetBrains Mono gives the Gherkin and slugs a calm, evenly-spaced rhythm that's unmistakably "code" without feeling cold. Strong size and weight contrast does the hierarchy; colour stays reserved for meaning.</p>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:22px">
+          <div style="font-weight:700;font-size:15px;margin-bottom:8px">Two dimensions, never merged</div>
+          <p style="font-size:14px;color:var(--text-muted);margin:0;line-height:1.65">Maturity (path pips) and progress (state dot + segmented control) use deliberately different shapes so they never blur into one bar. A feature can be fully mature yet mostly Open, or fully Accepted yet happy-only — and the screen shows both truths at once.</p>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:22px">
+          <div style="font-weight:700;font-size:15px;margin-bottom:8px">Accessible by construction</div>
+          <p style="font-size:14px;color:var(--text-muted);margin:0;line-height:1.65">Every status cue pairs colour with shape or label (filled vs hollow pips, glyphs in the segmented control, written counts). Text meets WCAG-AA on every surface, focus is always visible, and the same tokens drive a full dark theme.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;}}">
+class Component extends DCLogic {
+  state = {
+    theme: this.props.theme === 'dark' ? 'dark' : 'light',
+    sel: { cap: 'plant-catalog', file: null },
+    ctxCollapsed: {},
+    capOpen: { 'plant-catalog': true },
+    search: '',
+    tags: [],
+    raw: false,
+    copied: null,
+  };
+
+  DATA = [
+    { id: 'planning', name: 'Garden Planning', caps: [
+      { id: 'bed-layout', name: 'Bed layout designer', def: 'Lay out garden beds visually.', feats: [
+        { file: 'bed-create.feature', name: 'Create a bed', desc: 'Drawing new beds onto the garden plan.', scenarios: [
+          { name: 'Add a rectangular bed to the plan', cls: 'happy', tags: ['@happy'], progress: 'accepted', steps: [['Given','the garden plan is open'],['When','the gardener draws a 2m by 1m bed'],['Then','the bed appears on the canvas with its size labelled']] },
+          { name: 'Draw a bed past the garden edge', cls: 'edge', tags: ['@edge'], progress: 'developed', steps: [['Given','the garden plan is open'],['When','the gardener drags a bed beyond the garden boundary'],['Then','the bed is gently clamped to the boundary']] },
+          { name: 'Draw a bed with no area', cls: 'error', tags: ['@error'], progress: 'open', steps: [['Given','the garden plan is open'],['When','the gardener releases a bed with zero width'],['Then','the bed is discarded with a quiet hint']] },
+        ]},
+        { file: 'bed-edit.feature', name: 'Edit a bed', desc: 'Resizing and moving beds already on the plan.', scenarios: [
+          { name: 'Resize a bed by dragging a handle', cls: 'happy', tags: ['@happy'], progress: 'accepted', steps: [['Given','a bed is on the plan'],['When','the gardener drags its corner handle'],['Then','the bed resizes and the new size is shown']] },
+          { name: 'Resize a bed onto a neighbour', cls: 'edge', tags: ['@edge'], progress: 'developed', steps: [['Given','two beds sit side by side'],['When','the gardener resizes one over the other'],['Then','the beds nudge apart to avoid overlap']] },
+        ]},
+      ]},
+      { id: 'season-planner', name: 'Season planner', def: 'Schedule sowing and harvesting per season.', feats: [
+        { file: 'season-sow.feature', name: 'Schedule sowing', desc: 'Planning when each crop goes into the ground.', scenarios: [
+          { name: 'Schedule a crop to be sown in spring', cls: 'happy', tags: ['@happy'], progress: 'open', steps: [['Given','the season planner is open'],['When','the gardener schedules tomatoes for April'],['Then','a sowing task appears on the spring timeline']] },
+        ]},
+      ]},
+    ]},
+    { id: 'plants', name: 'Plant Knowledge', caps: [
+      { id: 'plant-catalog', name: 'Plant catalog', def: 'The central catalog of known plants.', feats: [
+        { file: 'catalog-add.feature', name: 'Add a plant', desc: 'Bringing a plant from the catalog into a bed.', scenarios: [
+          { name: 'Add a plant from the catalog', cls: 'happy', tags: ['@happy'], progress: 'accepted', steps: [['Given','a bed is selected'],['When','the gardener picks basil from the catalog'],['Then','basil is placed in the bed with its care defaults']] },
+          { name: 'Add a plant already in the bed', cls: 'edge', tags: ['@edge'], progress: 'accepted', steps: [['Given','basil is already in the bed'],['When','the gardener adds basil again'],['Then','the count increases instead of duplicating the plant']] },
+          { name: 'Add a plant with an unknown species', cls: 'error', tags: ['@error'], progress: 'developed', steps: [['Given','the catalog is open'],['When','the gardener types a species that does not exist'],['Then','a friendly "not in the catalog yet" message is shown']] },
+        ]},
+        { file: 'catalog-detail.feature', name: 'View plant detail', desc: 'Reading what the system knows about a plant.', scenarios: [
+          { name: 'Open a plant detail card', cls: 'happy', tags: ['@happy'], progress: 'accepted', steps: [['Given','a plant is in a bed'],['When','the gardener taps the plant'],['Then','its detail card opens with water and light needs']] },
+          { name: 'Open detail for a plant missing data', cls: 'edge', tags: ['@edge'], progress: 'developed', steps: [['Given','a plant has no recorded water need'],['When','the gardener opens its detail card'],['Then','the missing field reads "not known yet" rather than blank']] },
+        ]},
+      ]},
+      { id: 'plant-search', name: 'Plant search', def: 'Find plants by traits and conditions.', feats: [
+        { file: 'search-traits.feature', name: 'Search by trait', desc: 'Filtering the catalog by growing conditions.', scenarios: [
+          { name: 'Find shade-tolerant plants', cls: 'happy', tags: ['@happy'], progress: 'developed', steps: [['Given','the catalog has many plants'],['When','the gardener filters by "tolerates shade"'],['Then','only shade-tolerant plants are listed']] },
+          { name: 'Search with no matches', cls: 'edge', tags: ['@edge'], progress: 'open', steps: [['Given','a very narrow set of filters'],['When','no plant matches'],['Then','a "nothing fits — try widening" hint is shown']] },
+        ]},
+      ]},
+    ]},
+    { id: 'care', name: 'Care & Tasks', caps: [
+      { id: 'watering-schedule', name: 'Watering schedule', def: 'Compute and remind watering per plant.', feats: [
+        { file: 'watering-compute.feature', name: 'Compute watering need', desc: 'Working out when each plant needs water next.', scenarios: [
+          { name: 'Compute the next watering date', cls: 'happy', tags: ['@happy'], progress: 'developed', steps: [['Given','a plant with a known water need'],['When','three dry days pass'],['Then','the next watering date is brought forward']] },
+          { name: 'Compute watering during a heatwave', cls: 'edge', tags: ['@edge'], progress: 'open', steps: [['Given','a forecast above 32°C'],['When','the schedule recomputes'],['Then','watering frequency increases for the hot spell']] },
+        ]},
+        { file: 'watering-remind.feature', name: 'Send a reminder', desc: 'Nudging the gardener when water is due.', scenarios: [
+          { name: 'Remind the gardener in the morning', cls: 'happy', tags: ['@happy'], progress: 'open', steps: [['Given','a plant is due for water today'],['When','it is 8am'],['Then','a gentle morning reminder is shown']] },
+        ]},
+      ]},
+    ]},
+  ];
+
+  // ---- helpers ----
+  STATES = ['open', 'developed', 'accepted'];
+  LABELS = { open: 'Open', developed: 'Developed', accepted: 'Accepted' };
+  GLYPH = { open: '○', developed: '◐', accepted: '✓' };
+  PATHS = ['happy', 'edge', 'error'];
+
+  capScenarios(cap) { let out = []; cap.feats.forEach(f => out = out.concat(f.scenarios)); return out; }
+  counts(scs) { return { acc: scs.filter(s => s.progress === 'accepted').length, total: scs.length }; }
+  rollupStatus(scs) {
+    if (!scs.length) return 'untouched';
+    const p = scs.map(s => s.progress);
+    if (p.every(x => x === 'accepted')) return 'done';
+    return p.some(x => x !== 'open') ? 'progress' : 'untouched';
+  }
+  statusDot(status) {
+    if (status === 'done') return 'var(--acc-dot)';
+    if (status === 'progress') return 'var(--dev-dot)';
+    return 'var(--open-dot)';
+  }
+  statusHalo(status) {
+    if (status === 'done') return 'var(--success-bg)';
+    if (status === 'progress') return 'var(--primary-soft)';
+    return 'var(--surface-2)';
+  }
+  accent(cls) { return cls === 'happy' ? 'var(--happy-fg)' : cls === 'edge' ? 'var(--edge-fg)' : 'var(--error-fg)'; }
+  pips(scs, sm) {
+    const has = c => scs.some(s => s.cls === c);
+    return this.PATHS.map(p => {
+      const on = has(p);
+      const fg = this.accent(p);
+      const d = sm ? 5 : 7;
+      const style = on
+        ? `width:${sm?12:16}px;height:${d}px;border-radius:3px;display:inline-block;background:${fg}`
+        : `width:${sm?12:16}px;height:${d}px;border-radius:3px;display:inline-block;background:transparent;border:1.5px dashed var(--border-strong);box-sizing:border-box`;
+      return { style, styleSm: style, on, key: p };
+    });
+  }
+  matTitle(scs) {
+    return this.PATHS.map(p => `${p}: ${scs.some(s => s.cls === p) ? 'specified ✓' : 'not yet —'}`).join(' · ');
+  }
+
+  // ---- chip ----
+  chip(slug, label) {
+    const copied = this.state.copied === slug;
+    const base = 'display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;padding:3px 9px;border-radius:999px;transition:all .14s var(--ease);';
+    const style = copied
+      ? base + 'background:var(--success-bg);color:var(--acc-fg);border:1px solid var(--happy-bd)'
+      : base + 'background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border)';
+    return { slug, label: label != null ? label : slug, copied, style, onCopy: () => this.copyId(slug) };
+  }
+  copyId = (slug) => {
+    try { if (navigator.clipboard) navigator.clipboard.writeText(slug); } catch (e) {}
+    this.setState({ copied: slug });
+    clearTimeout(this._ct);
+    this._ct = setTimeout(() => this.setState(s => (s.copied === slug ? { copied: null } : {})), 1100);
+  };
+
+  // ---- interactions ----
+  toggleTheme = () => this.setState(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }));
+  toggleCtx = (id) => this.setState(s => ({ ctxCollapsed: { ...s.ctxCollapsed, [id]: !s.ctxCollapsed[id] } }));
+  toggleCap = (id) => this.setState(s => ({ capOpen: { ...s.capOpen, [id]: !s.capOpen[id] } }));
+  selectCap = (capId) => this.setState(s => ({ sel: { cap: capId, file: null }, capOpen: { ...s.capOpen, [capId]: true } }));
+  selectFeat = (capId, file) => this.setState({ sel: { cap: capId, file } });
+  onSearch = (e) => { const v = e.target.value; this.setState({ search: v }); };
+  toggleTag = (t) => this.setState(s => ({ tags: s.tags.includes(t) ? s.tags.filter(x => x !== t) : [...s.tags, t] }));
+  toggleRaw = () => this.setState(s => ({ raw: !s.raw }));
+  setProgress = (capId, file, name, progress) => {
+    const cap = this.findCap(capId);
+    const feat = cap && cap.feats.find(f => f.file === file);
+    const scn = feat && feat.scenarios.find(s => s.name === name);
+    if (scn) { scn.progress = progress; this.forceUpdate(); }
+  };
+  findCap(capId) { for (const c of this.DATA) { const cap = c.caps.find(x => x.id === capId); if (cap) return cap; } return null; }
+  findCtxOf(capId) { return this.DATA.find(c => c.caps.some(x => x.id === capId)); }
+
+  forceThemeRecalc() {
+    try {
+      const el = document.querySelector('[data-theme]');
+      if (el) { const d = el.style.display; el.style.display = 'none'; void el.offsetHeight; el.style.display = d; }
+    } catch (e) {}
+  }
+  componentDidMount() { requestAnimationFrame(() => this.forceThemeRecalc()); }
+  componentDidUpdate(prevProps, prevState) { if (prevState.theme !== this.state.theme) this.forceThemeRecalc(); }
+
+  renderVals() {
+    const st = this.state;
+
+    // ---- tree ----
+    const tree = this.DATA.map(ctx => {
+      const ctxScs = []; ctx.caps.forEach(c => ctxScs.push(...this.capScenarios(c)));
+      const open = !st.ctxCollapsed[ctx.id];
+      const cc = this.counts(ctxScs);
+      return {
+        name: ctx.name, dot: this.statusDot(this.rollupStatus(ctxScs)),
+        count: `${cc.acc}/${cc.total}`, open, rot: open ? '90deg' : '0deg',
+        onToggle: () => this.toggleCtx(ctx.id),
+        caps: ctx.caps.map(cap => {
+          const scs = this.capScenarios(cap);
+          const c = this.counts(scs);
+          const active = st.sel.cap === cap.id && !st.sel.file;
+          const capOpen = !!st.capOpen[cap.id];
+          return {
+            name: cap.name, dot: this.statusDot(this.rollupStatus(scs)),
+            count: `${c.acc}/${c.total}`, open: capOpen, rot: capOpen ? '90deg' : '0deg',
+            pips: this.pips(scs, true),
+            rowStyle: `display:flex;align-items:center;border-radius:8px;${active ? 'background:var(--primary-soft);' : ''}`,
+            onToggle: () => this.toggleCap(cap.id),
+            onSelect: () => this.selectCap(cap.id),
+            feats: cap.feats.map(f => {
+              const fa = st.sel.cap === cap.id && st.sel.file === f.file;
+              const fc = this.counts(f.scenarios);
+              return {
+                name: f.name, dot: this.statusDot(this.rollupStatus(f.scenarios)),
+                count: `${fc.acc}/${fc.total}`,
+                style: `width:100%;display:flex;align-items:center;gap:7px;border:none;cursor:pointer;font-family:inherit;color:inherit;padding:6px 8px;border-radius:7px;text-align:left;background:${fa ? 'var(--primary-soft)' : 'transparent'}`,
+                onSelect: () => this.selectFeat(cap.id, f.file),
+              };
+            }),
+          };
+        }),
+      };
+    });
+
+    // ---- detail cards ----
+    const cap = this.findCap(st.sel.cap);
+    const q = st.search.trim().toLowerCase();
+    let cards = [];
+    let rawFiles = [];
+    if (cap) {
+      const feats = st.sel.file ? cap.feats.filter(f => f.file === st.sel.file) : cap.feats;
+      rawFiles = feats.map(f => ({ file: f.file, text: this.rawText(f) }));
+      cards = feats.map(f => {
+        const scns = f.scenarios.filter(s => {
+          const tagOk = st.tags.length === 0 || st.tags.every(t => s.tags.includes(t));
+          const text = (s.name + ' ' + s.steps.map(x => x.join(' ')).join(' ')).toLowerCase();
+          return tagOk && (!q || text.includes(q));
+        });
+        if (!scns.length) return null;
+        const c = this.counts(f.scenarios);
+        const status = this.rollupStatus(f.scenarios);
+        return {
+          name: f.name, description: f.desc,
+          dot: this.statusDot(status), halo: this.statusHalo(status),
+          count: `${c.acc}/${c.total} accepted`,
+          pips: this.pips(f.scenarios, false), matTitle: this.matTitle(f.scenarios),
+          chip: this.chip(`${cap.id}/${f.file}`),
+          scenarios: scns.map(s => ({
+            name: s.name, accent: this.accent(s.cls),
+            tags: s.tags.map(t => ({ label: t, style: this.tagStyle(s.cls) })),
+            chip: this.chip(`${cap.id}/${f.file}#"${s.name}"`, ''),
+            gherkin: s.steps.map(x => `${x[0].padEnd(5)} ${x[1]}`).join('\n'),
+            segs: this.STATES.map(p => ({
+              label: this.LABELS[p], glyph: this.GLYPH[p],
+              style: this.segStyle(p, s.progress === p),
+              onClick: () => this.setProgress(cap.id, f.file, s.name, p),
+            })),
+          })),
+        };
+      }).filter(Boolean);
+    }
+
+    return {
+      theme: st.theme,
+      themeKey: 'theme-' + st.theme,
+      themeLabel: st.theme === 'dark' ? 'Light' : 'Dark',
+      themeIcon: st.theme === 'dark' ? '☀' : '☾',
+      toggleTheme: this.toggleTheme,
+
+      blueRamp: ['50','100','200','300','400','500','600','700','800','900'].map(step => ({
+        step, hex: getComputedStyle(document.documentElement).getPropertyValue('--blue-' + step).trim() || this.blueHex(step),
+      })),
+      semanticRoles: [
+        { name: 'Primary', use: 'Actions, selection, focus', swatch: 'var(--primary)' },
+        { name: 'Surface', use: 'Cards & panels', swatch: 'var(--surface)' },
+        { name: 'Border', use: 'Hairlines & dividers', swatch: 'var(--border-strong)' },
+        { name: 'Text', use: 'Primary ink', swatch: 'var(--text)' },
+        { name: 'Happy', use: 'Normal path / success', swatch: 'var(--happy-fg)' },
+        { name: 'Edge', use: 'Caution / boundary', swatch: 'var(--edge-fg)' },
+        { name: 'Error', use: 'Failure path / danger', swatch: 'var(--error-fg)' },
+        { name: 'Accepted', use: 'Confirmed by the user', swatch: 'var(--acc-dot)' },
+      ],
+      typeScale: [
+        { spec: 'Display / 44 / 800', style: 'font-size:30px;font-weight:800;letter-spacing:-.025em', sample: 'A living map' },
+        { spec: 'Heading / 26 / 700', style: 'font-size:24px;font-weight:700;letter-spacing:-.02em', sample: 'Domain Management' },
+        { spec: 'Title / 17 / 700', style: 'font-size:18px;font-weight:700', sample: 'Verify a domain' },
+        { spec: 'Body / 16 / 400', style: 'font-size:16px;font-weight:400', sample: 'Given the org has not claimed it' },
+        { spec: 'Small / 14 / 500', style: 'font-size:14px;font-weight:500;color:var(--text-muted)', sample: 'accepted / total' },
+        { spec: 'Mono / 13', style: 'font-family:var(--font-mono);font-size:14px', sample: 'domain-management/verify.feature' },
+      ],
+      spacingScale: [['1','4px','6px'],['2','8px','12px'],['3','12px','18px'],['4','16px','24px'],['6','24px','34px'],['8','32px','44px'],['12','48px','58px']].map(([v,px,h]) => ({ v: px, h })),
+      radiusScale: [{ name: 'sm 7', v: '7px' }, { name: 'md 11', v: '11px' }, { name: 'lg 16', v: '16px' }, { name: 'xl 22', v: '22px' }],
+
+      chipDemos: [
+        this.chip('domain-management', 'domain-management'),
+        this.chip('verify.feature', 'verify.feature'),
+        this.chip('claim-a-domain', 'claim-a-domain'),
+      ],
+      maturityDemos: [
+        { pips: this.pipsFrom(['happy']), caption: 'happy only — in progress', title: this.matFromTitle(['happy']) },
+        { pips: this.pipsFrom(['happy','edge']), caption: 'happy + edge — more mature', title: this.matFromTitle(['happy','edge']) },
+        { pips: this.pipsFrom(['happy','edge','error']), caption: 'fully hardened', title: this.matFromTitle(['happy','edge','error']) },
+      ],
+      segDemos: [
+        { segs: this.STATES.map(p => ({ label: this.LABELS[p], glyph: this.GLYPH[p], style: this.segStyle(p, p === 'open') })) },
+        { segs: this.STATES.map(p => ({ label: this.LABELS[p], glyph: this.GLYPH[p], style: this.segStyle(p, p === 'developed') })) },
+        { segs: this.STATES.map(p => ({ label: this.LABELS[p], glyph: this.GLYPH[p], style: this.segStyle(p, p === 'accepted') })) },
+      ],
+      rollupDemos: [
+        { name: 'Domain verification', count: '7 / 12', dot: 'var(--dev-dot)', halo: 'var(--primary-soft)' },
+        { name: 'Plant catalog', count: '12 / 12', dot: 'var(--acc-dot)', halo: 'var(--success-bg)' },
+        { name: 'Task reminders', count: '0 / 4', dot: 'var(--open-dot)', halo: 'var(--surface-2)' },
+      ],
+
+      tree,
+      search: st.search, onSearch: this.onSearch,
+      tagFilters: this.PATHS.map(p => {
+        const tag = '@' + p; const active = st.tags.includes(tag);
+        return { label: tag, onToggle: () => this.toggleTag(tag), style: this.tagBtnStyle(p, active) };
+      }),
+      raw: st.raw, onToggleRaw: this.toggleRaw,
+      rawStyle: `font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:9px 16px;border-radius:999px;border:1px solid ${st.raw ? 'var(--primary)' : 'var(--border)'};background:${st.raw ? 'var(--primary)' : 'var(--surface-2)'};color:${st.raw ? 'var(--primary-contrast)' : 'var(--text-muted)'}`,
+      showCards: !st.raw,
+      cards, rawFiles,
+      noMatches: !st.raw && cards.length === 0,
+    };
+  }
+
+  pipsFrom(list) {
+    return this.PATHS.map(p => {
+      const on = list.includes(p); const fg = this.accent(p);
+      return { style: on
+        ? `width:18px;height:8px;border-radius:3px;display:inline-block;background:${fg}`
+        : `width:18px;height:8px;border-radius:3px;display:inline-block;background:transparent;border:1.5px dashed var(--border-strong);box-sizing:border-box` };
+    });
+  }
+  matFromTitle(list) { return this.PATHS.map(p => `${p}: ${list.includes(p) ? 'specified ✓' : 'not yet —'}`).join(' · '); }
+  tagStyle(cls) {
+    const map = { happy: ['var(--happy-fg)','var(--happy-bg)','var(--happy-bd)'], edge: ['var(--edge-fg)','var(--edge-bg)','var(--edge-bd)'], error: ['var(--error-fg)','var(--error-bg)','var(--error-bd)'] };
+    const [fg,bg,bd] = map[cls] || map.happy;
+    return `font-family:var(--font-mono);font-size:11px;font-weight:600;color:${fg};background:${bg};border:1px solid ${bd};padding:2px 8px;border-radius:6px`;
+  }
+  tagBtnStyle(p, active) {
+    const fg = this.accent(p);
+    return active
+      ? `font-family:var(--font-mono);font-size:12.5px;font-weight:600;cursor:pointer;padding:7px 12px;border-radius:999px;color:#fff;background:${fg};border:1px solid ${fg}`
+      : `font-family:var(--font-mono);font-size:12.5px;font-weight:600;cursor:pointer;padding:7px 12px;border-radius:999px;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border)`;
+  }
+  segStyle(progress, active) {
+    const base = 'font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border:none;padding:6px 13px;border-radius:999px;transition:all .16s var(--ease);display:inline-flex;align-items:center;gap:5px;';
+    if (!active) return base + 'background:transparent;color:var(--text-soft)';
+    const fill = progress === 'accepted' ? 'var(--acc-dot)' : progress === 'developed' ? 'var(--primary)' : 'var(--text-soft)';
+    const fg = progress === 'open' ? 'var(--primary-contrast)' : 'var(--primary-contrast)';
+    return base + `background:${fill};color:${fg};box-shadow:var(--shadow-1)`;
+  }
+  rawText(f) {
+    let out = 'Feature: ' + f.name + '\n';
+    if (f.desc) out += '  ' + f.desc + '\n';
+    out += '\n';
+    f.scenarios.forEach(s => {
+      out += '  ' + s.tags.join(' ') + '\n';
+      out += '  Scenario: ' + s.name + '\n';
+      s.steps.forEach(x => { out += '    ' + x[0] + ' ' + x[1] + '\n'; });
+      out += '\n';
+    });
+    return out.trimEnd();
+  }
+  blueHex(step) {
+    const m = { '50':'#eff4ff','100':'#dde8ff','200':'#c2d4ff','300':'#97b4ff','400':'#6790ff','500':'#2f63e6','600':'#214fc7','700':'#1c40a0','800':'#1b3a87','900':'#1a3372' };
+    return m[step] || '#2f63e6';
+  }
+}
+</script>
+</body>
+</html>
