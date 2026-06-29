@@ -80,13 +80,19 @@ starting prompt *is* a set of acceptance criteria, it can self-verify against th
 scenarios remain the stable truth in version control after the implementation has been
 rewritten three times.
 
-Three more commands view and maintain the map:
+Four more commands view and maintain the map:
 
 | Command | What it does |
 | --- | --- |
 | `/karto-show` | Open the live viewer in your browser. |
 | `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
 | `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
+
+`/karto-build-all [scope]` builds every open scenario in a scope autonomously — the whole map,
+`context:<slug>`, or a `<capability-slug>` (and its dependencies). It computes a dependency-ordered
+plan, then spawns one build subagent per capability (each in its own context window), taking every
+scenario it can walk end-to-end to **Developed**. **Accepted** stays your call. Capabilities with no
+charted scenarios are skipped and listed (chart them with `/karto-explore`).
 
 ## Guardrails: what makes the map trustworthy
 

@@ -14,7 +14,7 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 // The three workflow scripts live under workflows/internal/ (a non-scanned
 // subdirectory) so they don't register as standalone `[dynamic workflow]` slash
 // commands — commands invoke them by scriptPath instead.
-for (const wf of ['workflows/internal/discovery.js', 'workflows/internal/init.js', 'workflows/internal/chart.js', 'workflows/internal/sync.js']) {
+for (const wf of ['workflows/internal/discovery.js', 'workflows/internal/init.js', 'workflows/internal/chart.js', 'workflows/internal/sync.js', 'workflows/internal/build-all.js']) {
   test(`${wf} parses as a workflow body`, async () => {
     const src = await read(wf);
     const body = src.replace(/export\s+const\s+meta/, 'const meta');
@@ -62,6 +62,7 @@ for (const skill of [
 for (const cmd of [
   'commands/karto-explore.md', 'commands/karto-chart.md', 'commands/karto-build.md',
   'commands/karto-sync.md', 'commands/karto-init.md', 'commands/karto-show.md',
+  'commands/karto-build-all.md',
 ]) {
   test(`${cmd} has a description frontmatter`, async () => {
     const fm = frontmatter(await read(cmd));
@@ -103,11 +104,31 @@ test('build command leans on superpowers TDD and works from the map, with no sep
   assert.doesNotMatch(src, /config\.json/);
 });
 
+test('build-all workflow declares meta and defensively parses args', async () => {
+  const src = await read('workflows/internal/build-all.js');
+  assert.match(src, /export const meta = \{/);
+  assert.match(src, /name: 'karto-build-all'/);
+  // standing Kartograph guard: tolerate a JSON-stringified args object
+  assert.match(src, /typeof a === 'string'/);
+  // never writes the map directly; advances state via set-tracking.js (run by subagents)
+  assert.match(src, /set-tracking\.js/);
+  assert.doesNotMatch(src, /writeMap|kartograph\.json'/);
+});
+
+test('karto-build-all command has a description and wires the build-all workflow by scriptPath', async () => {
+  const src = await read('commands/karto-build-all.md');
+  assert.match(src, /^---[\s\S]*description:[\s\S]*?---/);
+  assert.match(src, /workflows\/internal\/build-all\.js/);
+  assert.match(src, /scripts\/build-plan\.js/);
+  assert.match(src, /scripts\/reconcile\.js/);
+});
+
 test('plugin.json registers all commands and skills', async () => {
   const p = JSON.parse(await read('.claude-plugin/plugin.json'));
   for (const c of [
     './commands/karto-explore.md', './commands/karto-chart.md', './commands/karto-build.md',
     './commands/karto-sync.md', './commands/karto-init.md', './commands/karto-show.md',
+    './commands/karto-build-all.md',
   ]) assert.ok(p.commands.includes(c), `commands includes ${c}`);
   for (const s of [
     './skills/karto-grill', './skills/karto-analyze-repo',
