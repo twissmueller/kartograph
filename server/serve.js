@@ -1,9 +1,12 @@
 import http from 'node:http';
 import { createReadStream, watch } from 'node:fs';
 import { stat, readFile, writeFile } from 'node:fs/promises';
-import { setScenarioProgress } from '../workflows/lib/gherkin.js';
+import { parseFeature } from '../workflows/lib/gherkin.js';
 import { buildBoard } from '../workflows/lib/board-data.js';
 import { readCapabilityFeatures } from '../workflows/lib/feature-read.js';
+import { setScenarioState, STATES } from '../workflows/lib/tracking.js';
+import { readMap, writeMap } from '../workflows/lib/map-store.js';
+import { scenarioId } from '../viewer/lib/ids.js';
 import { mapPath, layoutPath, isLayoutFile } from '../workflows/lib/paths.js';
 import { join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,7 +70,7 @@ export function createServer({ projectRoot, viewerDir }) {
     }
 
     // POST /board { context, capability, feature, scenario, progress } — set one scenario's
-    // progress tag in its .feature file. Mirrors POST /layout's write pattern.
+    // tracking state in kartograph.json (NOT in the .feature file). Mirrors POST /layout.
     if (url.pathname === '/board' && req.method === 'POST') {
       let body = '';
       for await (const chunk of req) body += chunk;
@@ -76,19 +79,21 @@ export function createServer({ projectRoot, viewerDir }) {
       catch { res.writeHead(400); res.end('bad json'); return; }
       const isSlug = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(s);
       const isFeature = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*\.feature$/.test(s);
-      const VALID = ['open', 'wip', 'test', 'done'];
-      if (!isSlug(p.context) || !isSlug(p.capability) || !isFeature(p.feature) || typeof p.scenario !== 'string' || !p.scenario || !VALID.includes(p.progress)) {
+      if (!isSlug(p.context) || !isSlug(p.capability) || !isFeature(p.feature) || typeof p.scenario !== 'string' || !p.scenario || !STATES.includes(p.progress)) {
         res.writeHead(400); res.end('bad request'); return;
       }
+      // Confirm the scenario actually exists in its .feature file before tracking it.
       const filePath = join(projectRoot, 'features', p.context, p.capability, p.feature);
       let src;
       try { src = await readFile(filePath, 'utf8'); }
       catch { res.writeHead(404); res.end('feature not found'); return; }
-      let updated;
-      try { updated = setScenarioProgress(src, p.scenario, p.progress); }
-      catch (e) { res.writeHead(404); res.end(String(e.message)); return; }
+      if (!parseFeature(src).scenarios.some((s) => s.name === p.scenario)) {
+        res.writeHead(404); res.end('scenario not found'); return;
+      }
       try {
-        await writeFile(filePath, updated);
+        const map = await readMap(projectRoot);
+        const id = scenarioId(p.capability, p.feature, p.scenario);
+        await writeMap(projectRoot, setScenarioState(map, id, p.progress));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end('{"ok":true}');
       } catch (e) {

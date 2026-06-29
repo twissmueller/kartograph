@@ -1,15 +1,21 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseFeature, scenarioClass } from './gherkin.js';
+import { getScenarioState } from './tracking.js';
+import { scenarioId } from '../../viewer/lib/ids.js';
 import { mapPath } from './paths.js';
 
 export const isSlug = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(s);
 export const isFeatureName = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*\.feature$/.test(s);
 
-// Parse every .feature in features/<context>/<slug> into structured scenarios.
+// Parse every .feature in features/<context>/<slug> into structured scenarios, each
+// stamped with its tracked state (`progress`) read from kartograph.json's tracking block.
 // Throws if context/slug are not valid slugs (path-traversal guard).
 export async function readCapabilityFeatures(projectRoot, context, slug) {
   if (!isSlug(context) || !isSlug(slug)) throw new Error('invalid context or slug');
+  let map;
+  try { map = JSON.parse(await readFile(mapPath(projectRoot), 'utf8')); }
+  catch { map = {}; }
   const dir = join(projectRoot, 'features', context, slug);
   let names = [];
   try { names = (await readdir(dir)).filter((n) => n.endsWith('.feature')).sort(); }
@@ -23,7 +29,8 @@ export async function readCapabilityFeatures(projectRoot, context, slug) {
       description: parsed.description,
       background: parsed.background,
       scenarios: parsed.scenarios.map((s) => ({
-        name: s.name, tags: s.tags, class: scenarioClass(s.tags), steps: s.steps,
+        name: s.name, tags: s.tags, class: scenarioClass(s.tags),
+        progress: getScenarioState(map, scenarioId(slug, name, s.name)), steps: s.steps,
       })),
     });
   }

@@ -109,3 +109,24 @@ test('a glossary entry with an out-of-enum type (begriff) is rejected', async ()
   const result = await validateKartograph(doc);
   assert.equal(result.valid, false, 'type "begriff" is not in the enum');
 });
+
+test('a tracking block of valid states on a real capability validates', async () => {
+  const doc = await seed();
+  doc.tracking = { 'start-here/intro.feature#"welcome"': 'developed' };
+  const result = await validateKartograph(doc);
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+
+test('a tracking entry with an out-of-enum state is rejected by schema', async () => {
+  const doc = await seed();
+  doc.tracking = { 'start-here/intro.feature#"welcome"': 'done' };
+  const result = await validateKartograph(doc);
+  assert.equal(result.valid, false, 'state "done" is not in the enum');
+});
+
+test('a tracking key whose capability does not exist is caught by integrity check', async () => {
+  const doc = await seed();
+  doc.tracking = { 'ghost-cap/intro.feature#"welcome"': 'wip' };
+  const errors = checkReferentialIntegrity(doc);
+  assert.ok(errors.some((e) => e.includes('ghost-cap')), JSON.stringify(errors));
+});

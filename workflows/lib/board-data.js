@@ -1,6 +1,8 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { parseFeature, scenarioClass, scenarioProgress } from './gherkin.js';
+import { parseFeature, scenarioClass } from './gherkin.js';
+import { getScenarioState } from './tracking.js';
+import { scenarioId } from '../../viewer/lib/ids.js';
 import { mapPath } from './paths.js';
 
 // Build the cross-capability board model for a project: every context, every
@@ -33,7 +35,8 @@ export async function buildBoard(projectRoot) {
         scenarios.push({
           capability: slug, capabilityName: cap.name || slug, context,
           feature: name, featureName: parsed.feature || name, name: s.name,
-          class: scenarioClass(s.tags), progress: scenarioProgress(s.tags),
+          class: scenarioClass(s.tags),
+          progress: getScenarioState(map, scenarioId(slug, name, s.name)),
         });
       }
     }

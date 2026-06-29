@@ -111,10 +111,18 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   object; every `workflows/internal/*.js` script defensively `JSON.parse`s a string `args`
   (see `test/workflow-args.test.js`) — keep this guard when editing them, or surveys come out
   empty.
-- **Scenario tags drive everything.** Each Gherkin `Scenario` carries exactly one path tag
-  (`@happy`/`@edge`/`@error`) plus an optional progress tag (`@wip`/`@test`/`@done`). Path tags
-  feed maturity; progress tags are tracking-only (the Board) and never change maturity.
-  `workflows/lib/gherkin.js` parses these.
+- **Path tags drive maturity; tracking state lives in the map.** Each Gherkin `Scenario`
+  carries exactly **one path tag** (`@happy`/`@edge`/`@error`) in its `.feature` file — that is
+  the only kind of tag now, and it feeds maturity (`workflows/lib/gherkin.js` parses it). A
+  scenario's **progress** — `Open → WIP → Developed → Accepted` — is *not* a tag; it lives in
+  `kartograph.json`'s top-level `tracking` block, keyed by the canonical scenario ID
+  (`<capability>/<feature.feature>#"<scenario>"`, see `viewer/lib/ids.js`). The pure helpers are
+  `workflows/lib/tracking.js` (`getScenarioState`/`setScenarioState`, default `open`); writers go
+  through `workflows/lib/map-store.js` (`writeMap`, atomic). Progress never changes maturity. The
+  schema validates `tracking`; the integrity gate flags entries whose capability no longer exists.
+  `/karto-build` advances scenarios to **Developed**; the user flips **Accepted** after walking
+  them. Set state with `scripts/set-tracking.js` or the viewer's Tracking board; migrate legacy
+  `@wip`/`@test`/`@done` tags with `scripts/migrate-tracking.js`.
 - **Scenarios are user-walkable, not technical.** Features and scenarios are written for a
   non-technical stakeholder to walk through and confirm in front of the running system: plain
   domain language (glossary terms), only observable behaviour (Given = recognisable situation,

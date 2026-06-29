@@ -172,14 +172,16 @@ test('GET /features includes a Background block when present', async () => {
   }
 });
 
-test('POST /board writes the progress tag to the scenario and nothing else', async () => {
+test('POST /board records the scenario state in kartograph.json, leaving the .feature untouched', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'karto-'));
   await mkdir(join(projectRoot, '.kartograph'), { recursive: true });
-  await writeFile(join(projectRoot, '.kartograph', 'kartograph.json'), JSON.stringify({ version: '1', meta: { name: 'T' } }));
+  const mapFile = join(projectRoot, '.kartograph', 'kartograph.json');
+  await writeFile(mapFile, JSON.stringify({ version: '1', meta: { name: 'T' } }));
   const dir = join(projectRoot, 'features', 'care', 'watering');
   await mkdir(dir, { recursive: true });
   const file = join(dir, 'water.feature');
-  await writeFile(file, `Feature: Watering\n\n  @happy\n  Scenario: Water\n    Given a bed\n`);
+  const featureSrc = `Feature: Watering\n\n  @happy\n  Scenario: Water\n    Given a bed\n`;
+  await writeFile(file, featureSrc);
 
   const viewerDir = new URL('../viewer/', import.meta.url).pathname;
   const server = createServer({ projectRoot, viewerDir });
@@ -187,11 +189,12 @@ test('POST /board writes the progress tag to the scenario and nothing else', asy
   try {
     const res = await fetch(`http://127.0.0.1:${port}/board`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context: 'care', capability: 'watering', feature: 'water.feature', scenario: 'Water', progress: 'done' }),
+      body: JSON.stringify({ context: 'care', capability: 'watering', feature: 'water.feature', scenario: 'Water', progress: 'accepted' }),
     });
     assert.equal(res.status, 200);
-    const saved = await readFile(file, 'utf8');
-    assert.match(saved, /@happy @done\n {2}Scenario: Water/);
+    const map = JSON.parse(await readFile(mapFile, 'utf8'));
+    assert.equal(map.tracking['watering/water.feature#"Water"'], 'accepted');
+    assert.equal(await readFile(file, 'utf8'), featureSrc, '.feature file is not rewritten');
 
     const bad = await fetch(`http://127.0.0.1:${port}/board`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -219,11 +222,15 @@ test('GET /board aggregates scenarios across all capabilities with progress + cl
       watering: { name: 'Watering', context: 'care', definition: 'd' },
       pruning: { name: 'Pruning', context: 'care', definition: 'd' },
     },
+    tracking: {
+      'watering/water.feature#"Water"': 'wip',
+      'watering/water.feature#"Rain"': 'accepted',
+    },
   }));
   const dir = join(projectRoot, 'features', 'care', 'watering');
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'water.feature'),
-    `Feature: Watering\n\n  @happy @wip\n  Scenario: Water\n    Given a bed\n\n  @edge @done\n  Scenario: Rain\n    Given rain\n`);
+    `Feature: Watering\n\n  @happy\n  Scenario: Water\n    Given a bed\n\n  @edge\n  Scenario: Rain\n    Given rain\n`);
 
   const viewerDir = new URL('../viewer/', import.meta.url).pathname;
   const server = createServer({ projectRoot, viewerDir });
@@ -237,7 +244,7 @@ test('GET /board aggregates scenarios across all capabilities with progress + cl
     assert.deepEqual(
       { cap: water.capability, ctx: water.context, file: water.feature, fname: water.featureName, cls: water.class, prog: water.progress },
       { cap: 'watering', ctx: 'care', file: 'water.feature', fname: 'Watering', cls: 'happy', prog: 'wip' });
-    assert.equal(scenarios.find((s) => s.name === 'Rain').progress, 'done');
+    assert.equal(scenarios.find((s) => s.name === 'Rain').progress, 'accepted');
     // every capability is listed (incl. the scenario-less "pruning"), each with its context
     assert.deepEqual(capabilities, [
       { capability: 'watering', capabilityName: 'Watering', context: 'care' },

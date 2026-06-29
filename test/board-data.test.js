@@ -17,7 +17,7 @@ async function tmpProject(map, features = {}) {
   return dir;
 }
 
-test('buildBoard returns contexts, every capability, and tagged scenarios', async () => {
+test('buildBoard stamps each scenario with its class and its tracked state from the map', async () => {
   const dir = await tmpProject(
     {
       contexts: { care: { name: 'Care', color: '#abc' } },
@@ -25,10 +25,11 @@ test('buildBoard returns contexts, every capability, and tagged scenarios', asyn
         'intake': { name: 'Intake', context: 'care' },
         'empty-cap': { name: 'Empty', context: 'care' },
       },
+      tracking: { 'intake/sign-in.feature#"works"': 'accepted' },
     },
     {
       'care/intake/sign-in.feature':
-        'Feature: Sign in\n@happy @done\nScenario: works\nGiven a user\nWhen they sign in\nThen ok\n',
+        'Feature: Sign in\n@happy\nScenario: works\nGiven a user\nWhen they sign in\nThen ok\n',
     },
   );
   const board = await buildBoard(dir);
@@ -38,8 +39,17 @@ test('buildBoard returns contexts, every capability, and tagged scenarios', asyn
   assert.deepEqual(board.scenarios[0], {
     capability: 'intake', capabilityName: 'Intake', context: 'care',
     feature: 'sign-in.feature', featureName: 'Sign in', name: 'works',
-    class: 'happy', progress: 'done',
+    class: 'happy', progress: 'accepted',
   });
+});
+
+test('buildBoard defaults an untracked scenario to open', async () => {
+  const dir = await tmpProject(
+    { contexts: { care: { name: 'Care' } }, capabilities: { intake: { name: 'Intake', context: 'care' } } },
+    { 'care/intake/sign-in.feature': 'Feature: Sign in\n@happy\nScenario: works\nGiven a\nThen b\n' },
+  );
+  const board = await buildBoard(dir);
+  assert.equal(board.scenarios[0].progress, 'open');
 });
 
 test('buildBoard tolerates a missing kartograph.json', async () => {

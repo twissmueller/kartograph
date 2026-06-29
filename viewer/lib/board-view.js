@@ -3,7 +3,7 @@
 // card's new progress back via POST /board. No unit test (DOM) — verified by running the viewer.
 import { BOARD_COLUMNS, boardColumns, capabilityStatuses, groupByContext } from '/lib/board.js';
 
-const COL_LABEL = { open: 'Open', wip: 'In Progress', test: 'Test', done: 'Done' };
+const COL_LABEL = { open: 'Open', wip: 'WIP', developed: 'Developed', accepted: 'Accepted' };
 
 let container = null;
 let getContextColor = () => ({});

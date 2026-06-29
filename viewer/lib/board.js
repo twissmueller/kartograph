@@ -2,7 +2,7 @@
 // the DOM wiring lives in viewer/lib/board-view.js.
 
 // The four progress columns, in display order.
-export const BOARD_COLUMNS = ['open', 'wip', 'test', 'done'];
+export const BOARD_COLUMNS = ['open', 'wip', 'developed', 'accepted'];
 
 // Group scenarios into ordered columns keyed by their `progress` field (provided by the
 // server's GET /board). An unknown or missing progress falls into 'open'.
@@ -26,7 +26,7 @@ export function capabilityStatuses(scenarios, allCapabilities) {
   for (const s of scenarios || []) {
     const t = (tally[s.capability] ||= { total: 0, done: 0 });
     t.total += 1;
-    if (s.progress === 'done') t.done += 1;
+    if (s.progress === 'accepted') t.done += 1;
   }
   const out = {};
   for (const [slug, { total, done }] of Object.entries(tally)) {
@@ -67,7 +67,7 @@ export function groupByContext(capabilities, contexts) {
 export function buildAcceptanceTree(scenarios, { contexts = [], capabilities = [] } = {}) {
   const statusOf = (scen) => {
     if (!scen.length) return 'untouched';
-    const accepted = scen.filter((s) => s.progress === 'done').length;
+    const accepted = scen.filter((s) => s.progress === 'accepted').length;
     if (accepted === scen.length) return 'done';
     return scen.some((s) => s.progress && s.progress !== 'open') ? 'progress' : 'untouched';
   };
@@ -103,7 +103,7 @@ export function buildAcceptanceTree(scenarios, { contexts = [], capabilities = [
           featureName: f.featureName,
           scenarios: f.scenarios,
           total: f.scenarios.length,
-          accepted: f.scenarios.filter((s) => s.progress === 'done').length,
+          accepted: f.scenarios.filter((s) => s.progress === 'accepted').length,
           status: statusOf(f.scenarios),
         }));
       const capScen = features.flatMap((f) => f.scenarios);

@@ -60,6 +60,12 @@ export function checkReferentialIntegrity(doc) {
   for (const [slug, a] of Object.entries(doc.adrs || {})) {
     if (a.supersedes && !adrs.has(a.supersedes)) errors.push(`adr '${slug}' supersedes missing adr '${a.supersedes}'`);
   }
+  // tracking keys are scenario IDs `<capability>/<feature.feature>#"<name>"`; the capability
+  // prefix must resolve so stale state (e.g. after a capability is renamed) is surfaced.
+  for (const id of Object.keys(doc.tracking || {})) {
+    const cap = id.split('/')[0];
+    if (!capabilities.has(cap)) errors.push(`tracking entry '${id}' references missing capability '${cap}'`);
+  }
   return errors;
 }
 

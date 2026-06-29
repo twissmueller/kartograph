@@ -60,7 +60,8 @@
     "slugMap": {
       "type": "object",
       "propertyNames": { "$ref": "#/$defs/slug" }
-    }
+    },
+    "trackingState": { "enum": ["open", "wip", "developed", "accepted"] }
   },
   "type": "object",
   "additionalProperties": false,
@@ -113,6 +114,10 @@
           "features": { "type": "array", "items": { "type": "string" } }
         }
       }
+    },
+    "tracking": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/trackingState" }
     },
     "openQuestions": {
       "type": "array",

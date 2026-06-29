@@ -17,7 +17,7 @@ the next launch.
 ## Views
 
 - **Map** — capability graph; drag nodes to lay them out (saved to `.kartograph/kartograph.layout.json`).
-- **Board** — scenario Kanban; drag a card to change its progress tag in the `.feature` file.
+- **Board** — scenario Kanban; drag a card to change its tracking state (stored in `kartograph.json`).
 - **Features** — browse all `.feature` files, full Gherkin render, tag filter + search, raw view.
 - **Sidebar** — maturity, glossary, ADRs, open questions.
 

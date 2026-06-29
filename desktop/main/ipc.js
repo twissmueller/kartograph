@@ -3,7 +3,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join, extname } from 'node:path';
 import { buildBoard } from '../../workflows/lib/board-data.js';
 import { readCapabilityFeatures, listFeatureTree, isSlug, isFeatureName } from '../../workflows/lib/feature-read.js';
-import { setScenarioProgress } from '../../workflows/lib/gherkin.js';
+import { parseFeature } from '../../workflows/lib/gherkin.js';
+import { setScenarioState, STATES } from '../../workflows/lib/tracking.js';
+import { readMap, writeMap } from '../../workflows/lib/map-store.js';
+import { scenarioId } from '../../viewer/lib/ids.js';
 import { resolveProjectFromDir, isSafeRelPath } from './project.js';
 import { mapPath, layoutPath } from '../../workflows/lib/paths.js';
 import { loadSession, saveSession, addRecent } from './session.js';
@@ -45,15 +48,16 @@ export function registerIpc() {
   });
 
   ipcMain.handle('set-board-progress', async (_e, p) => {
-    const VALID = ['open', 'wip', 'test', 'done'];
     if (!isSlug(p.context) || !isSlug(p.capability) || !isFeatureName(p.feature)
-        || typeof p.scenario !== 'string' || !p.scenario || !VALID.includes(p.progress)) {
+        || typeof p.scenario !== 'string' || !p.scenario || !STATES.includes(p.progress)) {
       throw new Error('invalid request');
     }
+    // Confirm the scenario exists, then record its state in kartograph.json (not the .feature).
     const file = join(p.root, 'features', p.context, p.capability, p.feature);
     const src = await readFile(file, 'utf8');
-    const updated = setScenarioProgress(src, p.scenario, p.progress);
-    await writeFile(file, updated);
+    if (!parseFeature(src).scenarios.some((s) => s.name === p.scenario)) throw new Error('scenario not found');
+    const map = await readMap(p.root);
+    await writeMap(p.root, setScenarioState(map, scenarioId(p.capability, p.feature, p.scenario), p.progress));
     return { ok: true };
   });
 

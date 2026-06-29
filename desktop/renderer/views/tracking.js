@@ -1,17 +1,12 @@
 import { buildAcceptanceTree } from '../../../viewer/lib/board.js';
-import { scenarioProgress } from '../../../workflows/lib/gherkin.js';
+import { STATES as TRACK_STATES, STATE_LABELS } from '../../../workflows/lib/tracking.js';
 import { contextId, capabilityId, featureId, scenarioId } from '../../../viewer/lib/ids.js';
 import { idChip } from '../idchip.js';
 import { persistSession } from '../app.js';
 
 const PATH_TAGS = ['@happy', '@edge', '@error'];
-const PROGRESS_TAGS = ['@wip', '@test', '@done'];
-const STATES = [
-  { progress: 'open', label: 'Open' },
-  { progress: 'wip', label: 'WIP' },
-  { progress: 'test', label: 'Developed' },
-  { progress: 'done', label: 'Accepted' },
-];
+// The four tracking states (Open/WIP/Developed/Accepted), as the segmented control reads them.
+const STATES = TRACK_STATES.map((progress) => ({ progress, label: STATE_LABELS[progress] }));
 
 export function renderTracking(container, tab) {
   if (!tab.trackingCollapsed) tab.trackingCollapsed = new Set(); // collapsed CONTEXT keys (default open)
@@ -42,15 +37,15 @@ export function renderTracking(container, tab) {
   applyTreeWidth(treeEl);
   wireResizer(resizerEl, treeEl);
 
-  for (const t of [...PATH_TAGS, ...PROGRESS_TAGS]) {
+  for (const t of PATH_TAGS) {
     const lbl = document.createElement('label');
     lbl.innerHTML = `<input type="checkbox" value="${esc(t)}" /> ${esc(t)}`;
     tagsEl.appendChild(lbl);
   }
 
   // Selection AND the control state (search/tags/raw) persist on the tab, so a
-  // re-render — including the live-reload our own setBoardProgress write triggers via
-  // the .feature watcher — keeps the user's place, filters, and search text.
+  // re-render — including the live-reload our own setBoardProgress write triggers when it
+  // updates kartograph.json — keeps the user's place, filters, and search text.
   // feature is a .feature filename (focus one feature) or null (whole capability).
   if (!tab.trackingSel) tab.trackingSel = { context: null, capability: null, feature: null };
   if (!tab.trackingUI) tab.trackingUI = { search: '', tags: [], raw: false };
@@ -164,7 +159,7 @@ export function renderTracking(container, tab) {
         return tagOk && (!q || text.includes(q));
       });
       if (!scenarios.length) continue;
-      const accepted = f.scenarios.filter((s) => scenarioProgress(s.tags) === 'done').length;
+      const accepted = f.scenarios.filter((s) => s.progress === 'accepted').length;
       const card = document.createElement('article');
       card.className = 'fb-card';
       const fhead = document.createElement('div');
@@ -184,7 +179,7 @@ export function renderTracking(container, tab) {
           `<div class="fb-scn-name">${esc(s.name)}</div>` +
           `<pre>${esc((s.steps || []).join('\n'))}</pre>`;
         se.querySelector('.fb-scn-name').appendChild(idChip(scenarioId(state.capability, f.file, s.name)));
-        const cur = scenarioProgress(s.tags);
+        const cur = s.progress || 'open';
         const seg = document.createElement('span');
         seg.className = 'seg';
         for (const st of STATES) {
@@ -225,7 +220,7 @@ export function renderTracking(container, tab) {
     contentEl.innerHTML = parts.join('') || '<p class="muted">No files.</p>';
   }
 
-  // Write the scenario's tag, then re-fetch board (tree dots) + features (detail) and redraw
+  // Write the scenario's state to the map, then re-fetch board (tree dots) + features (detail) and redraw
   // in place — selection (incl. feature), collapse, search, tag filter, and raw toggle persist.
   async function setState(ref, progress) {
     try {
@@ -277,8 +272,8 @@ function toggle(set, key) { if (set.has(key)) set.delete(key); else set.add(key)
 // done = >=1 scenario and all done; untouched = no scenarios or all open; else progress.
 function featStatus(scenarios) {
   if (!scenarios.length) return 'untouched';
-  const prog = scenarios.map((s) => scenarioProgress(s.tags));
-  if (prog.every((p) => p === 'done')) return 'done';
+  const prog = scenarios.map((s) => s.progress || 'open');
+  if (prog.every((p) => p === 'accepted')) return 'done';
   return prog.some((p) => p !== 'open') ? 'progress' : 'untouched';
 }
 

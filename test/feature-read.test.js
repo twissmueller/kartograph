@@ -37,6 +37,16 @@ test('readCapabilityFeatures parses each .feature into scenarios', async () => {
   assert.deepEqual(files[0].scenarios[0].steps, ['Given a user', 'Then ok']);
 });
 
+test('readCapabilityFeatures stamps each scenario with its tracked state from the map', async () => {
+  const dir = await tmpProject(
+    { tracking: { 'intake/sign-in.feature#"works"': 'developed' } },
+    { 'care/intake/sign-in.feature': 'Feature: Sign in\n@happy\nScenario: works\nGiven a user\nThen ok\nScenario: other\nGiven x\nThen y\n' },
+  );
+  const { files } = await readCapabilityFeatures(dir, 'care', 'intake');
+  assert.equal(files[0].scenarios[0].progress, 'developed');
+  assert.equal(files[0].scenarios[1].progress, 'open', 'untracked scenario defaults to open');
+});
+
 test('listFeatureTree groups files by context then capability', async () => {
   const dir = await tmpProject(
     { contexts: { care: { name: 'Care' } }, capabilities: { intake: { name: 'Intake', context: 'care' } } },

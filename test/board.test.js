@@ -25,9 +25,9 @@ test('groupByContext puts capabilities with an unlisted context last, under thei
 
 test('capabilityStatuses: green=all done, yellow=some done, red=none done or no scenarios', () => {
   const scenarios = [
-    { capability: 'a', progress: 'done' },
-    { capability: 'a', progress: 'done' },
-    { capability: 'b', progress: 'done' },
+    { capability: 'a', progress: 'accepted' },
+    { capability: 'a', progress: 'accepted' },
+    { capability: 'b', progress: 'accepted' },
     { capability: 'b', progress: 'wip' },
     { capability: 'c', progress: 'open' },
   ];
@@ -44,21 +44,21 @@ test('capabilityStatuses on empty input is an empty map', () => {
 });
 
 test('BOARD_COLUMNS is the four ordered progress states', () => {
-  assert.deepEqual(BOARD_COLUMNS, ['open', 'wip', 'test', 'done']);
+  assert.deepEqual(BOARD_COLUMNS, ['open', 'wip', 'developed', 'accepted']);
 });
 
 test('boardColumns groups scenarios by their server-provided progress', () => {
   const scenarios = [
     { name: 'a', progress: 'open' },
     { name: 'b', progress: 'wip' },
-    { name: 'c', progress: 'done' },
+    { name: 'c', progress: 'accepted' },
     { name: 'd', progress: 'wip' },
   ];
   const cols = boardColumns(scenarios);
   assert.deepEqual(cols.open.map((s) => s.name), ['a']);
   assert.deepEqual(cols.wip.map((s) => s.name), ['b', 'd']);
-  assert.deepEqual(cols.test.map((s) => s.name), []);
-  assert.deepEqual(cols.done.map((s) => s.name), ['c']);
+  assert.deepEqual(cols.developed.map((s) => s.name), []);
+  assert.deepEqual(cols.accepted.map((s) => s.name), ['c']);
 });
 
 test('a scenario with an unknown/missing progress falls into open', () => {
@@ -69,16 +69,16 @@ test('a scenario with an unknown/missing progress falls into open', () => {
 test('boardColumns on empty/undefined input yields four empty columns', () => {
   for (const input of [[], undefined]) {
     const cols = boardColumns(input);
-    assert.deepEqual(Object.keys(cols), ['open', 'wip', 'test', 'done']);
-    assert.equal(cols.open.length + cols.wip.length + cols.test.length + cols.done.length, 0);
+    assert.deepEqual(Object.keys(cols), ['open', 'wip', 'developed', 'accepted']);
+    assert.equal(cols.open.length + cols.wip.length + cols.developed.length + cols.accepted.length, 0);
   }
 });
 
 test('buildAcceptanceTree groups context -> capability -> feature -> scenarios with counts and status', () => {
   const scenarios = [
-    { context: 'ws', capability: 'pm', capabilityName: 'Project Mgmt', feature: 'sign-in.feature', featureName: 'Sign in', name: 'user signs in', class: 'happy', progress: 'done' },
-    { context: 'ws', capability: 'pm', capabilityName: 'Project Mgmt', feature: 'sign-in.feature', featureName: 'Sign in', name: 'bad password', class: 'error', progress: 'done' },
-    { context: 'ws', capability: 'pm', capabilityName: 'Project Mgmt', feature: 'profile.feature', featureName: 'Profile', name: 'view', class: 'happy', progress: 'test' },
+    { context: 'ws', capability: 'pm', capabilityName: 'Project Mgmt', feature: 'sign-in.feature', featureName: 'Sign in', name: 'user signs in', class: 'happy', progress: 'accepted' },
+    { context: 'ws', capability: 'pm', capabilityName: 'Project Mgmt', feature: 'sign-in.feature', featureName: 'Sign in', name: 'bad password', class: 'error', progress: 'accepted' },
+    { context: 'ws', capability: 'pm', capabilityName: 'Project Mgmt', feature: 'profile.feature', featureName: 'Profile', name: 'view', class: 'happy', progress: 'developed' },
     { context: 'ws', capability: 'pm', capabilityName: 'Project Mgmt', feature: 'profile.feature', featureName: 'Profile', name: 'edit', class: 'edge', progress: 'open' },
   ];
   const contexts = [{ context: 'ws', name: 'Workspace', color: '#abc' }];
@@ -123,7 +123,7 @@ test('buildAcceptanceTree: untouched when all scenarios open or none; done when 
   const contexts = [{ context: 'c1', name: 'C1' }];
   const scenarios = [
     { context: 'c1', capability: 'a', capabilityName: 'A', feature: 'a.feature', featureName: 'A', name: 's1', class: 'happy', progress: 'open' },
-    { context: 'c1', capability: 'b', capabilityName: 'B', feature: 'b.feature', featureName: 'B', name: 's1', class: 'happy', progress: 'done' },
+    { context: 'c1', capability: 'b', capabilityName: 'B', feature: 'b.feature', featureName: 'B', name: 's1', class: 'happy', progress: 'accepted' },
   ];
   const tree = buildAcceptanceTree(scenarios, { contexts, capabilities });
   const ctx = tree.contexts[0];
