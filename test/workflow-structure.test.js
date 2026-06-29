@@ -62,6 +62,7 @@ for (const skill of [
 for (const cmd of [
   'commands/karto-explore.md', 'commands/karto-chart.md', 'commands/karto-build.md',
   'commands/karto-sync.md', 'commands/karto-init.md', 'commands/karto-show.md',
+  'commands/karto-build-all.md',
 ]) {
   test(`${cmd} has a description frontmatter`, async () => {
     const fm = frontmatter(await read(cmd));
@@ -114,11 +115,20 @@ test('build-all workflow declares meta and defensively parses args', async () =>
   assert.doesNotMatch(src, /writeMap|kartograph\.json'/);
 });
 
+test('karto-build-all command has a description and wires the build-all workflow by scriptPath', async () => {
+  const src = await read('commands/karto-build-all.md');
+  assert.match(src, /^---[\s\S]*description:[\s\S]*?---/);
+  assert.match(src, /workflows\/internal\/build-all\.js/);
+  assert.match(src, /scripts\/build-plan\.js/);
+  assert.match(src, /scripts\/reconcile\.js/);
+});
+
 test('plugin.json registers all commands and skills', async () => {
   const p = JSON.parse(await read('.claude-plugin/plugin.json'));
   for (const c of [
     './commands/karto-explore.md', './commands/karto-chart.md', './commands/karto-build.md',
     './commands/karto-sync.md', './commands/karto-init.md', './commands/karto-show.md',
+    './commands/karto-build-all.md',
   ]) assert.ok(p.commands.includes(c), `commands includes ${c}`);
   for (const s of [
     './skills/karto-grill', './skills/karto-analyze-repo',
