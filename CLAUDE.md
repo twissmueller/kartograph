@@ -71,7 +71,7 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 
 ## Directory map
 
-- `commands/` — the six `/karto-*` slash commands (explore, chart, build, sync, init, show).
+- `commands/` — the seven `/karto-*` slash commands (explore, chart, build, build-all, sync, init, show).
 - `skills/` — `karto-grill` (converging interview), `karto-analyze-repo`, and three
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
 - `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`).
