@@ -5,10 +5,10 @@ import {
   getScenarioState, setScenarioState,
 } from '../workflows/lib/tracking.js';
 
-test('the four states are open/wip/developed/accepted with Open as default', () => {
-  assert.deepEqual(STATES, ['open', 'wip', 'developed', 'accepted']);
+test('the three states are open/developed/accepted with Open as default', () => {
+  assert.deepEqual(STATES, ['open', 'developed', 'accepted']);
   assert.equal(DEFAULT_STATE, 'open');
-  assert.deepEqual(STATE_LABELS, { open: 'Open', wip: 'WIP', developed: 'Developed', accepted: 'Accepted' });
+  assert.deepEqual(STATE_LABELS, { open: 'Open', developed: 'Developed', accepted: 'Accepted' });
 });
 
 test('isState accepts only the four states', () => {
@@ -40,9 +40,9 @@ test('setScenarioState with the default state removes the key and drops empty tr
 });
 
 test('setScenarioState keeps other tracked scenarios when one is reset to open', () => {
-  const map = { tracking: { 'cap/f.feature#"A"': 'accepted', 'cap/f.feature#"B"': 'wip' } };
+  const map = { tracking: { 'cap/f.feature#"A"': 'accepted', 'cap/f.feature#"B"': 'developed' } };
   const next = setScenarioState(map, 'cap/f.feature#"A"', 'open');
-  assert.deepEqual(next.tracking, { 'cap/f.feature#"B"': 'wip' });
+  assert.deepEqual(next.tracking, { 'cap/f.feature#"B"': 'developed' });
 });
 
 test('setScenarioState rejects an invalid state', () => {

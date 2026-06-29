@@ -10,10 +10,10 @@ test('strips @done and records the scenario as accepted, keeping the path tag', 
   assert.doesNotMatch(text, /@done/);
 });
 
-test('maps @test to developed and @wip to wip', () => {
+test('maps @test to developed and legacy @wip to open', () => {
   const src = 'Feature: F\n\n  @edge @test\n  Scenario: A\n    Given x\n\n  @happy @wip\n  Scenario: B\n    Given y\n';
   const { states } = migrateFeatureText(src);
-  assert.deepEqual(states, [{ name: 'A', state: 'developed' }, { name: 'B', state: 'wip' }]);
+  assert.deepEqual(states, [{ name: 'A', state: 'developed' }, { name: 'B', state: 'open' }]);
 });
 
 test('removes a tag line that held only a progress tag', () => {

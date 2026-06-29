@@ -11,8 +11,9 @@ import { validateKartograph } from './validate-kartograph.js';
 // `tracking` block. Maturity-bearing path tags (@happy/@edge/@error) are kept; the
 // three progress tags are removed from the .feature text.
 const PROGRESS_TAGS = ['@wip', '@test', '@done'];
-// Precedence mirrors the old scenarioProgress: done > test > wip.
-const TAG_TO_STATE = [['@done', 'accepted'], ['@test', 'developed'], ['@wip', 'wip']];
+// Precedence mirrors the old scenarioProgress: done > test > wip. There is no WIP state
+// any more, so a legacy @wip scenario maps to 'open' (started but not yet built/walkable).
+const TAG_TO_STATE = [['@done', 'accepted'], ['@test', 'developed'], ['@wip', 'open']];
 
 // Pure: strip the progress tags from a .feature's text and report each scenario's
 // migrated state. Returns { text, states: [{ name, state }] }. A tag line left empty

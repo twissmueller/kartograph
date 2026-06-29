@@ -28,7 +28,7 @@ test('capabilityStatuses: green=all done, yellow=some done, red=none done or no 
     { capability: 'a', progress: 'accepted' },
     { capability: 'a', progress: 'accepted' },
     { capability: 'b', progress: 'accepted' },
-    { capability: 'b', progress: 'wip' },
+    { capability: 'b', progress: 'developed' },
     { capability: 'c', progress: 'open' },
   ];
   const st = capabilityStatuses(scenarios, ['a', 'b', 'c', 'd']);
@@ -43,21 +43,20 @@ test('capabilityStatuses on empty input is an empty map', () => {
   assert.deepEqual(capabilityStatuses(undefined, undefined), {});
 });
 
-test('BOARD_COLUMNS is the four ordered progress states', () => {
-  assert.deepEqual(BOARD_COLUMNS, ['open', 'wip', 'developed', 'accepted']);
+test('BOARD_COLUMNS is the three ordered progress states', () => {
+  assert.deepEqual(BOARD_COLUMNS, ['open', 'developed', 'accepted']);
 });
 
 test('boardColumns groups scenarios by their server-provided progress', () => {
   const scenarios = [
     { name: 'a', progress: 'open' },
-    { name: 'b', progress: 'wip' },
+    { name: 'b', progress: 'developed' },
     { name: 'c', progress: 'accepted' },
-    { name: 'd', progress: 'wip' },
+    { name: 'd', progress: 'developed' },
   ];
   const cols = boardColumns(scenarios);
   assert.deepEqual(cols.open.map((s) => s.name), ['a']);
-  assert.deepEqual(cols.wip.map((s) => s.name), ['b', 'd']);
-  assert.deepEqual(cols.developed.map((s) => s.name), []);
+  assert.deepEqual(cols.developed.map((s) => s.name), ['b', 'd']);
   assert.deepEqual(cols.accepted.map((s) => s.name), ['c']);
 });
 
@@ -66,11 +65,11 @@ test('a scenario with an unknown/missing progress falls into open', () => {
   assert.deepEqual(cols.open.map((s) => s.name), ['x', 'y']);
 });
 
-test('boardColumns on empty/undefined input yields four empty columns', () => {
+test('boardColumns on empty/undefined input yields three empty columns', () => {
   for (const input of [[], undefined]) {
     const cols = boardColumns(input);
-    assert.deepEqual(Object.keys(cols), ['open', 'wip', 'developed', 'accepted']);
-    assert.equal(cols.open.length + cols.wip.length + cols.developed.length + cols.accepted.length, 0);
+    assert.deepEqual(Object.keys(cols), ['open', 'developed', 'accepted']);
+    assert.equal(cols.open.length + cols.developed.length + cols.accepted.length, 0);
   }
 });
 

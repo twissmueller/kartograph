@@ -5,7 +5,7 @@ import { idChip } from '../idchip.js';
 import { persistSession } from '../app.js';
 
 const PATH_TAGS = ['@happy', '@edge', '@error'];
-// The four tracking states (Open/WIP/Developed/Accepted), as the segmented control reads them.
+// The three tracking states (Open/Developed/Accepted), as the segmented control reads them.
 const STATES = TRACK_STATES.map((progress) => ({ progress, label: STATE_LABELS[progress] }));
 
 export function renderTracking(container, tab) {

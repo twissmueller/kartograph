@@ -13,7 +13,7 @@ test('openScenarios returns scenarios whose tracked state is not accepted', () =
   assert.equal(open[0].name, 'happy path');
 });
 
-test('openScenarios treats wip/developed/untracked scenarios as still open', () => {
+test('openScenarios treats developed/untracked scenarios as still open', () => {
   const map = { tracking: { 'auth/sign-in.feature#"happy path"': 'developed' } };
   const open = openScenarios(features, map, 'auth');
   assert.deepEqual(open.map((s) => s.name), ['happy path', 'accepted one']);

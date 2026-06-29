@@ -126,7 +126,7 @@ test('a tracking entry with an out-of-enum state is rejected by schema', async (
 
 test('a tracking key whose capability does not exist is caught by integrity check', async () => {
   const doc = await seed();
-  doc.tracking = { 'ghost-cap/intro.feature#"welcome"': 'wip' };
+  doc.tracking = { 'ghost-cap/intro.feature#"welcome"': 'developed' };
   const errors = checkReferentialIntegrity(doc);
   assert.ok(errors.some((e) => e.includes('ghost-cap')), JSON.stringify(errors));
 });

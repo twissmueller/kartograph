@@ -10,11 +10,11 @@ import { validateKartograph } from './validate-kartograph.js';
 
 // CLI: set ONE scenario's tracking state in kartograph.json, atomically and validated.
 //   node scripts/set-tracking.js <projectRoot> <context> <capability> <feature.feature> "<scenario>" <state>
-// `state` is one of open|wip|developed|accepted. The scenario must exist in its .feature file.
+// `state` is one of open|developed|accepted. The scenario must exist in its .feature file.
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [root, context, capability, feature, scenario, state] = process.argv.slice(2);
   if (!root || !isSlug(context) || !isSlug(capability) || !isFeatureName(feature) || !scenario || !STATES.includes(state)) {
-    console.error('usage: set-tracking.js <projectRoot> <context> <capability> <feature.feature> "<scenario>" <open|wip|developed|accepted>');
+    console.error('usage: set-tracking.js <projectRoot> <context> <capability> <feature.feature> "<scenario>" <open|developed|accepted>');
     process.exit(2);
   }
   const featureFile = join(root, 'features', context, capability, feature);

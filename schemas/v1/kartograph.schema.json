@@ -61,7 +61,7 @@
       "type": "object",
       "propertyNames": { "$ref": "#/$defs/slug" }
     },
-    "trackingState": { "enum": ["open", "wip", "developed", "accepted"] }
+    "trackingState": { "enum": ["open", "developed", "accepted"] }
   },
   "type": "object",
   "additionalProperties": false,
