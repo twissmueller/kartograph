@@ -1,5 +1,7 @@
 // scripts/build-plan.js
 import { fileURLToPath } from 'node:url';
+import { buildBoard } from '../workflows/lib/board-data.js';
+import { readMap } from '../workflows/lib/map-store.js';
 
 // Parse the command scope token. No arg = whole map; "context:<slug>" = one context;
 // any bare token = a capability (and, in buildPlan, its transitive dependencies).
@@ -97,4 +99,21 @@ export function buildPlan(map, scenariosByCapability, scope) {
   }));
 
   return { scope, order, skippedEmpty, warnings };
+}
+
+// CLI: node scripts/build-plan.js [projectRoot] [scope]
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const root = process.argv[2] || process.cwd();
+  const scope = parseScope(process.argv[3]);
+  const map = await readMap(root);
+  const board = await buildBoard(root);
+  const scenariosByCapability = {};
+  for (const slug of Object.keys(map.capabilities || {})) scenariosByCapability[slug] = { open: [], total: 0 };
+  for (const s of board.scenarios) {
+    const e = (scenariosByCapability[s.capability] ||= { open: [], total: 0 });
+    e.total++;
+    if (s.progress !== 'accepted') e.open.push({ feature: s.feature, name: s.name, class: s.class });
+  }
+  const plan = buildPlan(map, scenariosByCapability, scope);
+  console.log(JSON.stringify(plan, null, 2));
 }
