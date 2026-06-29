@@ -16,12 +16,18 @@ function panel(title, bodyHtml) {
 
 function maturityPanel(map) {
   const order = ['vision', 'sketched', 'building', 'usable', 'stable'];
+  const swatch = {
+    vision: 'var(--border-strong)', sketched: 'var(--blue-300)', building: 'var(--blue-500)',
+    usable: 'var(--happy-fg)', stable: 'var(--acc-dot)',
+  };
   const counts = Object.fromEntries(order.map((k) => [k, 0]));
   for (const c of Object.values(map.capabilities || {})) {
     const m = (c.derived && c.derived.maturity) || 'vision';
     if (m in counts) counts[m]++;
   }
-  const rows = order.map((k) => `<div class="mat-row"><span>${k}</span><b>${counts[k]}</b></div>`).join('');
+  const rows = order.map((k) =>
+    `<div class="mat-row"><span><span class="mat-swatch" style="background:${swatch[k]}"></span>${k}</span><b>${counts[k]}</b></div>`
+  ).join('');
   return panel('Maturity', rows);
 }
 
