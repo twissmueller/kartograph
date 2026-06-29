@@ -14,7 +14,7 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 // The three workflow scripts live under workflows/internal/ (a non-scanned
 // subdirectory) so they don't register as standalone `[dynamic workflow]` slash
 // commands — commands invoke them by scriptPath instead.
-for (const wf of ['workflows/internal/discovery.js', 'workflows/internal/init.js', 'workflows/internal/chart.js', 'workflows/internal/sync.js']) {
+for (const wf of ['workflows/internal/discovery.js', 'workflows/internal/init.js', 'workflows/internal/chart.js', 'workflows/internal/sync.js', 'workflows/internal/build-all.js']) {
   test(`${wf} parses as a workflow body`, async () => {
     const src = await read(wf);
     const body = src.replace(/export\s+const\s+meta/, 'const meta');
