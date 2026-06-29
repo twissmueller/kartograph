@@ -11,7 +11,7 @@ content, including each scenario's tracking state) and `.kartograph/kartograph.l
 
 **Tracking state lives in the map, not in tags.** A scenario carries exactly one *path* tag in
 its `.feature` file (`@happy`/`@edge`/`@error`, which drives maturity). Its *progress* —
-**Open → WIP → Developed → Accepted** — is stored in `kartograph.json`'s `tracking` block,
+**Open → Developed → Accepted** — is stored in `kartograph.json`'s `tracking` block,
 keyed by scenario, and set with `node ${CLAUDE_PLUGIN_ROOT}/scripts/set-tracking.js` (or from
 the viewer's Tracking board). Build moves scenarios to **Developed**; **Accepted** is the
 user's call after they walk it.
@@ -29,7 +29,7 @@ session, say so plainly and **do not** mark it Developed or claim it is ready to
 
 1. **Find open scenarios.** Locate the capability in `.kartograph/kartograph.json` to get its
    context, then read `features/<context>/<capability>/*.feature`. The open scenarios are those
-   whose tracking state in the map is **not Accepted** (Open, WIP, or Developed). Work them in
+   whose tracking state in the map is **not Accepted** (Open or Developed). Work them in
    order: `@happy` → `@edge` → `@error` (this walks the maturity ladder).
 
 2. **Learn how this project builds and tests itself.** Infer the unit-test runner, the

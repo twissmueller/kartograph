@@ -7,9 +7,9 @@
 // (@happy/@edge/@error, which lives in the .feature file and drives maturity):
 // progress is human bookkeeping, not coverage, so it lives in the map, not the tags.
 
-export const STATES = ['open', 'wip', 'developed', 'accepted'];
+export const STATES = ['open', 'developed', 'accepted'];
 export const DEFAULT_STATE = 'open';
-export const STATE_LABELS = { open: 'Open', wip: 'WIP', developed: 'Developed', accepted: 'Accepted' };
+export const STATE_LABELS = { open: 'Open', developed: 'Developed', accepted: 'Accepted' };
 
 export function isState(s) { return STATES.includes(s); }
 

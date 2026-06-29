@@ -124,8 +124,8 @@ Drag nodes to arrange them (positions are saved to `.kartograph/kartograph.layou
 `.kartograph/kartograph.json` and the page reloads itself.
 
 The viewer has two views, switched from the header: the **Map** (the capability graph) and
-the **Board** — a cross-capability Kanban of every scenario by progress (Open / WIP /
-Developed / Accepted). Drag a card between columns to set its tracking state, which is stored
+the **Board** — a cross-capability Kanban of every scenario by progress (Open / Developed /
+Accepted). Drag a card between columns to set its tracking state, which is stored
 in `kartograph.json` (not in the `.feature` file); click a card to jump to that capability.
 Progress is tracking-only and does not change derived maturity.
 

@@ -114,7 +114,7 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 - **Path tags drive maturity; tracking state lives in the map.** Each Gherkin `Scenario`
   carries exactly **one path tag** (`@happy`/`@edge`/`@error`) in its `.feature` file — that is
   the only kind of tag now, and it feeds maturity (`workflows/lib/gherkin.js` parses it). A
-  scenario's **progress** — `Open → WIP → Developed → Accepted` — is *not* a tag; it lives in
+  scenario's **progress** — `Open → Developed → Accepted` — is *not* a tag; it lives in
   `kartograph.json`'s top-level `tracking` block, keyed by the canonical scenario ID
   (`<capability>/<feature.feature>#"<scenario>"`, see `viewer/lib/ids.js`). The pure helpers are
   `workflows/lib/tracking.js` (`getScenarioState`/`setScenarioState`, default `open`); writers go

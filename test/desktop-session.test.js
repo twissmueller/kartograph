@@ -20,7 +20,7 @@ test('saveSession then loadSession round-trips, defaulting missing fields', asyn
 test('saveSession then loadSession round-trips activeRoot and per-tab state', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'karto-sess-'));
   const file = join(dir, 'session.json');
-  const tabs = { '/a': { view: 'tracking', sel: { context: 'c', capability: 'cap', feature: 'f.feature' }, ui: { search: 'q', tags: ['@wip'], raw: false } } };
+  const tabs = { '/a': { view: 'tracking', sel: { context: 'c', capability: 'cap', feature: 'f.feature' }, ui: { search: 'q', tags: ['@edge'], raw: false } } };
   await saveSession(file, { openRoots: ['/a'], recent: [], activeRoot: '/a', tabs });
   assert.deepEqual(await loadSession(file), { openRoots: ['/a'], recent: [], activeRoot: '/a', tabs });
 });

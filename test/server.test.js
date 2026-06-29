@@ -204,7 +204,7 @@ test('POST /board records the scenario state in kartograph.json, leaving the .fe
 
     const missing = await fetch(`http://127.0.0.1:${port}/board`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context: 'care', capability: 'watering', feature: 'water.feature', scenario: 'Ghost', progress: 'wip' }),
+      body: JSON.stringify({ context: 'care', capability: 'watering', feature: 'water.feature', scenario: 'Ghost', progress: 'developed' }),
     });
     assert.equal(missing.status, 404);
   } finally {
@@ -223,7 +223,7 @@ test('GET /board aggregates scenarios across all capabilities with progress + cl
       pruning: { name: 'Pruning', context: 'care', definition: 'd' },
     },
     tracking: {
-      'watering/water.feature#"Water"': 'wip',
+      'watering/water.feature#"Water"': 'developed',
       'watering/water.feature#"Rain"': 'accepted',
     },
   }));
@@ -243,7 +243,7 @@ test('GET /board aggregates scenarios across all capabilities with progress + cl
     const water = scenarios.find((s) => s.name === 'Water');
     assert.deepEqual(
       { cap: water.capability, ctx: water.context, file: water.feature, fname: water.featureName, cls: water.class, prog: water.progress },
-      { cap: 'watering', ctx: 'care', file: 'water.feature', fname: 'Watering', cls: 'happy', prog: 'wip' });
+      { cap: 'watering', ctx: 'care', file: 'water.feature', fname: 'Watering', cls: 'happy', prog: 'developed' });
     assert.equal(scenarios.find((s) => s.name === 'Rain').progress, 'accepted');
     // every capability is listed (incl. the scenario-less "pruning"), each with its context
     assert.deepEqual(capabilities, [
