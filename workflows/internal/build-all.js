@@ -84,6 +84,7 @@ for (const cap of plan.order) {
     continue;
   }
   const r = await agent(buildPrompt(cap), { schema: BUILD_RESULT, phase: 'Build', label: cap.capability });
+  // a 'partial' (or null/failed) result is treated as failed: dependents need a complete foundation
   if (!r || r.status !== 'built') failed.add(cap.capability);
   results.push({ capability: cap.capability, ...(r || { status: 'failed', note: 'subagent returned no result' }) });
 }

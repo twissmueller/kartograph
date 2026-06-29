@@ -74,7 +74,7 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 - `commands/` — the seven `/karto-*` slash commands (explore, chart, build, build-all, sync, init, show).
 - `skills/` — `karto-grill` (converging interview), `karto-analyze-repo`, and three
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
-- `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`).
+- `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`, `build-all`).
 - `workflows/lib/` — **pure, testable** helpers shared by scripts and the server
   (`apply-discovery`, `gherkin`, `maturity-derive`, `map-drift`, `open-scenarios`, `paths`,
   `survey`, `survey-html`). `paths.js` is the single source of truth for where the map and
