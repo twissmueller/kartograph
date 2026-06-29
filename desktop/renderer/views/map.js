@@ -30,9 +30,9 @@ export function renderMap(container, tab) {
     <div class="map-world">
       <svg class="map-edges"><defs>
         <marker id="km-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9"
-                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffffff66"/></marker>
+                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--border-strong)"/></marker>
         <marker id="km-arrow-focus" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9"
-                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6ea8ffcc"/></marker>
+                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--primary)"/></marker>
       </defs></svg>
     </div>
   </div>`;
@@ -112,14 +112,14 @@ export function renderMap(container, tab) {
       region.style.top = b.y + 'px';
       region.style.width = b.w + 'px';
       region.style.height = b.h + 'px';
-      region.style.borderColor = tint(color, 0.55);
+      region.style.borderColor = tint(color, 0.5);
       region.style.background = tint(color, 0.1);
       const label = document.createElement('div');
       label.className = 'context-label';
       label.dataset.context = ctx;
       label.style.left = (b.x + 12) + 'px';
       label.style.top = (b.y + 8) + 'px';
-      label.style.color = tint(color, 0.95);
+      label.style.color = tint(color, 0.9);
       label.textContent = contextName[ctx] || ctx;
       label.appendChild(idChip(contextId(ctx)));
       // Behind the nodes so the cards stay on top, but interactive (draggable).
