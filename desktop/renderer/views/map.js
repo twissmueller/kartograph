@@ -30,9 +30,9 @@ export function renderMap(container, tab) {
     <div class="map-world">
       <svg class="map-edges"><defs>
         <marker id="km-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9"
-                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--border-strong)"/></marker>
+                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--border-strong)"/></marker>
         <marker id="km-arrow-focus" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9"
-                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--primary)"/></marker>
+                markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--primary)"/></marker>
       </defs></svg>
     </div>
   </div>`;
