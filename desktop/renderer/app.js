@@ -1,6 +1,9 @@
 import { renderMap } from './views/map.js';
 import { renderTracking } from './views/tracking.js';
 import { renderSidebar } from './views/sidebar.js';
+import { initTheme, toggleTheme, currentTheme } from './theme.js';
+
+initTheme();
 
 const tabs = [];           // { root, name, data, view, dirty, el, paneEl }
 let activeRoot = null;
@@ -75,6 +78,12 @@ function renderStrip() {
   add.className = 'tab-add'; add.textContent = '+'; add.title = 'Open project';
   add.onclick = doOpen;
   stripEl.appendChild(add);
+  const themeBtn = document.createElement('button');
+  themeBtn.className = 'theme-toggle';
+  const paint = () => { themeBtn.innerHTML = `<span>${currentTheme() === 'dark' ? '☀' : '☾'}</span>${currentTheme() === 'dark' ? 'Light' : 'Dark'}`; };
+  paint();
+  themeBtn.onclick = () => { toggleTheme(); paint(); };
+  stripEl.appendChild(themeBtn);
 }
 
 function renderWorkspace() {
