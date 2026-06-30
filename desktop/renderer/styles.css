@@ -184,7 +184,7 @@ body { margin:0; font:16px/1.55 var(--font-sans); background:var(--bg); color:va
 .trk-chevron.open { transform:rotate(90deg); }
 .trk-ctx-name { font-weight:700; font-size:13.5px; flex:1; min-width:0; letter-spacing:.01em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.trk-caps { margin:2px 0 6px; padding-left:17px; }
+.trk-caps { margin:2px 0 6px 10px; border-left:1px solid var(--border); padding-left:7px; }
 .trk-cap-row { display:flex; align-items:center; border-radius:var(--radius-lg); }
 .trk-cap-row.active { background:var(--primary-soft); }
 .trk-cap-chev { font-size:10px; color:var(--text-soft); width:14px; height:22px; display:inline-flex;
