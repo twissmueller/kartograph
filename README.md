@@ -177,6 +177,10 @@ Or skip both stages: enable **auto-update** for the marketplace in `/plugin` →
 which upgrades installed plugins at session start (you'll be prompted to run `/reload-plugins`).
 Uninstall + reinstall forces it too.
 
+> **After an update, run `/reload-plugins` (or restart Claude Code) before the new commands
+> appear.** Slash commands load at session start, so a session that was already running when the
+> plugin updated won't list newly-added commands (e.g. `/karto-build-all`) until you reload.
+
 ## What lives in your repo
 
 ```
