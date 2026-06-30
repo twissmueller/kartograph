@@ -116,13 +116,13 @@ body { margin:0; font:16px/1.55 var(--font-sans); background:var(--bg); color:va
 .mat-row b { color:var(--text); }
 
 /* ---- Shared components ---- */
-/* copy-ID chip */
-.idchip { display:inline-flex; align-items:center; gap:5px; font:600 11.5px/1.4 var(--font-mono);
-  color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); border-radius:999px;
-  padding:3px 9px; cursor:pointer; white-space:nowrap; user-select:none; transition:all .14s var(--ease); }
-.idchip:hover { background:var(--surface); border-color:var(--border-strong); color:var(--text); }
-.idchip.copied { background:var(--success-bg); color:var(--acc-fg); border-color:var(--happy-bd); }
-.idchip svg { flex:none; }
+/* copy-ID chip — icon-only copy button (the slug shows on hover via title) */
+.idchip { display:inline-flex; align-items:center; justify-content:center; flex:none;
+  color:var(--text-soft); background:transparent; border:1px solid transparent; border-radius:999px;
+  padding:4px; cursor:pointer; user-select:none; transition:all .14s var(--ease); }
+.idchip:hover { color:var(--text); background:var(--surface-2); border-color:var(--border); }
+.idchip.copied { color:var(--acc-fg); background:var(--success-bg); border-color:var(--happy-bd); }
+.idchip svg { flex:none; display:block; }
 
 /* maturity pips */
 .mat-pips { display:inline-flex; gap:3px; align-items:center; }
