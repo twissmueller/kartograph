@@ -25,10 +25,10 @@ node scripts/validate-kartograph.js <map.json>
 node scripts/validate-discovery.js <survey.discovery.json>
 ```
 
-**Releases must bump `version` in BOTH `.claude-plugin/plugin.json` AND `package.json`**
-to the same value — the marketplace and the installed plugin both compare the manifest
-`version`, so an un-bumped release is invisible downstream. Feature commits here are patch
-bumps (the log uses `feat(...): … (vX.Y.Z)`).
+**Releases must bump `version` in ALL THREE of `.claude-plugin/plugin.json`,
+`package.json`, AND `desktop/package.json`** to the same value — the marketplace and the
+installed plugin both compare the manifest `version`, so an un-bumped release is invisible
+downstream. Feature commits here are patch bumps (the log uses `feat(...): … (vX.Y.Z)`).
 
 ## The core architectural rule: who is allowed to write the map
 
@@ -72,7 +72,8 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 
 ## Directory map
 
-- `commands/` — the seven `/karto-*` slash commands (explore, chart, build, build-all, sync, init, show).
+- `commands/` — the nine `/karto-*` slash commands (explore, chart, build, build-all, sync,
+  init, show, walk, revise).
 - `skills/` — `karto-grill` (converging interview), `karto-analyze-repo`, and three
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
 - `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`, `build-all`).
@@ -101,8 +102,8 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   (`.kartograph/decisions/`) all live in a hidden `.kartograph/` directory at the project root —
   never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `surveysDir`,
   `decisionsDir`, `KARTO_DIR`) is the only place that constructs these paths; Node code imports
-  it, while the viewer fetches `/.kartograph/…` and the commands hardcode the same relative
-  paths. Only `.feature` files (`features/`) stay top-level — they are the product's living
+  it, while the commands hardcode the same relative paths. Only `.feature` files (`features/`)
+  stay top-level — they are the product's living
   spec, deliberately visible. There is **no fallback** to the old `kartograph/` locations.
 - **Slugs are the key space.** Everything is keyed by lowercase-hyphen slugs
   (`^[a-z0-9][a-z0-9-]*$`); cross-references are slugs and must resolve (integrity gate).
@@ -123,8 +124,7 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   through `workflows/lib/map-store.js` (`writeMap`, atomic). Progress never changes maturity. The
   schema validates `tracking`; the integrity gate flags entries whose capability no longer exists.
   `/karto-build` advances scenarios to **Developed**; the user flips **Accepted** after walking
-  them. Set state with `scripts/set-tracking.js` or the desktop app's Tracking board; migrate legacy
-  `@wip`/`@test`/`@done` tags with `scripts/migrate-tracking.js`.
+  them. Set state with `scripts/set-tracking.js` or the desktop app's Tracking board.
 - **Scenarios are user-walkable, not technical.** Features and scenarios are written for a
   non-technical stakeholder to walk through and confirm in front of the running system: plain
   domain language (glossary terms), only observable behaviour (Given = recognisable situation,

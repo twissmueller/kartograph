@@ -231,7 +231,7 @@ and calls `persistSession()`):
 - Scenario progress is **not** local UI — it is written to the map (see Data Contracts) and re-read.
 
 ## Data Contracts (preserve these — they already exist in the repo)
-- **Canonical IDs** (`viewer/lib/ids.js`): context = `<contextSlug>`; capability = `<capabilitySlug>`;
+- **Canonical IDs** (`workflows/lib/ids.js`): context = `<contextSlug>`; capability = `<capabilitySlug>`;
   feature = `<capabilitySlug>/<featureFile>`; scenario = `<capabilitySlug>/<featureFile>#"<scenarioName>"`.
   Capability slugs are globally unique, so IDs are capability-rooted.
 - **Tracking state** (`workflows/lib/tracking.js`): states are exactly `['open','developed','accepted']`,
@@ -239,7 +239,7 @@ and calls `persistSession()`):
   Setting `open` **removes** the key (and drops `tracking` when empty). Labels: Open / Developed / Accepted.
 - **Path class** comes from the scenario's Gherkin tag (`@happy`/`@edge`/`@error`) in the `.feature`
   file → `cls` of `happy`/`edge`/`error`. It is independent from progress.
-- **Acceptance tree** (`viewer/lib/board.js` → `buildAcceptanceTree(scenarios, { contexts, capabilities })`)
+- **Acceptance tree** (`workflows/lib/board.js` → `buildAcceptanceTree(scenarios, { contexts, capabilities })`)
   produces the Context→Capability→Feature roll-up with `status` + `doneCount`/`total`/`accepted`.
 - **Renderer IPC** used by the current Tracking view (`desktop/preload.cjs` → `window.karto`):
   - `readFeatures(root, context, capability)` → `{ files: [{ file, feature, description, background, scenarios: [{ name, tags, steps, class, progress }] }] }`
@@ -268,4 +268,4 @@ and calls `persistSession()`):
 - `desktop/renderer/idchip.js` — current copy-ID chip behavior.
 - `desktop/renderer/styles.css` — where the new tokens/classes should live.
 - `desktop/renderer/app.js` — tab/session model and `persistSession()`.
-- `viewer/lib/board.js`, `viewer/lib/ids.js`, `workflows/lib/tracking.js` — data contracts above.
+- `workflows/lib/board.js`, `workflows/lib/ids.js`, `workflows/lib/tracking.js` — data contracts above.
