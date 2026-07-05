@@ -97,6 +97,11 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 - **Pure-function + CLI split.** New deterministic logic goes in a pure exported function
   (unit-tested) with a thin CLI wrapper guarded by
   `if (process.argv[1] === fileURLToPath(import.meta.url))`. Follow the existing files.
+  **Exception — scripts exposed as npm `bin`s** (`validate-kartograph.js`, `reconcile.js`):
+  the `.bin` symlink means `process.argv[1]` is a symlink path that never equals the resolved
+  module URL, so those two guard on `realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)`
+  instead. Use the plain form everywhere else; only reach for the `realpathSync` variant when a
+  script is a declared bin.
 - **Map files live under `.kartograph/`.** The map (`kartograph.json`), the viewer layout
   (`kartograph.layout.json`), surveys (`.kartograph/surveys/`), and decisions
   (`.kartograph/decisions/`) all live in a hidden `.kartograph/` directory at the project root —
