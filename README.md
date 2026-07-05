@@ -74,6 +74,7 @@ between each:
 | **Explore** | Discovery | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + a converging interview), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
 | **Chart** | Formulation | `/karto-chart` | Record the approved survey onto the map: update `.kartograph/kartograph.json`, grow the glossary, write `.feature` scenarios in Gherkin, add ADRs. |
 | **Build** | Automation (ATDD) | `/karto-build <capability>` | Implement the open scenarios with **double-loop TDD**: the acceptance scenario is the outer loop, red–green–refactor unit testing is the inner loop. |
+| **Walk** | Acceptance | `/karto-walk [scope]` | Walk a person through the **Developed** scenarios one at a time, in front of the running app, in plain language. Pass marks a scenario **Accepted**; Fail records why (a scenario note) and points you at `/karto-build`. The only way to reach Accepted. |
 
 The outer loop is what makes agentic development converge instead of drift: the agent's
 starting prompt *is* a set of acceptance criteria, it can self-verify against them, and the
