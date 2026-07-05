@@ -1,0 +1,154 @@
+{
+  "version": "1",
+  "meta": { "name": "Kartograph" },
+  "contexts": {
+    "exploration": {
+      "name": "Exploration",
+      "definition": "Discovering and shaping what to build, before anything touches the map.",
+      "color": "#33aa77"
+    },
+    "charting": {
+      "name": "Charting",
+      "definition": "Recording an approved discovery onto the living map as capabilities, glossary terms, path-tagged scenarios and decisions.",
+      "color": "#7a6cff"
+    },
+    "construction": {
+      "name": "Construction",
+      "definition": "Turning mapped, open scenarios into working software with outside-in double-loop TDD.",
+      "color": "#e2683c"
+    },
+    "acceptance": {
+      "name": "Acceptance",
+      "definition": "Confirming built behaviour by walking each scenario in the running system, exactly as a stakeholder would.",
+      "color": "#d9a521"
+    },
+    "stewardship": {
+      "name": "Stewardship",
+      "definition": "Keeping the map honest and current — bootstrapping it from code, syncing it to code, and grooming its glossary, decisions and dependencies.",
+      "color": "#4f9dd6"
+    },
+    "visualisation": {
+      "name": "Visualisation",
+      "definition": "Seeing the living map and per-scenario progress in the desktop app.",
+      "color": "#c0529b"
+    }
+  },
+  "capabilities": {
+    "survey-a-feature": {
+      "name": "Survey a feature",
+      "context": "exploration",
+      "definition": "Interview the maintainer about a new feature and produce a reviewable discovery survey — read-only, never touching the map.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "revise-existing-behaviour": {
+      "name": "Revise existing behaviour",
+      "context": "exploration",
+      "definition": "Assemble a survey that retires or renames existing capabilities and scenarios, for charting to apply.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "chart-a-survey": {
+      "name": "Chart a survey",
+      "context": "charting",
+      "definition": "Fold an approved survey onto the map: add capabilities, grow the glossary, write path-tagged scenarios and ADRs, then reconcile maturity — all as one atomic swap.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "build-a-capability": {
+      "name": "Build a capability",
+      "context": "construction",
+      "definition": "Implement a capability's open scenarios with outside-in double-loop TDD, advancing each to Developed once it is walkable end-to-end through the real interface.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "build-a-whole-scope": {
+      "name": "Build a whole scope",
+      "context": "construction",
+      "definition": "Autonomously build every open scenario in a scope, one capability per subagent in dependency order, each left at Developed for the maintainer to accept.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "walk-scenarios-to-accept": {
+      "name": "Walk scenarios to accept",
+      "context": "acceptance",
+      "definition": "Walk each Developed scenario in the running system one at a time; accept the ones that pass and send failures back to Open with a recorded reason.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "bootstrap-a-map-from-code": {
+      "name": "Bootstrap a map from code",
+      "context": "stewardship",
+      "definition": "Reverse-engineer a draft map from an existing codebase for the maintainer to review.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "sync-the-map-with-code": {
+      "name": "Sync the map with code",
+      "context": "stewardship",
+      "definition": "Detect structural drift between the map and the code, groom, then validate and write — additive and non-destructive, never deleting.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "groom-the-glossary": {
+      "name": "Groom the glossary",
+      "context": "stewardship",
+      "definition": "Enforce one canonical term per concept, fold synonyms into aliasesToAvoid, and flag ambiguities and collisions.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "groom-decisions": {
+      "name": "Groom decisions",
+      "context": "stewardship",
+      "definition": "Maintain MADR-style ADRs — sequential numbering, supersession, and the worthiness test — kept in sync with the map's adr metadata.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "groom-dependencies": {
+      "name": "Groom dependencies",
+      "context": "stewardship",
+      "definition": "Back-fill each dependency edge with a one-line reason and the features that justify it, flagging edges no feature supports.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    },
+    "view-the-living-map": {
+      "name": "View the living map",
+      "context": "visualisation",
+      "definition": "Open the desktop app on the current project to browse the capability map and the per-scenario tracking board, with live reload.",
+      "declaredStage": "vision",
+      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+    }
+  },
+  "actors": {
+    "cartographer": { "name": "Cartographer" },
+    "stakeholder": { "name": "Stakeholder" },
+    "build-agent": { "name": "Build agent" }
+  },
+  "rules": {
+    "maturity-derived-not-declared": {
+      "name": "Maturity is derived, never declared",
+      "statement": "A capability's maturity is computed from its on-disk .feature scenarios (vision -> sketched -> building -> usable -> stable), never hand-set; the integrity gate rejects any stored maturity inconsistent with its counts."
+    },
+    "atomic-map-write": {
+      "name": "Map writes are atomic",
+      "statement": "Every mutation of the map is written to a temp file and atomically renamed over kartograph.json, so a failed run leaves the real map untouched and never half-written."
+    },
+    "scenarios-user-walkable": {
+      "name": "Scenarios are user-walkable",
+      "statement": "Every scenario is written in plain domain language a non-technical stakeholder can walk and confirm in the running system, with no leaked implementation detail."
+    }
+  },
+  "dependencies": [
+    { "from": "chart-a-survey", "to": "survey-a-feature", "reason": "Charting folds an approved discovery survey onto the map." },
+    { "from": "chart-a-survey", "to": "revise-existing-behaviour", "reason": "Charting also applies a survey's revisions (retirements and renames)." },
+    { "from": "chart-a-survey", "to": "groom-the-glossary", "reason": "Charting canonicalises the new glossary terms before writing." },
+    { "from": "chart-a-survey", "to": "groom-decisions", "reason": "Charting tidies ADR status and supersession before writing." },
+    { "from": "build-a-capability", "to": "chart-a-survey", "reason": "Building implements the open scenarios that charting wrote." },
+    { "from": "build-a-whole-scope", "to": "build-a-capability", "reason": "Build-all runs one per-capability build for each capability in the scope." },
+    { "from": "walk-scenarios-to-accept", "to": "build-a-capability", "reason": "Walking accepts the Developed scenarios that building produced." },
+    { "from": "sync-the-map-with-code", "to": "groom-the-glossary", "reason": "Sync runs glossary grooming as part of reconciliation." },
+    { "from": "sync-the-map-with-code", "to": "groom-decisions", "reason": "Sync runs ADR grooming as part of reconciliation." },
+    { "from": "sync-the-map-with-code", "to": "groom-dependencies", "reason": "Sync back-fills dependency reasons and justifying features." },
+    { "from": "view-the-living-map", "to": "chart-a-survey", "reason": "The desktop renders the capabilities and scenarios that charting writes." }
+  ]
+}
