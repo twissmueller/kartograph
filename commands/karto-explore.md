@@ -9,8 +9,16 @@ Explore is **read-only**: it never modifies `.kartograph/kartograph.json`, the g
 
 ## Phase A — Survey conversation (interactive)
 
-1. Use the **`superpowers:brainstorming`** skill to open up and expand the feature idea with
-   the user.
+1. If the **`superpowers`** plugin is installed, use the **`superpowers:brainstorming`** skill
+   to open up and expand the feature idea with the user. Otherwise follow this condensed
+   guidance:
+   - Understand the purpose, the users, and what success looks like **before** proposing any
+     solution.
+   - Ask **one question per message**, and prefer multiple-choice options over open-ended
+     prompts.
+   - Explore **2–3 alternative** approaches rather than committing to the first idea.
+   - Keep steady **YAGNI** pressure — cut anything not needed to meet the stated success criteria.
+   - **Summarize** the decisions made so far before converging on a direction.
 2. Then use the **`karto-grill`** skill to converge: interview the user one question at a
    time, challenge new terms against the existing project glossary in `.kartograph/kartograph.json`,
    sharpen fuzzy language, probe Given/When/Then scenarios, and flag ADR candidates. Pull in a

@@ -62,12 +62,14 @@ forced or hand-edited `.feature` is not.
    - **Outer loop (acceptance):** run the scenario through the project's acceptance runner and
      **watch it fail**. If the project has no acceptance runner, skip the outer run and rely on
      the inner unit tests as the loop's signal — tell the user the acceptance loop is disabled.
-   - **Inner loop (unit):** use the **`superpowers:test-driven-development`** skill to drive the
-     implementation unit by unit — write a failing unit test, watch it fail, minimal code to
-     pass, refactor while green (the Iron Law: no production code without a failing test you
-     saw fail). Work through **every layer the scenario crosses** — when the backend behaviour
-     is green, keep going and wire it up through to the user-facing entry point, so the outcome
-     is reachable and confirmable from the real UI.
+   - **Inner loop (unit):** if the **`superpowers`** plugin is installed, use the
+     **`superpowers:test-driven-development`** skill to drive the implementation unit by unit.
+     Otherwise follow this condensed **Iron Law**: write a failing unit test and **watch it
+     fail** before writing any production code; write only the minimal code needed to make it
+     green; refactor while green; and never test mock behaviour — test the real thing. Either
+     way, work through **every layer the scenario crosses** — when the backend behaviour is
+     green, keep going and wire it up through to the user-facing entry point, so the outcome is
+     reachable and confirmable from the real UI.
    - **Definition of done — the user can walk it.** Before marking the scenario **Developed**,
      confirm it is reachable end-to-end through the final interface (the actual UI screen /
      command the user uses), with all layers connected — not just the backend passing its own

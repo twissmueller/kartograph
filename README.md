@@ -154,6 +154,12 @@ Then, in any project you want to map:
 /karto-show                 # open the live desktop app
 ```
 
+> **Recommended companion — [Superpowers](https://github.com/obra/superpowers).** For the full
+> experience, install the Superpowers plugin: `/karto-explore` uses its `brainstorming` skill to
+> open up a feature idea and `/karto-build` uses its `test-driven-development` skill to drive the
+> inner loop. Kartograph works **without** it — both commands fall back to condensed inline
+> guidance — but the dedicated skills are richer.
+
 ### Updating
 
 Updating is two stages: refresh the catalog, then upgrade your installed copy. Both compare
