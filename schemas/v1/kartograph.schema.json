@@ -61,7 +61,16 @@
       "type": "object",
       "propertyNames": { "$ref": "#/$defs/slug" }
     },
-    "trackingState": { "enum": ["open", "developed", "accepted"] }
+    "trackingState": { "enum": ["open", "developed", "accepted"] },
+    "scenarioNote": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reason", "date", "source"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 1 },
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "source": { "enum": ["walk", "build"] }
+      }
+    }
   },
   "type": "object",
   "additionalProperties": false,
@@ -118,6 +127,10 @@
     "tracking": {
       "type": "object",
       "additionalProperties": { "$ref": "#/$defs/trackingState" }
+    },
+    "scenarioNotes": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/scenarioNote" }
     },
     "openQuestions": {
       "type": "array",

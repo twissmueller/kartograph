@@ -66,6 +66,11 @@ export function checkReferentialIntegrity(doc) {
     const cap = id.split('/')[0];
     if (!capabilities.has(cap)) errors.push(`tracking entry '${id}' references missing capability '${cap}'`);
   }
+  // scenarioNotes shares the tracking key space; its capability prefix must resolve too.
+  for (const id of Object.keys(doc.scenarioNotes || {})) {
+    const cap = id.split('/')[0];
+    if (!capabilities.has(cap)) errors.push(`scenarioNotes entry '${id}' references missing capability '${cap}'`);
+  }
   return errors;
 }
 
