@@ -209,6 +209,32 @@ visible. Everything else Kartograph writes lives under the hidden `.kartograph/`
 > git mv kartograph/surveys .kartograph/surveys && git mv kartograph/decisions .kartograph/decisions && rmdir kartograph
 > ```
 
+## CI for mapped projects
+
+Keep the map honest in the repos you map — no local install needed. Kartograph exposes two
+bins you can run straight from GitHub with `npx`:
+
+- `kartograph-validate <map.json>` — runs both write gates (JSON Schema + referential
+  integrity) against a committed map; exits non-zero on any violation.
+- `kartograph-reconcile --check` — recomputes every capability's `derived` maturity from the
+  `.feature` files on disk, compares it with what's stored, and **writes nothing**; exits
+  non-zero (with a readable diff) if the committed map is stale or invalid. Run it from the
+  project root so it finds `.kartograph/kartograph.json` and `features/`.
+
+Add this job to your project's `.github/workflows/`:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+  with: { node-version: 22 }
+- run: npx --yes --package=github:twissmueller/kartograph -c 'kartograph-validate .kartograph/kartograph.json'
+- run: npx --yes --package=github:twissmueller/kartograph -c 'kartograph-reconcile --check'
+```
+
+The `reconcile --check` step fails the build if someone edits a `.feature` file without
+re-running `/karto-build` (or `node scripts/reconcile.js`) to update the derived maturity — so
+the map can never silently drift from the behavior it claims.
+
 ## Status
 
 Kartograph is built in milestones:

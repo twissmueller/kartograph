@@ -1,4 +1,6 @@
+#!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
@@ -84,8 +86,10 @@ export async function validateKartograph(doc) {
   return { valid: errors.length === 0, errors };
 }
 
-// CLI: node scripts/validate-kartograph.js <file>
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// CLI: node scripts/validate-kartograph.js <file> — also exposed as the `kartograph-validate`
+// bin. The bin is invoked through a `.bin` symlink whose path differs from this module's own
+// (symlink-resolved) path, so resolve argv[1] through realpath before comparing.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const file = process.argv[2];
   if (!file) { console.error('usage: validate-kartograph.js <file>'); process.exit(2); }
   const doc = JSON.parse(await readFile(file, 'utf8'));

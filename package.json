@@ -4,6 +4,10 @@
   "description": "A living map of a software system, maintained jointly by human and AI.",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "kartograph-validate": "scripts/validate-kartograph.js",
+    "kartograph-reconcile": "scripts/reconcile.js"
+  },
   "scripts": {
     "test": "node --test",
     "validate": "node scripts/validate-kartograph.js examples/kartograph.seed.json"
