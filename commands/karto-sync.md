@@ -32,7 +32,7 @@ Keep `.kartograph/kartograph.json` in sync with the codebase. Optional focus fro
 3. **Glossary** (empty or `glossary`): apply the **`karto-groom-glossary`** skill's logic to
    the working copy `.kartograph/kartograph.tmp.json`.
 4. **ADRs** (empty or `adr`): apply the **`karto-groom-adr`** skill's logic to the working
-   copy and `kartograph/decisions/*.md`.
+   copy and `.kartograph/decisions/*.md`.
 5. **Dependencies** (empty, `dependencies`, or `deps`): apply the
    **`karto-groom-dependencies`** skill to back-fill edge `reason`/`features`, then fold its
    returned array into the working copy (the skill returns a `dependencies` array; wrap it in

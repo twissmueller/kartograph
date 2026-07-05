@@ -186,11 +186,20 @@ Uninstall + reinstall forces it too.
 .kartograph/
   kartograph.json          the map (validated, slug-keyed)
   kartograph.layout.json   node positions (desktop-app-written)
-kartograph/
   surveys/                 dated survey notes from /karto-explore
   decisions/               ADRs (Markdown, MADR style)
 features/<context>/<capability>/*.feature   the behavior, in Gherkin
 ```
+
+`.feature` files stay top-level on purpose — they are the product's living spec, meant to be
+visible. Everything else Kartograph writes lives under the hidden `.kartograph/` directory.
+
+> **Migrating an existing mapped project?** Surveys and decisions moved into `.kartograph/`.
+> Move them once, then delete the old directory:
+>
+> ```bash
+> git mv kartograph/surveys .kartograph/surveys && git mv kartograph/decisions .kartograph/decisions && rmdir kartograph
+> ```
 
 ## Status
 

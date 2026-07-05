@@ -7,7 +7,7 @@ Run the **chart** phase: fold the latest (or specified) survey into the map. The
 write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` changes.
 
 1. **Pick the survey.** Use the file named in `$ARGUMENTS`, else the most recent
-   `kartograph/surveys/*.discovery.json`. Validate it:
+   `.kartograph/surveys/*.discovery.json`. Validate it:
    `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-discovery.js <survey>`. Stop if invalid.
 
 2. **Apply it to a working copy of the map** (deterministic, idempotent). Ensure the
@@ -28,7 +28,7 @@ write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` 
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/chart.js`
    - `args: { discoveryPath: "<survey>", mapPath: ".kartograph/kartograph.tmp.json" }`
    It writes `.feature` files (tagged `@happy`/`@edge`/`@error`) under
-   `features/<context>/<capability>/` and ADR `.md` files under `kartograph/decisions/`.
+   `features/<context>/<capability>/` and ADR `.md` files under `.kartograph/decisions/`.
 
 5. **Reconcile maturity** from the freshly written scenarios and validate, writing the result
    back into the working copy:

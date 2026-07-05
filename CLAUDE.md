@@ -96,17 +96,17 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 - **Pure-function + CLI split.** New deterministic logic goes in a pure exported function
   (unit-tested) with a thin CLI wrapper guarded by
   `if (process.argv[1] === fileURLToPath(import.meta.url))`. Follow the existing files.
-- **Map files live under `.kartograph/`.** The map (`kartograph.json`) and the viewer layout
-  (`kartograph.layout.json`) live in a hidden `.kartograph/` directory at the project root —
-  never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `KARTO_DIR`) is
-  the only place that constructs these paths; Node code imports it, while the viewer fetches
-  `/.kartograph/…` and the commands hardcode the same relative paths. Surveys
-  (`kartograph/surveys/`), decisions (`kartograph/decisions/`), and `.feature` files
-  (`features/`) keep their existing top-level locations — only the JSON map + layout moved.
-  There is **no fallback** to the old project-root location.
+- **Map files live under `.kartograph/`.** The map (`kartograph.json`), the viewer layout
+  (`kartograph.layout.json`), surveys (`.kartograph/surveys/`), and decisions
+  (`.kartograph/decisions/`) all live in a hidden `.kartograph/` directory at the project root —
+  never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `surveysDir`,
+  `decisionsDir`, `KARTO_DIR`) is the only place that constructs these paths; Node code imports
+  it, while the viewer fetches `/.kartograph/…` and the commands hardcode the same relative
+  paths. Only `.feature` files (`features/`) stay top-level — they are the product's living
+  spec, deliberately visible. There is **no fallback** to the old `kartograph/` locations.
 - **Slugs are the key space.** Everything is keyed by lowercase-hyphen slugs
   (`^[a-z0-9][a-z0-9-]*$`); cross-references are slugs and must resolve (integrity gate).
-- **Survey artifacts.** `/karto-explore` writes `kartograph/surveys/<date>-<slug>.discovery.json`
+- **Survey artifacts.** `/karto-explore` writes `.kartograph/surveys/<date>-<slug>.discovery.json`
   (the canonical, append-only log) and, alongside it, a readable
   `.discovery.html` rendered deterministically by `scripts/survey-to-html.js`.
 - **Defensive `args` parsing.** A Workflow can be mis-called with a JSON-*stringified* `args`

@@ -31,16 +31,16 @@ Explore is **read-only**: it never modifies `.kartograph/kartograph.json`, the g
      `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-discovery.js <tempfile>`.
    - If validation fails, show the errors and fix the document (or re-run the workflow); do
      not save an invalid survey.
-7. On success, save it to `kartograph/surveys/<date>-<slug>.discovery.json` (create the
-   `kartograph/surveys/` directory if needed). This file is the append-only expedition log.
+7. On success, save it to `.kartograph/surveys/<date>-<slug>.discovery.json` (create the
+   `.kartograph/surveys/` directory if needed). This file is the append-only expedition log.
 8. Render a readable HTML view next to the JSON:
-   `node ${CLAUDE_PLUGIN_ROOT}/scripts/survey-to-html.js kartograph/surveys/<date>-<slug>.discovery.json`.
-   This writes `kartograph/surveys/<date>-<slug>.discovery.html` deterministically from the
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/survey-to-html.js .kartograph/surveys/<date>-<slug>.discovery.json`.
+   This writes `.kartograph/surveys/<date>-<slug>.discovery.html` deterministically from the
    JSON — a self-contained, structured survey you can open in a browser.
 
 ## Phase C — Handoff
 
 9. Summarize the findings for the user, then **pause and ask**: continue with `/karto-chart`
    now, or review the survey first? Point them at the readable
-   `kartograph/surveys/<date>-<slug>.discovery.html` (the `.discovery.json` next to it is the
+   `.kartograph/surveys/<date>-<slug>.discovery.html` (the `.discovery.json` next to it is the
    canonical append-only log). Do not chart automatically.

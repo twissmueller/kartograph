@@ -59,4 +59,4 @@ plus the raw feature description and any issue reference. If any questions were 
 unanswered, list them verbatim under an **"Offene Fragen / Open questions"** heading at the
 end of the summary — the discovery workflow reads that section to record them on the map. The `/karto-explore` command hands
 these to the discovery workflow, which extracts the structured findings and writes the survey
-file `kartograph/surveys/<date>-<slug>.discovery.json`.
+file `.kartograph/surveys/<date>-<slug>.discovery.json`.
