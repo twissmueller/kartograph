@@ -45,6 +45,16 @@ test('creates a missing context referenced by a candidate', () => {
   assert.ok(m.contexts.notifications, 'context auto-created');
 });
 
+test('applies a survey\'s revisions after the additive findings', () => {
+  // candidate task-reminders is added by the findings, then retired by a revision in
+  // the same survey — a "change" survey (retire-old + add-new) folds in cleanly.
+  const d = structuredClone(discovery);
+  d.revisions = [{ type: 'rename-context', context: 'care', newName: 'Plant Care', reason: 'clearer' }];
+  const m = applyDiscovery(baseMap, d);
+  assert.ok(m.capabilities['task-reminders'], 'additive finding still applied');
+  assert.equal(m.contexts.care.name, 'Plant Care', 'revision applied on top');
+});
+
 test('numbers ADR candidates sequentially and marks them proposed', () => {
   const m = applyDiscovery(baseMap, discovery);
   const ids = Object.keys(m.adrs);

@@ -3,9 +3,9 @@ import { stat } from 'node:fs/promises';
 import { mapPath, isLayoutFile } from '../../workflows/lib/paths.js';
 
 // Watch a project tree and call onChange() (debounced) when a relevant file changes.
-// Mirrors server/serve.js: ignore our own kartograph.layout.json writes; only react to
-// map/feature/decision/json changes; fall back to watching the map file if recursive
-// watch is unsupported on this platform.
+// Ignore our own kartograph.layout.json writes; only react to map/feature/decision/json
+// changes; fall back to watching the map file if recursive watch is unsupported on this
+// platform.
 //
 // Backstop: fs.watch — especially recursive on macOS — can silently stop delivering
 // events over a long session or across sleep/wake, so an external write (e.g. a

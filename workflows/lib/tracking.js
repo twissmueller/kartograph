@@ -1,5 +1,5 @@
 // Scenario tracking state, stored in kartograph.json under a top-level `tracking`
-// object keyed by the canonical scenario ID (see viewer/lib/ids.js scenarioId:
+// object keyed by the canonical scenario ID (see workflows/lib/ids.js scenarioId:
 // `<capability>/<feature.feature>#"<scenarioName>"`). An absent key means the
 // default 'open'. These are PURE helpers — callers build the ID and persist the map.
 //

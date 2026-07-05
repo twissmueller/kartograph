@@ -10,10 +10,10 @@ of what your application does. The map is built on a small, explicit **ontology*
 system, its behavior is captured as **executable specifications** (Gherkin scenarios in
 version control), and new code is grown with **double-loop TDD** — acceptance scenarios as
 the outer loop, unit tests as the inner loop. The map lives in your repo as a single
-validated JSON file, is rendered by a static, live-reloading viewer, and is grown through
+validated JSON file, is rendered by a live-reloading **desktop app**, and is grown through
 AI workflows that always keep a human at the checkpoints.
 
-![The Kartograph viewer rendering a demo map](docs/assets/viewer.png)
+![The Kartograph desktop app rendering a demo map](docs/assets/viewer.png)
 
 ---
 
@@ -74,6 +74,7 @@ between each:
 | **Explore** | Discovery | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + a converging interview), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
 | **Chart** | Formulation | `/karto-chart` | Record the approved survey onto the map: update `.kartograph/kartograph.json`, grow the glossary, write `.feature` scenarios in Gherkin, add ADRs. |
 | **Build** | Automation (ATDD) | `/karto-build <capability>` | Implement the open scenarios with **double-loop TDD**: the acceptance scenario is the outer loop, red–green–refactor unit testing is the inner loop. |
+| **Walk** | Acceptance | `/karto-walk [scope]` | Walk a person through the **Developed** scenarios one at a time, in front of the running app, in plain language. Pass marks a scenario **Accepted**; Fail records why (a scenario note) and points you at `/karto-build`. The only way to reach Accepted. |
 
 The outer loop is what makes agentic development converge instead of drift: the agent's
 starting prompt *is* a set of acceptance criteria, it can self-verify against them, and the
@@ -84,8 +85,9 @@ Four more commands view and maintain the map:
 
 | Command | What it does |
 | --- | --- |
-| `/karto-show` | Open the live viewer in your browser. |
+| `/karto-show` | Open the live desktop app on the current project. |
 | `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
+| `/karto-revise <target>` | The counterpart to explore for behavior that's wrong or gone: retire an obsolete scenario or capability, or rename a capability/context's display name. Read-only — assembles a reviewable survey (mixable with additive findings), which you then `/karto-chart`. |
 | `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
 
 `/karto-build-all [scope]` builds every open scenario in a scope autonomously — the whole map,
@@ -115,25 +117,24 @@ npm install
 npm test                                    # run the test suite
 npm run validate                            # validate the seed map
 
-# preview the demo map in your browser
+# preview the demo map in the desktop app (first run installs Electron)
 mkdir -p .kartograph && cp examples/demo.kartograph.json .kartograph/kartograph.json
-npm run show                                # → http://127.0.0.1:4123
+bash scripts/start-desktop.sh "$(pwd)"      # opens a native window on this project
 ```
 
 Drag nodes to arrange them (positions are saved to `.kartograph/kartograph.layout.json`); edit
-`.kartograph/kartograph.json` and the page reloads itself.
+`.kartograph/kartograph.json` and the app reloads itself.
 
-The viewer has two views, switched from the header: the **Map** (the capability graph) and
-the **Board** — a cross-capability Kanban of every scenario by progress (Open / Developed /
-Accepted). Drag a card between columns to set its tracking state, which is stored
-in `kartograph.json` (not in the `.feature` file); click a card to jump to that capability.
-Progress is tracking-only and does not change derived maturity.
+The desktop app has two views, switched from the header: the **Map** (the capability graph) and
+the **Tracking** board — a cross-capability view of every scenario by progress (Open / Developed /
+Accepted). Change a scenario's state to record its tracking progress, which is stored
+in `kartograph.json` (not in the `.feature` file); progress is tracking-only and does not
+change derived maturity.
 
-Click a capability to open the **Feature Browser** in the side panel: read each of its
-features and scenarios with their full Gherkin steps, filter scenarios by path
-(`@happy` / `@edge` / `@error`), sort features by scenario count, and see at a glance — via
-per-feature coverage badges — which paths each feature still lacks. It updates live as you
-edit `.feature` files, so you can grow the software both exploratively and systematically.
+Click a capability to read each of its features and scenarios with their full Gherkin steps,
+filter scenarios by path (`@happy` / `@edge` / `@error`), and see at a glance — via per-feature
+coverage badges — which paths each feature still lacks. It updates live as you edit
+`.feature` files, so you can grow the software both exploratively and systematically.
 
 ## Install as a Claude Code plugin
 
@@ -150,8 +151,14 @@ Then, in any project you want to map:
 ```text
 /karto-init                 # bootstrap a map from existing code
 /karto-explore "<feature>"  # design a new feature
-/karto-show                 # open the live viewer
+/karto-show                 # open the live desktop app
 ```
+
+> **Recommended companion — [Superpowers](https://github.com/obra/superpowers).** For the full
+> experience, install the Superpowers plugin: `/karto-explore` uses its `brainstorming` skill to
+> open up a feature idea and `/karto-build` uses its `test-driven-development` skill to drive the
+> inner loop. Kartograph works **without** it — both commands fall back to condensed inline
+> guidance — but the dedicated skills are richer.
 
 ### Updating
 
@@ -186,12 +193,47 @@ Uninstall + reinstall forces it too.
 ```
 .kartograph/
   kartograph.json          the map (validated, slug-keyed)
-  kartograph.layout.json   node positions (viewer-written)
-kartograph/
+  kartograph.layout.json   node positions (desktop-app-written)
   surveys/                 dated survey notes from /karto-explore
   decisions/               ADRs (Markdown, MADR style)
 features/<context>/<capability>/*.feature   the behavior, in Gherkin
 ```
+
+`.feature` files stay top-level on purpose — they are the product's living spec, meant to be
+visible. Everything else Kartograph writes lives under the hidden `.kartograph/` directory.
+
+> **Migrating an existing mapped project?** Surveys and decisions moved into `.kartograph/`.
+> Move them once, then delete the old directory:
+>
+> ```bash
+> git mv kartograph/surveys .kartograph/surveys && git mv kartograph/decisions .kartograph/decisions && rmdir kartograph
+> ```
+
+## CI for mapped projects
+
+Keep the map honest in the repos you map — no local install needed. Kartograph exposes two
+bins you can run straight from GitHub with `npx`:
+
+- `kartograph-validate <map.json>` — runs both write gates (JSON Schema + referential
+  integrity) against a committed map; exits non-zero on any violation.
+- `kartograph-reconcile --check` — recomputes every capability's `derived` maturity from the
+  `.feature` files on disk, compares it with what's stored, and **writes nothing**; exits
+  non-zero (with a readable diff) if the committed map is stale or invalid. Run it from the
+  project root so it finds `.kartograph/kartograph.json` and `features/`.
+
+Add this job to your project's `.github/workflows/`:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+  with: { node-version: 22 }
+- run: npx --yes --package=github:twissmueller/kartograph -c 'kartograph-validate .kartograph/kartograph.json'
+- run: npx --yes --package=github:twissmueller/kartograph -c 'kartograph-reconcile --check'
+```
+
+The `reconcile --check` step fails the build if someone edits a `.feature` file without
+re-running `/karto-build` (or `node scripts/reconcile.js`) to update the derived maturity — so
+the map can never silently drift from the behavior it claims.
 
 ## Status
 

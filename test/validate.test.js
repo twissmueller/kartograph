@@ -130,3 +130,45 @@ test('a tracking key whose capability does not exist is caught by integrity chec
   const errors = checkReferentialIntegrity(doc);
   assert.ok(errors.some((e) => e.includes('ghost-cap')), JSON.stringify(errors));
 });
+
+test('a scenarioNotes block on a real capability validates', async () => {
+  const doc = await seed();
+  doc.scenarioNotes = {
+    'start-here/intro.feature#"welcome"': { reason: 'ambiguous Then', date: '2026-07-05', source: 'walk' },
+  };
+  const result = await validateKartograph(doc);
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+
+test('a scenarioNote missing a required field is rejected by schema', async () => {
+  const doc = await seed();
+  doc.scenarioNotes = { 'start-here/intro.feature#"welcome"': { reason: 'x', source: 'walk' } };
+  assert.equal((await validateKartograph(doc)).valid, false, 'missing date');
+});
+
+test('a scenarioNote with an out-of-enum source is rejected by schema', async () => {
+  const doc = await seed();
+  doc.scenarioNotes = { 'start-here/intro.feature#"welcome"': { reason: 'x', date: '2026-07-05', source: 'chart' } };
+  assert.equal((await validateKartograph(doc)).valid, false, 'source "chart" is not in the enum');
+});
+
+test('a scenarioNote with an empty reason or a bad date is rejected by schema', async () => {
+  const doc = await seed();
+  doc.scenarioNotes = { 'start-here/intro.feature#"welcome"': { reason: '', date: '2026-07-05', source: 'walk' } };
+  assert.equal((await validateKartograph(doc)).valid, false, 'empty reason');
+  doc.scenarioNotes = { 'start-here/intro.feature#"welcome"': { reason: 'x', date: 'July', source: 'walk' } };
+  assert.equal((await validateKartograph(doc)).valid, false, 'bad date');
+});
+
+test('a scenarioNote carrying an unexpected property is rejected by schema', async () => {
+  const doc = await seed();
+  doc.scenarioNotes = { 'start-here/intro.feature#"welcome"': { reason: 'x', date: '2026-07-05', source: 'walk', extra: 1 } };
+  assert.equal((await validateKartograph(doc)).valid, false, 'additionalProperties: false');
+});
+
+test('a scenarioNotes key whose capability does not exist is caught by integrity check', async () => {
+  const doc = await seed();
+  doc.scenarioNotes = { 'ghost-cap/intro.feature#"welcome"': { reason: 'x', date: '2026-07-05', source: 'walk' } };
+  const errors = checkReferentialIntegrity(doc);
+  assert.ok(errors.some((e) => e.includes('scenarioNotes') && e.includes('ghost-cap')), JSON.stringify(errors));
+});

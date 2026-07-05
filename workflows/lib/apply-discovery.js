@@ -1,4 +1,5 @@
 import { slugify } from './survey.js';
+import { applyRevisions } from './apply-revisions.js';
 
 const COLLECTIONS = ['contexts', 'capabilities', 'subjects', 'actors', 'events', 'rules', 'glossary', 'adrs'];
 
@@ -102,5 +103,7 @@ export function applyDiscovery(map, discovery) {
       };
     }
   }
-  return next;
+  // Revisions (retire/rename) are applied AFTER the additive findings so a "change"
+  // survey (retire-old + add-new) folds in cleanly. Idempotent, pure.
+  return discovery.revisions ? applyRevisions(next, discovery.revisions) : next;
 }

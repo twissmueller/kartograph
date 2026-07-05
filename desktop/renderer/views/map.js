@@ -1,6 +1,6 @@
 import { markDirty, persistSession, persistSessionSoon } from '../app.js';
-import { autoPlaceGrouped, boundsForGroups } from '../../../viewer/lib/layout.js';
-import { contextId, capabilityId } from '../../../viewer/lib/ids.js';
+import { autoPlaceGrouped, boundsForGroups } from '../../../workflows/lib/layout.js';
+import { contextId, capabilityId } from '../../../workflows/lib/ids.js';
 import { idChip } from '../idchip.js';
 
 const ZOOM_MIN = 0.2, ZOOM_MAX = 3;

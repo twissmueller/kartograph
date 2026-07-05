@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { reconcileMap, readFeaturesByCapability } from '../scripts/reconcile.js';
+import { reconcileMap, readFeaturesByCapability, reconcileDiff } from '../scripts/reconcile.js';
 
 const map = {
   version: '1', meta: { name: 'X' },
@@ -44,6 +44,33 @@ test('readFeaturesByCapability globs features/<context>/<slug>/*.feature and fee
   // full coverage (@happy + @edge + @error) -> stable
   assert.equal(out.capabilities['watering-schedule'].derived.maturity, 'stable');
   assert.equal(out.capabilities['watering-schedule'].derived.scenarioCount, 3);
+});
+
+test('reconcileDiff is empty when stored derived blocks already match the features', () => {
+  // watering-schedule stored as usable (1 feature, 2 scenarios @happy+@edge); feed the same.
+  const consistent = {
+    ...map,
+    capabilities: {
+      'watering-schedule': { name: 'W', context: 'care', definition: 'd', declaredStage: null, derived: { maturity: 'usable', featureCount: 1, scenarioCount: 2 } },
+      'task-reminders': { name: 'T', context: 'care', definition: 'd', declaredStage: 'vision', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+    },
+  };
+  const featuresByCapability = {
+    'watering-schedule': [{ scenarios: [{ tags: ['@happy'] }, { tags: ['@edge'] }] }],
+  };
+  assert.deepEqual(reconcileDiff(consistent, featuresByCapability), []);
+});
+
+test('reconcileDiff reports stale maturity and counts against recomputed values', () => {
+  // stored says vision/0/0, but the features imply usable/1/2
+  const featuresByCapability = {
+    'watering-schedule': [{ scenarios: [{ tags: ['@happy'] }, { tags: ['@edge'] }] }],
+  };
+  const diffs = reconcileDiff(map, featuresByCapability);
+  assert.ok(diffs.some((d) => /watering-schedule.*maturity.*vision.*usable/.test(d)), diffs.join('\n'));
+  assert.ok(diffs.some((d) => /watering-schedule.*scenarioCount.*'0'.*'2'/.test(d)), diffs.join('\n'));
+  // task-reminders genuinely has no features -> no drift for it
+  assert.ok(!diffs.some((d) => /task-reminders/.test(d)));
 });
 
 test('dependencyFeatureWarnings flags a referenced feature missing from the from capability', async () => {

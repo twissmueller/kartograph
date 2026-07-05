@@ -6,7 +6,7 @@
 //
 // The returned object is the survey: the /karto-explore command validates it
 // against schemas/v1/discovery.schema.json and writes it to
-// kartograph/surveys/<date>-<slug>.discovery.json.
+// .kartograph/surveys/<date>-<slug>.discovery.json.
 //
 // args: { date, slug, description, conversationSummary, issue?, mapPath? }
 

@@ -7,7 +7,7 @@ Run the **chart** phase: fold the latest (or specified) survey into the map. The
 write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` changes.
 
 1. **Pick the survey.** Use the file named in `$ARGUMENTS`, else the most recent
-   `kartograph/surveys/*.discovery.json`. Validate it:
+   `.kartograph/surveys/*.discovery.json`. Validate it:
    `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-discovery.js <survey>`. Stop if invalid.
 
 2. **Apply it to a working copy of the map** (deterministic, idempotent). Ensure the
@@ -16,7 +16,22 @@ write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` 
    mkdir -p .kartograph && node -e "import('${CLAUDE_PLUGIN_ROOT}/workflows/lib/apply-discovery.js').then(async m=>{const fs=require('fs');const map=fs.existsSync('.kartograph/kartograph.json')?JSON.parse(fs.readFileSync('.kartograph/kartograph.json')):JSON.parse(fs.readFileSync('${CLAUDE_PLUGIN_ROOT}/examples/kartograph.seed.json'));const disc=JSON.parse(fs.readFileSync('<survey>'));fs.writeFileSync('.kartograph/kartograph.tmp.json', JSON.stringify(m.applyDiscovery(map,disc),null,2)+'\n');})"
    ```
    This adds capability candidates (born `vision`), subjects/actors/events, glossary
-   additions, rules, and proposed-ADR metadata to `.kartograph/kartograph.tmp.json`.
+   additions, rules, and proposed-ADR metadata to `.kartograph/kartograph.tmp.json`. If the
+   survey carries a `revisions` array (from `/karto-revise`), `applyDiscovery` also folds the
+   **map-side** effects into the working copy after the additive findings: retire-scenario
+   drops the scenario's `tracking`/`scenarioNotes`; retire-capability deletes the capability,
+   every dependency edge touching it, and its tracking/notes; renames update the display
+   `name` only (see `workflows/lib/apply-revisions.js`).
+
+2a. **If the survey has `revisions`, apply the file-side effects too** (the map side was
+   handled in step 2). These are deterministic scripts, no LLM:
+   - For each **retire-scenario** `{ capability, feature, scenario }` — resolve the capability's
+     context from the working-copy map, then remove the scenario block from its `.feature` file:
+     ```bash
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/retire-scenario.js . <context> <capability> <feature.feature> "<scenario>"
+     ```
+   - **retire-capability** feature-dir removal is deferred to **after the atomic swap** (step 6)
+     so a failed run leaves the files on disk. Renames touch no files.
 
 3. **Groom** the working copy (metadata only — no files written yet): use
    **`karto-groom-glossary`** to canonicalize the new glossary terms (synonyms →
@@ -28,7 +43,7 @@ write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` 
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/chart.js`
    - `args: { discoveryPath: "<survey>", mapPath: ".kartograph/kartograph.tmp.json" }`
    It writes `.feature` files (tagged `@happy`/`@edge`/`@error`) under
-   `features/<context>/<capability>/` and ADR `.md` files under `kartograph/decisions/`.
+   `features/<context>/<capability>/` and ADR `.md` files under `.kartograph/decisions/`.
 
 5. **Reconcile maturity** from the freshly written scenarios and validate, writing the result
    back into the working copy:
@@ -38,7 +53,11 @@ write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` 
 6. **Atomic swap.** Only if reconcile succeeded, move `.kartograph/kartograph.tmp.json` →
    `.kartograph/kartograph.json`. On any earlier failure, delete `.kartograph/kartograph.tmp.json`
    and report — `.kartograph/kartograph.json` is untouched. (The generated `.feature`/`.md`
-   files are additive and harmless if a run aborts.)
+   files are additive and harmless if a run aborts.) **After** the swap succeeds, for each
+   **retire-capability** revision remove its now-orphaned feature directory and report it:
+   `git rm -r features/<context>/<capability>/` (resolve `<context>` from the pre-swap map;
+   fall back to `rm -rf` if the path was never committed). Retiring scenarios can lower a
+   capability's maturity — that is correct; maturity is earned, not declared.
 
 7. **Pause and ask:** continue with `/karto-build <capability>` now, or review the diff
    (`git diff`, or `/karto-show`) first? Do not build automatically.

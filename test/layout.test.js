@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoPlace, autoPlaceGrouped, boundsForGroups, separateBoxes } from '../viewer/lib/layout.js';
+import { autoPlace, autoPlaceGrouped, boundsForGroups, separateBoxes } from '../workflows/lib/layout.js';
 
 const overlap = (A, B) => {
   const ox = Math.min(A.x + A.w, B.x + B.w) - Math.max(A.x, B.x);

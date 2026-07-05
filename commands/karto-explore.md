@@ -9,8 +9,16 @@ Explore is **read-only**: it never modifies `.kartograph/kartograph.json`, the g
 
 ## Phase A — Survey conversation (interactive)
 
-1. Use the **`superpowers:brainstorming`** skill to open up and expand the feature idea with
-   the user.
+1. If the **`superpowers`** plugin is installed, use the **`superpowers:brainstorming`** skill
+   to open up and expand the feature idea with the user. Otherwise follow this condensed
+   guidance:
+   - Understand the purpose, the users, and what success looks like **before** proposing any
+     solution.
+   - Ask **one question per message**, and prefer multiple-choice options over open-ended
+     prompts.
+   - Explore **2–3 alternative** approaches rather than committing to the first idea.
+   - Keep steady **YAGNI** pressure — cut anything not needed to meet the stated success criteria.
+   - **Summarize** the decisions made so far before converging on a direction.
 2. Then use the **`karto-grill`** skill to converge: interview the user one question at a
    time, challenge new terms against the existing project glossary in `.kartograph/kartograph.json`,
    sharpen fuzzy language, probe Given/When/Then scenarios, and flag ADR candidates. Pull in a
@@ -31,16 +39,16 @@ Explore is **read-only**: it never modifies `.kartograph/kartograph.json`, the g
      `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-discovery.js <tempfile>`.
    - If validation fails, show the errors and fix the document (or re-run the workflow); do
      not save an invalid survey.
-7. On success, save it to `kartograph/surveys/<date>-<slug>.discovery.json` (create the
-   `kartograph/surveys/` directory if needed). This file is the append-only expedition log.
+7. On success, save it to `.kartograph/surveys/<date>-<slug>.discovery.json` (create the
+   `.kartograph/surveys/` directory if needed). This file is the append-only expedition log.
 8. Render a readable HTML view next to the JSON:
-   `node ${CLAUDE_PLUGIN_ROOT}/scripts/survey-to-html.js kartograph/surveys/<date>-<slug>.discovery.json`.
-   This writes `kartograph/surveys/<date>-<slug>.discovery.html` deterministically from the
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/survey-to-html.js .kartograph/surveys/<date>-<slug>.discovery.json`.
+   This writes `.kartograph/surveys/<date>-<slug>.discovery.html` deterministically from the
    JSON — a self-contained, structured survey you can open in a browser.
 
 ## Phase C — Handoff
 
 9. Summarize the findings for the user, then **pause and ask**: continue with `/karto-chart`
    now, or review the survey first? Point them at the readable
-   `kartograph/surveys/<date>-<slug>.discovery.html` (the `.discovery.json` next to it is the
+   `.kartograph/surveys/<date>-<slug>.discovery.html` (the `.discovery.json` next to it is the
    canonical append-only log). Do not chart automatically.

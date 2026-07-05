@@ -9,5 +9,5 @@ export function slugify(text) {
 }
 
 export function surveyFilename(date, slug) {
-  return `kartograph/surveys/${date}-${slug}.discovery.json`;
+  return `.kartograph/surveys/${date}-${slug}.discovery.json`;
 }

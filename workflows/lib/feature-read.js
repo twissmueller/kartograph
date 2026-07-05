@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseFeature, scenarioClass } from './gherkin.js';
 import { getScenarioState } from './tracking.js';
-import { scenarioId } from '../../viewer/lib/ids.js';
+import { scenarioId } from './ids.js';
 import { mapPath } from './paths.js';
 
 export const isSlug = (s) => typeof s === 'string' && /^[a-z0-9][a-z0-9-]*$/.test(s);

@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Kartograph is **both** a Claude Code plugin and a small Node project. It ships commands,
 skills, and workflows that maintain a "living map" of a software system
 (`.kartograph/kartograph.json`),
-and it contains the deterministic Node code (validators, transforms, a viewer/server) that
-those commands call. There is **no framework and no build step** — vanilla JavaScript, ESM
+and it contains the deterministic Node code (validators, transforms) that
+those commands call. The UI is the Electron desktop app under `desktop/`. There is
+**no framework and no build step** — vanilla JavaScript, ESM
 (`"type": "module"`), Node built-ins only, plus `ajv` for schema validation.
 
 ## Commands
@@ -17,17 +18,17 @@ those commands call. There is **no framework and no build step** — vanilla Jav
 npm test                                   # full suite (node --test)
 node --test test/maturity-derive.test.js   # run a single test file
 npm run validate                           # validate the seed map against schema + integrity
-npm run show                               # serve the viewer at http://127.0.0.1:4123 (projectRoot = cwd)
+bash scripts/start-desktop.sh "$(pwd)"     # launch the desktop app on the current project (first run installs Electron)
 
 # validate any map / survey directly
 node scripts/validate-kartograph.js <map.json>
 node scripts/validate-discovery.js <survey.discovery.json>
 ```
 
-**Releases must bump `version` in BOTH `.claude-plugin/plugin.json` AND `package.json`**
-to the same value — the marketplace and the installed plugin both compare the manifest
-`version`, so an un-bumped release is invisible downstream. Feature commits here are patch
-bumps (the log uses `feat(...): … (vX.Y.Z)`).
+**Releases must bump `version` in ALL THREE of `.claude-plugin/plugin.json`,
+`package.json`, AND `desktop/package.json`** to the same value — the marketplace and the
+installed plugin both compare the manifest `version`, so an un-bumped release is invisible
+downstream. Feature commits here are patch bumps (the log uses `feat(...): … (vX.Y.Z)`).
 
 ## The core architectural rule: who is allowed to write the map
 
@@ -71,21 +72,23 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 
 ## Directory map
 
-- `commands/` — the seven `/karto-*` slash commands (explore, chart, build, build-all, sync, init, show).
+- `commands/` — the nine `/karto-*` slash commands (explore, chart, build, build-all, sync,
+  init, show, walk, revise).
 - `skills/` — `karto-grill` (converging interview), `karto-analyze-repo`, and three
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
 - `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`, `build-all`).
-- `workflows/lib/` — **pure, testable** helpers shared by scripts and the server
-  (`apply-discovery`, `gherkin`, `maturity-derive`, `map-drift`, `open-scenarios`, `paths`,
-  `survey`, `survey-html`). `paths.js` is the single source of truth for where the map and
-  layout live.
+- `workflows/lib/` — **pure, testable** helpers shared by scripts and the desktop app
+  (`apply-discovery`, `board`, `board-data`, `feature-read`, `gherkin`, `ids`, `layout`,
+  `maturity-derive`, `map-drift`, `open-scenarios`, `paths`, `survey`, `survey-html`, `tracking`).
+  `paths.js` is the single source of truth for where the map and layout live. `ids`, `board`
+  and `layout` were the browser viewer's pure libs; the viewer is gone and the desktop
+  renderer imports them from here.
 - `scripts/` — deterministic CLIs (`validate-kartograph`, `validate-discovery`, `reconcile`,
   `survey-to-html`). Each is a pure function + a thin `import.meta.url`-guarded CLI.
-- `server/serve.js` — zero-dependency static server for the viewer: serves viewer assets then
-  project files, exposes `GET/POST /board`, `GET /features/...`, `POST /layout`, and pushes
-  live-reload over SSE (`/events`) by watching the project tree.
-- `viewer/` — the browser app (vanilla JS, no build). `kartograph.js` entry + `lib/` modules;
-  Map view (capability graph) and Board view (cross-capability scenario Kanban).
+- `desktop/` — the Electron desktop app (the only UI). `main/` is the Node main process
+  (filesystem, watchers, IPC, session), `preload.cjs` is the sandboxed bridge, and
+  `renderer/` is the vanilla-JS UI (Map view + Tracking board). Launch it with
+  `scripts/start-desktop.sh [projectDir]`; `/karto-show` wraps that.
 - `schemas/v1/` — JSON Schemas for the map, glossary, ADR, and discovery survey.
 - `test/` — `node:test` unit tests for the pure helpers and the schemas.
 
@@ -94,17 +97,22 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 - **Pure-function + CLI split.** New deterministic logic goes in a pure exported function
   (unit-tested) with a thin CLI wrapper guarded by
   `if (process.argv[1] === fileURLToPath(import.meta.url))`. Follow the existing files.
-- **Map files live under `.kartograph/`.** The map (`kartograph.json`) and the viewer layout
-  (`kartograph.layout.json`) live in a hidden `.kartograph/` directory at the project root —
-  never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `KARTO_DIR`) is
-  the only place that constructs these paths; Node code imports it, while the viewer fetches
-  `/.kartograph/…` and the commands hardcode the same relative paths. Surveys
-  (`kartograph/surveys/`), decisions (`kartograph/decisions/`), and `.feature` files
-  (`features/`) keep their existing top-level locations — only the JSON map + layout moved.
-  There is **no fallback** to the old project-root location.
+  **Exception — scripts exposed as npm `bin`s** (`validate-kartograph.js`, `reconcile.js`):
+  the `.bin` symlink means `process.argv[1]` is a symlink path that never equals the resolved
+  module URL, so those two guard on `realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)`
+  instead. Use the plain form everywhere else; only reach for the `realpathSync` variant when a
+  script is a declared bin.
+- **Map files live under `.kartograph/`.** The map (`kartograph.json`), the viewer layout
+  (`kartograph.layout.json`), surveys (`.kartograph/surveys/`), and decisions
+  (`.kartograph/decisions/`) all live in a hidden `.kartograph/` directory at the project root —
+  never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `surveysDir`,
+  `decisionsDir`, `KARTO_DIR`) is the only place that constructs these paths; Node code imports
+  it, while the commands hardcode the same relative paths. Only `.feature` files (`features/`)
+  stay top-level — they are the product's living
+  spec, deliberately visible. There is **no fallback** to the old `kartograph/` locations.
 - **Slugs are the key space.** Everything is keyed by lowercase-hyphen slugs
   (`^[a-z0-9][a-z0-9-]*$`); cross-references are slugs and must resolve (integrity gate).
-- **Survey artifacts.** `/karto-explore` writes `kartograph/surveys/<date>-<slug>.discovery.json`
+- **Survey artifacts.** `/karto-explore` writes `.kartograph/surveys/<date>-<slug>.discovery.json`
   (the canonical, append-only log) and, alongside it, a readable
   `.discovery.html` rendered deterministically by `scripts/survey-to-html.js`.
 - **Defensive `args` parsing.** A Workflow can be mis-called with a JSON-*stringified* `args`
@@ -116,13 +124,12 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   the only kind of tag now, and it feeds maturity (`workflows/lib/gherkin.js` parses it). A
   scenario's **progress** — `Open → Developed → Accepted` — is *not* a tag; it lives in
   `kartograph.json`'s top-level `tracking` block, keyed by the canonical scenario ID
-  (`<capability>/<feature.feature>#"<scenario>"`, see `viewer/lib/ids.js`). The pure helpers are
+  (`<capability>/<feature.feature>#"<scenario>"`, see `workflows/lib/ids.js`). The pure helpers are
   `workflows/lib/tracking.js` (`getScenarioState`/`setScenarioState`, default `open`); writers go
   through `workflows/lib/map-store.js` (`writeMap`, atomic). Progress never changes maturity. The
   schema validates `tracking`; the integrity gate flags entries whose capability no longer exists.
   `/karto-build` advances scenarios to **Developed**; the user flips **Accepted** after walking
-  them. Set state with `scripts/set-tracking.js` or the viewer's Tracking board; migrate legacy
-  `@wip`/`@test`/`@done` tags with `scripts/migrate-tracking.js`.
+  them. Set state with `scripts/set-tracking.js` or the desktop app's Tracking board.
 - **Scenarios are user-walkable, not technical.** Features and scenarios are written for a
   non-technical stakeholder to walk through and confirm in front of the running system: plain
   domain language (glossary terms), only observable behaviour (Given = recognisable situation,

@@ -1,4 +1,6 @@
+#!/usr/bin/env node
 import { readFile, writeFile, readdir, rename } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFeature, scenarioClass } from '../workflows/lib/gherkin.js';
@@ -22,6 +24,24 @@ export function reconcileMap(map, featuresByCapability) {
     cap.derived = { maturity: deriveMaturity({ featureCount: files.length, scenarioCount, classes }), featureCount: files.length, scenarioCount };
   }
   return next;
+}
+
+// Pure: compare each capability's stored `derived` block with the block recomputed from
+// pre-read features. Returns a readable diff line per drifting field — empty means the map's
+// derived blocks are already reconciled. Used by `--check` (CI) so nothing is written.
+export function reconcileDiff(map, featuresByCapability) {
+  const next = reconcileMap(map, featuresByCapability);
+  const diffs = [];
+  for (const [slug, cap] of Object.entries(next.capabilities || {})) {
+    const before = (map.capabilities && map.capabilities[slug] && map.capabilities[slug].derived) || {};
+    const after = cap.derived;
+    for (const key of ['maturity', 'featureCount', 'scenarioCount']) {
+      if (before[key] !== after[key]) {
+        diffs.push(`capability '${slug}' ${key}: stored '${before[key]}' != derived '${after[key]}'`);
+      }
+    }
+  }
+  return diffs;
 }
 
 // Pure: warn for every dependency `features` entry whose filename is not present
@@ -68,13 +88,33 @@ async function readFeaturesByCapability(root, map) {
   return out;
 }
 
-// CLI: node scripts/reconcile.js [.kartograph/kartograph.json] — recompute derived
-// blocks, validate, then write via a temp file + rename so the map is never half-written.
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// CLI: node scripts/reconcile.js [--check] [.kartograph/kartograph.json]
+//   default    — recompute derived blocks, validate, then write via a temp file + rename so
+//                the map is never half-written.
+//   --check    — recompute + run both validation gates but WRITE NOTHING; exit 0 when the
+//                stored map is already reconciled and valid, exit 1 with a diff summary
+//                otherwise. For CI on mapped projects.
+// Also exposed as the `kartograph-reconcile` bin; resolve argv[1] through realpath so the
+// `.bin` symlink path matches this module's own (symlink-resolved) path.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+  const check = args.includes('--check');
+  const positional = args.filter((a) => a !== '--check');
   const root = process.cwd();
-  const mapPath = process.argv[2] || defaultMapPath(root);
+  const mapPath = positional[0] || defaultMapPath(root);
   const map = JSON.parse(await readFile(mapPath, 'utf8'));
   const featuresByCapability = await readFeaturesByCapability(root, map);
+
+  if (check) {
+    const diffs = reconcileDiff(map, featuresByCapability);
+    const { valid, errors } = await validateKartograph(map);
+    const problems = [...diffs.map((d) => 'stale derived: ' + d), ...(valid ? [] : errors)];
+    if (problems.length === 0) { console.log(`OK: ${mapPath} is reconciled and valid`); process.exit(0); }
+    console.error(`CHECK FAILED: ${mapPath}`);
+    for (const p of problems) console.error('  - ' + p);
+    process.exit(1);
+  }
+
   const next = reconcileMap(map, featuresByCapability);
   const { valid, errors } = await validateKartograph(next);
   if (!valid) { console.error('INVALID after reconcile:'); for (const e of errors) console.error('  - ' + e); process.exit(1); }

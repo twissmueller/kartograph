@@ -62,7 +62,7 @@ for (const skill of [
 for (const cmd of [
   'commands/karto-explore.md', 'commands/karto-chart.md', 'commands/karto-build.md',
   'commands/karto-sync.md', 'commands/karto-init.md', 'commands/karto-show.md',
-  'commands/karto-build-all.md',
+  'commands/karto-build-all.md', 'commands/karto-revise.md',
 ]) {
   test(`${cmd} has a description frontmatter`, async () => {
     const fm = frontmatter(await read(cmd));
@@ -128,7 +128,7 @@ test('plugin.json registers all commands and skills', async () => {
   for (const c of [
     './commands/karto-explore.md', './commands/karto-chart.md', './commands/karto-build.md',
     './commands/karto-sync.md', './commands/karto-init.md', './commands/karto-show.md',
-    './commands/karto-build-all.md',
+    './commands/karto-build-all.md', './commands/karto-revise.md',
   ]) assert.ok(p.commands.includes(c), `commands includes ${c}`);
   for (const s of [
     './skills/karto-grill', './skills/karto-analyze-repo',

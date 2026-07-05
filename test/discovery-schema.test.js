@@ -99,3 +99,40 @@ test('findings.dependencies is optional and shape-checked when present', async (
   bad.findings.dependencies = [{ from: 'a' }];
   assert.equal(v(bad), false);
 });
+
+test('revisions is optional and accepts all four revision types', async () => {
+  const v = await loadValidator();
+  assert.equal(v(minimal), true, JSON.stringify(v.errors));
+  const ok = structuredClone(minimal);
+  ok.revisions = [
+    { type: 'retire-scenario', capability: 'task-reminders', feature: 'remind.feature', scenario: 'Remind at dawn', reason: 'no longer needed' },
+    { type: 'retire-capability', capability: 'legacy-thing', reason: 'merged into task-reminders' },
+    { type: 'rename-capability', capability: 'task-reminders', newName: 'Reminders', reason: 'shorter' },
+    { type: 'rename-context', context: 'care', newName: 'Plant Care', reason: 'clearer' },
+  ];
+  assert.equal(v(ok), true, JSON.stringify(v.errors));
+});
+
+test('a revision with an unknown type is rejected', async () => {
+  const v = await loadValidator();
+  const doc = structuredClone(minimal);
+  doc.revisions = [{ type: 'split-capability', capability: 'x', reason: 'r' }];
+  assert.equal(v(doc), false);
+});
+
+test('retire-scenario missing a required field, or a bad feature name, is rejected', async () => {
+  const v = await loadValidator();
+  const noReason = structuredClone(minimal);
+  noReason.revisions = [{ type: 'retire-scenario', capability: 'x', feature: 'a.feature', scenario: 'A' }];
+  assert.equal(v(noReason), false);
+  const badFeature = structuredClone(minimal);
+  badFeature.revisions = [{ type: 'retire-scenario', capability: 'x', feature: 'not-a-feature', scenario: 'A', reason: 'r' }];
+  assert.equal(v(badFeature), false);
+});
+
+test('a revision with an extra property for its type is rejected', async () => {
+  const v = await loadValidator();
+  const doc = structuredClone(minimal);
+  doc.revisions = [{ type: 'retire-capability', capability: 'x', newName: 'nope', reason: 'r' }];
+  assert.equal(v(doc), false);
+});

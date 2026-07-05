@@ -27,10 +27,28 @@ be able to confirm the outcome through the final interface, exactly as they woul
 production. If a scenario genuinely needs more than one layer but you can only finish one this
 session, say so plainly and **do not** mark it Developed or claim it is ready to test.
 
+**Never edit a `.feature` file during build.** The map changes only through
+explore/revise → chart, never from build. If a scenario cannot be implemented as written —
+its `Then` is ambiguous, its `Given` is impossible to reach, or it contradicts another
+scenario — do **not** force it and do **not** rewrite the scenario to make it buildable.
+Instead: skip it, record the friction with
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/set-tracking.js <projectRoot> <context> <capability> <feature.feature> "<scenario>" open --reason "<friction>" --source build`,
+then continue with the remaining scenarios. In the final report, list every friction you
+recorded and point the user to `/karto-revise` to fix the spec (which then flows back through
+`/karto-chart`). Recording friction is the correct outcome for an unbuildable scenario — a
+forced or hand-edited `.feature` is not.
+
 1. **Find open scenarios.** Locate the capability in `.kartograph/kartograph.json` to get its
    context, then read `features/<context>/<capability>/*.feature`. The open scenarios are those
    whose tracking state in the map is **not Accepted** (Open or Developed). Work them in
    order: `@happy` → `@edge` → `@error` (this walks the maturity ladder).
+   **Also read the prior frictions** for this capability: run
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/list-tracking.js <projectRoot> open` and inspect the
+   `note` field on any entry — a `scenarioNotes` reason records *why* that scenario was left
+   Open (a walk failure with `"source": "walk"`, or a build friction you or a prior session
+   recorded with `"source": "build"`). Treat these notes as context for the implementation:
+   they tell you what went wrong last time and what the user actually expects. Do not clear or
+   ignore a note by hand — advancing the scenario to Developed clears it automatically.
 
 2. **Learn how this project builds and tests itself.** Infer the unit-test runner, the
    acceptance/Gherkin runner (if any), and where source lives by inspecting the project itself —
@@ -44,12 +62,14 @@ session, say so plainly and **do not** mark it Developed or claim it is ready to
    - **Outer loop (acceptance):** run the scenario through the project's acceptance runner and
      **watch it fail**. If the project has no acceptance runner, skip the outer run and rely on
      the inner unit tests as the loop's signal — tell the user the acceptance loop is disabled.
-   - **Inner loop (unit):** use the **`superpowers:test-driven-development`** skill to drive the
-     implementation unit by unit — write a failing unit test, watch it fail, minimal code to
-     pass, refactor while green (the Iron Law: no production code without a failing test you
-     saw fail). Work through **every layer the scenario crosses** — when the backend behaviour
-     is green, keep going and wire it up through to the user-facing entry point, so the outcome
-     is reachable and confirmable from the real UI.
+   - **Inner loop (unit):** if the **`superpowers`** plugin is installed, use the
+     **`superpowers:test-driven-development`** skill to drive the implementation unit by unit.
+     Otherwise follow this condensed **Iron Law**: write a failing unit test and **watch it
+     fail** before writing any production code; write only the minimal code needed to make it
+     green; refactor while green; and never test mock behaviour — test the real thing. Either
+     way, work through **every layer the scenario crosses** — when the backend behaviour is
+     green, keep going and wire it up through to the user-facing entry point, so the outcome is
+     reachable and confirmable from the real UI.
    - **Definition of done — the user can walk it.** Before marking the scenario **Developed**,
      confirm it is reachable end-to-end through the final interface (the actual UI screen /
      command the user uses), with all layers connected — not just the backend passing its own
@@ -66,5 +86,13 @@ session, say so plainly and **do not** mark it Developed or claim it is ready to
    from its `.feature` path tags (`@happy`/`@edge`/`@error`) — maturity is independent of
    tracking state — then suggest `/karto-show` to watch it climb.
 
-5. Stop when every open scenario for the capability is at least **Developed**, and report what
+5. **Flag re-walk candidates.** Building this capability may have changed behaviour that other
+   capabilities **depend on**, so their already-**Accepted** scenarios could now be broken. Run
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/rewalk-candidates.js <projectRoot> <capability>`. If the
+   JSON list is non-empty, list the affected scenarios grouped by capability and suggest running
+   `/karto-walk <capability>` for each affected capability to re-confirm them. (This is direct
+   dependents only — the map's dependency edges carry the information.) If the list is empty, say
+   nothing changed downstream.
+
+6. Stop when every open scenario for the capability is at least **Developed**, and report what
    moved (and which scenarios are now waiting on the user's Accept).

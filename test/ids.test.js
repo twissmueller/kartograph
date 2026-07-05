@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contextId, capabilityId, featureId, scenarioId } from '../viewer/lib/ids.js';
+import { contextId, capabilityId, featureId, scenarioId, capabilityOfScenarioId } from '../workflows/lib/ids.js';
 
 test('contextId and capabilityId are the slug itself', () => {
   assert.equal(contextId('identity-access'), 'identity-access');
@@ -29,4 +29,12 @@ test('scenarioId embeds the raw name verbatim (inner quotes are not escaped)', (
     scenarioId('cap', 'x.feature', 'say "hi"'),
     'cap/x.feature#"say "hi""',
   );
+});
+
+test('capabilityOfScenarioId returns the segment before the first slash', () => {
+  assert.equal(capabilityOfScenarioId('authentication/sign-in.feature#"user signs in"'), 'authentication');
+  assert.equal(capabilityOfScenarioId('authentication/sign-in.feature'), 'authentication');
+  assert.equal(capabilityOfScenarioId('authentication'), 'authentication');
+  assert.equal(capabilityOfScenarioId(undefined), '');
+  assert.equal(capabilityOfScenarioId(null), '');
 });

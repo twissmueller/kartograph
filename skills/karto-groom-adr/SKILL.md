@@ -1,12 +1,12 @@
 ---
 name: karto-groom-adr
 user-invocable: false
-description: Create and maintain Kartograph ADRs — MADR-style decision records in kartograph/decisions, sequential numbering, supersession, the worthiness test, with .kartograph/kartograph.json adr metadata kept in sync. Use during /karto-chart or on demand via /karto-sync.
+description: Create and maintain Kartograph ADRs — MADR-style decision records in .kartograph/decisions, sequential numbering, supersession, the worthiness test, with .kartograph/kartograph.json adr metadata kept in sync. Use during /karto-chart or on demand via /karto-sync.
 ---
 
 # Karto-Groom-ADR
 
-Maintain the architecture decision records: the prose in `kartograph/decisions/NNNN-slug.md`
+Maintain the architecture decision records: the prose in `.kartograph/decisions/NNNN-slug.md`
 and the metadata in `.kartograph/kartograph.json` (the `adrs` object). Prose and metadata must stay in sync.
 
 ## Worthiness test
@@ -21,7 +21,7 @@ If any is missing, it is a plain feature, not an ADR. Don't record it.
 
 ## Format (MADR)
 
-`kartograph/decisions/NNNN-slug.md`:
+`.kartograph/decisions/NNNN-slug.md`:
 
 ```md
 # {Short title of the decision}
@@ -35,7 +35,7 @@ ADR-NNNN | deprecated | rejected`), **Considered Options**, **Consequences**.
 ## Numbering & supersession
 
 - **Number** by scanning for the highest `NNNN` across **both** the existing
-  `.kartograph/kartograph.json` `adrs` keys **and** `kartograph/decisions/*.md`, then incrementing
+  `.kartograph/kartograph.json` `adrs` keys **and** `.kartograph/decisions/*.md`, then incrementing
   (zero-padded to four digits). Slug is a lowercase-hyphen of the title. This keeps numbering
   consistent whether you are grooming a freshly-charted map (ids already in `adrs{}` but no
   `.md` yet) or an existing one.

@@ -1,5 +1,5 @@
-import { buildAcceptanceTree } from '../../../viewer/lib/board.js';
-import { contextId, capabilityId, featureId, scenarioId } from '../../../viewer/lib/ids.js';
+import { buildAcceptanceTree } from '../../../workflows/lib/board.js';
+import { contextId, capabilityId, featureId, scenarioId } from '../../../workflows/lib/ids.js';
 import { idChip } from '../idchip.js';
 import { persistSession } from '../app.js';
 import { maturityPips, segmentedControl, statusDot, rollupCount, pathTag } from '../components.js';

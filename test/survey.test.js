@@ -15,6 +15,6 @@ test('slugify yields a valid slug or empty string', () => {
 test('surveyFilename builds the dated path', () => {
   assert.equal(
     surveyFilename('2026-06-05', 'watering-schedule'),
-    'kartograph/surveys/2026-06-05-watering-schedule.discovery.json'
+    '.kartograph/surveys/2026-06-05-watering-schedule.discovery.json'
   );
 });

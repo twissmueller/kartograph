@@ -65,7 +65,7 @@ const adrFiles = await agent(
 
 For each ADR recorded in the map (status "proposed", sourced from the survey's adrCandidates),
 write a MADR file at:
-  kartograph/decisions/<id>.md
+  .kartograph/decisions/<id>.md
 where <id> exactly matches the map's adr key (e.g. 0001-use-firebase). Each file:
   # <Title>
 
