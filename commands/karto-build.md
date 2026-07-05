@@ -66,5 +66,13 @@ session, say so plainly and **do not** mark it Developed or claim it is ready to
    from its `.feature` path tags (`@happy`/`@edge`/`@error`) — maturity is independent of
    tracking state — then suggest `/karto-show` to watch it climb.
 
-5. Stop when every open scenario for the capability is at least **Developed**, and report what
+5. **Flag re-walk candidates.** Building this capability may have changed behaviour that other
+   capabilities **depend on**, so their already-**Accepted** scenarios could now be broken. Run
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/rewalk-candidates.js <projectRoot> <capability>`. If the
+   JSON list is non-empty, list the affected scenarios grouped by capability and suggest running
+   `/karto-walk <capability>` for each affected capability to re-confirm them. (This is direct
+   dependents only — the map's dependency edges carry the information.) If the list is empty, say
+   nothing changed downstream.
+
+6. Stop when every open scenario for the capability is at least **Developed**, and report what
    moved (and which scenarios are now waiting on the user's Accept).

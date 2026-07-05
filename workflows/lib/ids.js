@@ -13,3 +13,10 @@ export function featureId(capabilitySlug, featureFile) {
 export function scenarioId(capabilitySlug, featureFile, scenarioName) {
   return `${featureId(capabilitySlug, featureFile)}#"${String(scenarioName ?? '')}"`;
 }
+
+// Inverse of the builders above for the capability root: given any feature or
+// scenario ID (or a bare capability ID), return its capability slug — the segment
+// before the first '/'. Empty string for a falsy/garbled input.
+export function capabilityOfScenarioId(id) {
+  return String(id ?? '').split('/')[0];
+}
