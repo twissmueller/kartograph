@@ -68,6 +68,52 @@
         "question": { "type": "string", "minLength": 1 },
         "context": { "$ref": "#/$defs/slug" }
       }
+    },
+    "featureFile": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.feature$" },
+    "revision": {
+      "type": "object",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["type", "capability", "feature", "scenario", "reason"],
+          "properties": {
+            "type": { "const": "retire-scenario" },
+            "capability": { "$ref": "#/$defs/slug" },
+            "feature": { "$ref": "#/$defs/featureFile" },
+            "scenario": { "type": "string", "minLength": 1 },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "capability", "reason"],
+          "properties": {
+            "type": { "const": "retire-capability" },
+            "capability": { "$ref": "#/$defs/slug" },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "capability", "newName", "reason"],
+          "properties": {
+            "type": { "const": "rename-capability" },
+            "capability": { "$ref": "#/$defs/slug" },
+            "newName": { "type": "string", "minLength": 1 },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "context", "newName", "reason"],
+          "properties": {
+            "type": { "const": "rename-context" },
+            "context": { "$ref": "#/$defs/slug" },
+            "newName": { "type": "string", "minLength": 1 },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
     }
   },
   "type": "object",
@@ -113,6 +159,7 @@
         },
         "openQuestions": { "type": "array", "items": { "$ref": "#/$defs/openQuestion" } }
       }
-    }
+    },
+    "revisions": { "type": "array", "items": { "$ref": "#/$defs/revision" } }
   }
 }

@@ -8,6 +8,7 @@
     "./commands/karto-chart.md",
     "./commands/karto-build.md",
     "./commands/karto-walk.md",
+    "./commands/karto-revise.md",
     "./commands/karto-sync.md",
     "./commands/karto-init.md",
     "./commands/karto-show.md",

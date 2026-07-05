@@ -87,6 +87,7 @@ Four more commands view and maintain the map:
 | --- | --- |
 | `/karto-show` | Open the live desktop app on the current project. |
 | `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
+| `/karto-revise <target>` | The counterpart to explore for behavior that's wrong or gone: retire an obsolete scenario or capability, or rename a capability/context's display name. Read-only — assembles a reviewable survey (mixable with additive findings), which you then `/karto-chart`. |
 | `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
 
 `/karto-build-all [scope]` builds every open scenario in a scope autonomously — the whole map,
