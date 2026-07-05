@@ -48,7 +48,24 @@ const ASSEMBLE_SCHEMA = {
   properties: {
     version: { const: '1' },
     meta: { type: 'object' },
-    contexts: { type: 'object' }, capabilities: { type: 'object' }, adrs: { type: 'object' },
+    // Pin the required 'definition' on contexts + capabilities so the structured-output
+    // layer forces it (the schema gate requires it; without this the assembler drops it).
+    contexts: slugMapOf({
+      type: 'object', additionalProperties: true,
+      required: ['name', 'definition'],
+      properties: { name: { type: 'string' }, definition: { type: 'string', minLength: 1 }, color: { type: 'string' } },
+    }),
+    capabilities: slugMapOf({
+      type: 'object', additionalProperties: true,
+      required: ['name', 'context', 'definition'],
+      properties: {
+        name: { type: 'string' }, context: SLUG,
+        definition: { type: 'string', minLength: 1 },
+        declaredStage: { enum: ['vision', null] },
+        derived: { type: 'object', additionalProperties: true },
+      },
+    }),
+    adrs: { type: 'object' },
     subjects: slugMapOf({
       type: 'object', additionalProperties: false,
       required: ['name'],
@@ -113,7 +130,7 @@ Produce an object with these top-level keys: version ("1"), meta {name}, and slu
 Use EXACTLY these English field names — never invent German equivalents:
 - rules: each entry is { name, statement, subject? } — the invariant goes in "statement" (NOT "definition"), and "subject" is a SINGLE subject slug (NOT "appliesToSubjects"; if a rule touches several subjects, pick the primary one and mention the others in the statement text).
 - glossary: each entry is { term, definition, type } where "type" is one of exactly: subjekt, capability, kontext, akteur, ereignis, regel, term (use "term" when unsure — never other words like "begriff").
-- subjects: each { name, glossaryRef?, properties?, rules? }; actors and events: each { name, glossaryRef? }. Give EVERY context a distinct "color" (a #rrggbb hex string) so the map is readable — assign them in order from this palette, cycling if there are more than ten contexts: #33aa77, #7a6cff, #e2683c, #d9a521, #4f9dd6, #c0529b, #5bb26b, #b5573c, #8a7d4a, #6d6f78. Each capability must reference an existing context slug and carry a "derived" block {maturity, featureCount, scenarioCount}; set featureCount/scenarioCount to the REAL number of .feature files / tagged scenarios you found (0 when none exist — do not use 1 as a placeholder). Maturity MUST be consistent with those counts: featureCount 0 -> "vision"; features but scenarioCount 0 -> "sketched"; scenarioCount > 0 -> "building". NEVER "usable" or "stable" — those require charted @edge/@error scenarios and are earned later via /karto-chart, not declared here (a map that claims them with zero coverage is rejected by validation). Capabilities with nothing built use declaredStage "vision". Every dependency and reference must point at a slug that exists in the draft (no dangling references). Return ONLY the kartograph object.`,
+- subjects: each { name, glossaryRef?, properties?, rules? }; actors and events: each { name, glossaryRef? }. Give EVERY context a one-line "definition" and a distinct "color" (a #rrggbb hex string) so the map is readable — assign the colors in order from this palette, cycling if there are more than ten contexts: #33aa77, #7a6cff, #e2683c, #d9a521, #4f9dd6, #c0529b, #5bb26b, #b5573c, #8a7d4a, #6d6f78. Each capability MUST carry a one-line "definition" (what the capability does, in plain language), reference an existing context slug, and carry a "derived" block {maturity, featureCount, scenarioCount}; set featureCount/scenarioCount to the REAL number of .feature files / tagged scenarios you found (0 when none exist — do not use 1 as a placeholder). Maturity MUST be consistent with those counts: featureCount 0 -> "vision"; features but scenarioCount 0 -> "sketched"; scenarioCount > 0 -> "building". NEVER "usable" or "stable" — those require charted @edge/@error scenarios and are earned later via /karto-chart, not declared here (a map that claims them with zero coverage is rejected by validation). Capabilities with nothing built use declaredStage "vision". Every dependency and reference must point at a slug that exists in the draft (no dangling references). Return ONLY the kartograph object.`,
   { schema: ASSEMBLE_SCHEMA, label: 'assemble', phase: 'Assemble' }
 );
 
