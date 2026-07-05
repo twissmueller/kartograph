@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BOARD_COLUMNS, boardColumns, capabilityStatuses, groupByContext, buildAcceptanceTree } from '../viewer/lib/board.js';
+import { BOARD_COLUMNS, boardColumns, capabilityStatuses, groupByContext, buildAcceptanceTree } from '../workflows/lib/board.js';
 
 test('groupByContext orders by the contexts list, preserves within-context order', () => {
   const caps = [

@@ -1,5 +1,5 @@
 import { getScenarioState } from './tracking.js';
-import { scenarioId } from '../../viewer/lib/ids.js';
+import { scenarioId } from './ids.js';
 
 // A scenario is "open" (still to build) until its tracked state in the map is 'accepted'.
 // `features` = [{ feature: <filename>, scenarios: [{ name, ... }] }], `map` carries the

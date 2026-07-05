@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contextId, capabilityId, featureId, scenarioId } from '../viewer/lib/ids.js';
+import { contextId, capabilityId, featureId, scenarioId } from '../workflows/lib/ids.js';
 
 test('contextId and capabilityId are the slug itself', () => {
   assert.equal(contextId('identity-access'), 'identity-access');

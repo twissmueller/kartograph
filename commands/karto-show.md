@@ -1,26 +1,24 @@
 ---
-description: Open the Kartograph viewer in the browser on the current project's map, with live reload.
+description: Open the Kartograph desktop app on the current project's map, with live reload.
 ---
 
-Launch the Kartograph viewer for the current project.
+Launch the Kartograph desktop app for the current project.
 
 1. Confirm a `.kartograph/kartograph.json` exists in the project. If it does not, copy the
    seed map so there is something to show:
    `mkdir -p .kartograph && cp "${CLAUDE_PLUGIN_ROOT}/examples/kartograph.seed.json" .kartograph/kartograph.json`
-2. Start the ephemeral dev server in the background, serving the project root and the
-   plugin's viewer, on port 4123 (try 4124+ if busy):
+2. Launch the desktop app on the current project, in the background:
 
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/server/serve.js" 4123
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/start-desktop.sh" "$(pwd)"
    ```
 
-   Run it with `run_in_background: true` so the session stays responsive. This
-   server binds a TCP port, which the Claude Code sandbox blocks with
-   `listen EPERM`. Start the Bash call **outside the sandbox** from the first
-   attempt (set `dangerouslyDisableSandbox: true`) — it only serves localhost
-   from the project root, so there is no failed sandboxed try to retry.
-3. Open the browser at `http://127.0.0.1:4123` (`open` on macOS, `xdg-open` on Linux).
-4. Tell the user the viewer is live, that edits to `.kartograph/kartograph.json`,
-   `kartograph/decisions/`, and `features/**` auto-refresh the page, and that dragging
-   nodes saves `.kartograph/kartograph.layout.json`. Remind them to stop the background
-   server when done.
+   Run it with `run_in_background: true` so the session stays responsive. The current
+   project directory is passed as an argument, so the app opens it as the active tab (on
+   top of any previously restored session).
+3. Tell the user:
+   - The desktop app is launching in a native window; the **first run installs Electron**,
+     which may take a minute.
+   - The app **live-reloads** on changes to `.kartograph/kartograph.json`,
+     `.kartograph/kartograph.layout.json`, and `features/**` — no manual refresh needed.
+   - They can open more projects from within the app (File → Open, or the `+` tab).

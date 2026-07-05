@@ -1,5 +1,5 @@
 // Pure helpers for the scenario board. No DOM access — unit-tested in test/board.test.js;
-// the DOM wiring lives in viewer/lib/board-view.js.
+// the DOM wiring lives in the desktop renderer (desktop/renderer/views/).
 
 // The three progress columns, in display order.
 export const BOARD_COLUMNS = ['open', 'developed', 'accepted'];

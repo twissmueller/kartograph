@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseFeature, scenarioClass } from './gherkin.js';
 import { getScenarioState } from './tracking.js';
-import { scenarioId } from '../../viewer/lib/ids.js';
+import { scenarioId } from './ids.js';
 import { mapPath } from './paths.js';
 
 // Build the cross-capability board model for a project: every context, every

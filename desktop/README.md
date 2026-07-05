@@ -21,6 +21,6 @@ the next launch.
 - **Features** — browse all `.feature` files, full Gherkin render, tag filter + search, raw view.
 - **Sidebar** — maturity, glossary, ADRs, open questions.
 
-The deterministic board/feature logic is shared with `server/serve.js` via
+The deterministic board/feature logic lives in the shared pure libs
 `workflows/lib/board-data.js` and `workflows/lib/feature-read.js`. Packaging
 (installers/auto-update) is a future follow-up; this is a dev-run app for now.

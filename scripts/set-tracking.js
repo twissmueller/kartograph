@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFeature } from '../workflows/lib/gherkin.js';
 import { setScenarioState, STATES } from '../workflows/lib/tracking.js';
-import { scenarioId } from '../viewer/lib/ids.js';
+import { scenarioId } from '../workflows/lib/ids.js';
 import { isSlug, isFeatureName } from '../workflows/lib/feature-read.js';
 import { mapPath as defaultMapPath } from '../workflows/lib/paths.js';
 import { validateKartograph } from './validate-kartograph.js';

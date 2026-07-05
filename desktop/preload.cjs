@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('karto', {
   openProject: () => ipcRenderer.invoke('open-project'),
+  initialProject: () => ipcRenderer.invoke('initial-project'),
   readMap: (root) => ipcRenderer.invoke('read-map', root),
   readBoard: (root) => ipcRenderer.invoke('read-board', root),
   listFeatures: (root) => ipcRenderer.invoke('list-features', root),

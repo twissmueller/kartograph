@@ -10,10 +10,10 @@ of what your application does. The map is built on a small, explicit **ontology*
 system, its behavior is captured as **executable specifications** (Gherkin scenarios in
 version control), and new code is grown with **double-loop TDD** — acceptance scenarios as
 the outer loop, unit tests as the inner loop. The map lives in your repo as a single
-validated JSON file, is rendered by a static, live-reloading viewer, and is grown through
+validated JSON file, is rendered by a live-reloading **desktop app**, and is grown through
 AI workflows that always keep a human at the checkpoints.
 
-![The Kartograph viewer rendering a demo map](docs/assets/viewer.png)
+![The Kartograph desktop app rendering a demo map](docs/assets/viewer.png)
 
 ---
 
@@ -84,7 +84,7 @@ Four more commands view and maintain the map:
 
 | Command | What it does |
 | --- | --- |
-| `/karto-show` | Open the live viewer in your browser. |
+| `/karto-show` | Open the live desktop app on the current project. |
 | `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
 | `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
 
@@ -115,25 +115,24 @@ npm install
 npm test                                    # run the test suite
 npm run validate                            # validate the seed map
 
-# preview the demo map in your browser
+# preview the demo map in the desktop app (first run installs Electron)
 mkdir -p .kartograph && cp examples/demo.kartograph.json .kartograph/kartograph.json
-npm run show                                # → http://127.0.0.1:4123
+bash scripts/start-desktop.sh "$(pwd)"      # opens a native window on this project
 ```
 
 Drag nodes to arrange them (positions are saved to `.kartograph/kartograph.layout.json`); edit
-`.kartograph/kartograph.json` and the page reloads itself.
+`.kartograph/kartograph.json` and the app reloads itself.
 
-The viewer has two views, switched from the header: the **Map** (the capability graph) and
-the **Board** — a cross-capability Kanban of every scenario by progress (Open / Developed /
-Accepted). Drag a card between columns to set its tracking state, which is stored
-in `kartograph.json` (not in the `.feature` file); click a card to jump to that capability.
-Progress is tracking-only and does not change derived maturity.
+The desktop app has two views, switched from the header: the **Map** (the capability graph) and
+the **Tracking** board — a cross-capability view of every scenario by progress (Open / Developed /
+Accepted). Change a scenario's state to record its tracking progress, which is stored
+in `kartograph.json` (not in the `.feature` file); progress is tracking-only and does not
+change derived maturity.
 
-Click a capability to open the **Feature Browser** in the side panel: read each of its
-features and scenarios with their full Gherkin steps, filter scenarios by path
-(`@happy` / `@edge` / `@error`), sort features by scenario count, and see at a glance — via
-per-feature coverage badges — which paths each feature still lacks. It updates live as you
-edit `.feature` files, so you can grow the software both exploratively and systematically.
+Click a capability to read each of its features and scenarios with their full Gherkin steps,
+filter scenarios by path (`@happy` / `@edge` / `@error`), and see at a glance — via per-feature
+coverage badges — which paths each feature still lacks. It updates live as you edit
+`.feature` files, so you can grow the software both exploratively and systematically.
 
 ## Install as a Claude Code plugin
 
@@ -150,7 +149,7 @@ Then, in any project you want to map:
 ```text
 /karto-init                 # bootstrap a map from existing code
 /karto-explore "<feature>"  # design a new feature
-/karto-show                 # open the live viewer
+/karto-show                 # open the live desktop app
 ```
 
 ### Updating
@@ -186,7 +185,7 @@ Uninstall + reinstall forces it too.
 ```
 .kartograph/
   kartograph.json          the map (validated, slug-keyed)
-  kartograph.layout.json   node positions (viewer-written)
+  kartograph.layout.json   node positions (desktop-app-written)
 kartograph/
   surveys/                 dated survey notes from /karto-explore
   decisions/               ADRs (Markdown, MADR style)

@@ -6,7 +6,7 @@ import { readCapabilityFeatures, listFeatureTree, isSlug, isFeatureName } from '
 import { parseFeature } from '../../workflows/lib/gherkin.js';
 import { setScenarioState, STATES } from '../../workflows/lib/tracking.js';
 import { readMap, writeMap } from '../../workflows/lib/map-store.js';
-import { scenarioId } from '../../viewer/lib/ids.js';
+import { scenarioId } from '../../workflows/lib/ids.js';
 import { resolveProjectFromDir, isSafeRelPath } from './project.js';
 import { mapPath, layoutPath } from '../../workflows/lib/paths.js';
 import { loadSession, saveSession, addRecent } from './session.js';
@@ -18,7 +18,11 @@ const sessionFile = () => join(app.getPath('userData'), 'session.json');
 
 const RAW_EXT = new Set(['.feature', '.json', '.md']);
 
-export function registerIpc() {
+export function registerIpc(initialProject = null) {
+  // A project passed on the command line (see main.js) to open as the active tab on
+  // launch, in addition to the restored session. Null when none was given.
+  ipcMain.handle('initial-project', () => initialProject);
+
   ipcMain.handle('open-project', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     const r = await dialog.showOpenDialog(win, {

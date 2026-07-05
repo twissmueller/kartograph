@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Kartograph is **both** a Claude Code plugin and a small Node project. It ships commands,
 skills, and workflows that maintain a "living map" of a software system
 (`.kartograph/kartograph.json`),
-and it contains the deterministic Node code (validators, transforms, a viewer/server) that
-those commands call. There is **no framework and no build step** — vanilla JavaScript, ESM
+and it contains the deterministic Node code (validators, transforms) that
+those commands call. The UI is the Electron desktop app under `desktop/`. There is
+**no framework and no build step** — vanilla JavaScript, ESM
 (`"type": "module"`), Node built-ins only, plus `ajv` for schema validation.
 
 ## Commands
@@ -17,7 +18,7 @@ those commands call. There is **no framework and no build step** — vanilla Jav
 npm test                                   # full suite (node --test)
 node --test test/maturity-derive.test.js   # run a single test file
 npm run validate                           # validate the seed map against schema + integrity
-npm run show                               # serve the viewer at http://127.0.0.1:4123 (projectRoot = cwd)
+bash scripts/start-desktop.sh "$(pwd)"     # launch the desktop app on the current project (first run installs Electron)
 
 # validate any map / survey directly
 node scripts/validate-kartograph.js <map.json>
@@ -75,17 +76,18 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
 - `skills/` — `karto-grill` (converging interview), `karto-analyze-repo`, and three
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
 - `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`, `build-all`).
-- `workflows/lib/` — **pure, testable** helpers shared by scripts and the server
-  (`apply-discovery`, `gherkin`, `maturity-derive`, `map-drift`, `open-scenarios`, `paths`,
-  `survey`, `survey-html`). `paths.js` is the single source of truth for where the map and
-  layout live.
+- `workflows/lib/` — **pure, testable** helpers shared by scripts and the desktop app
+  (`apply-discovery`, `board`, `board-data`, `feature-read`, `gherkin`, `ids`, `layout`,
+  `maturity-derive`, `map-drift`, `open-scenarios`, `paths`, `survey`, `survey-html`, `tracking`).
+  `paths.js` is the single source of truth for where the map and layout live. `ids`, `board`
+  and `layout` were the browser viewer's pure libs; the viewer is gone and the desktop
+  renderer imports them from here.
 - `scripts/` — deterministic CLIs (`validate-kartograph`, `validate-discovery`, `reconcile`,
   `survey-to-html`). Each is a pure function + a thin `import.meta.url`-guarded CLI.
-- `server/serve.js` — zero-dependency static server for the viewer: serves viewer assets then
-  project files, exposes `GET/POST /board`, `GET /features/...`, `POST /layout`, and pushes
-  live-reload over SSE (`/events`) by watching the project tree.
-- `viewer/` — the browser app (vanilla JS, no build). `kartograph.js` entry + `lib/` modules;
-  Map view (capability graph) and Board view (cross-capability scenario Kanban).
+- `desktop/` — the Electron desktop app (the only UI). `main/` is the Node main process
+  (filesystem, watchers, IPC, session), `preload.cjs` is the sandboxed bridge, and
+  `renderer/` is the vanilla-JS UI (Map view + Tracking board). Launch it with
+  `scripts/start-desktop.sh [projectDir]`; `/karto-show` wraps that.
 - `schemas/v1/` — JSON Schemas for the map, glossary, ADR, and discovery survey.
 - `test/` — `node:test` unit tests for the pure helpers and the schemas.
 
@@ -116,12 +118,12 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   the only kind of tag now, and it feeds maturity (`workflows/lib/gherkin.js` parses it). A
   scenario's **progress** — `Open → Developed → Accepted` — is *not* a tag; it lives in
   `kartograph.json`'s top-level `tracking` block, keyed by the canonical scenario ID
-  (`<capability>/<feature.feature>#"<scenario>"`, see `viewer/lib/ids.js`). The pure helpers are
+  (`<capability>/<feature.feature>#"<scenario>"`, see `workflows/lib/ids.js`). The pure helpers are
   `workflows/lib/tracking.js` (`getScenarioState`/`setScenarioState`, default `open`); writers go
   through `workflows/lib/map-store.js` (`writeMap`, atomic). Progress never changes maturity. The
   schema validates `tracking`; the integrity gate flags entries whose capability no longer exists.
   `/karto-build` advances scenarios to **Developed**; the user flips **Accepted** after walking
-  them. Set state with `scripts/set-tracking.js` or the viewer's Tracking board; migrate legacy
+  them. Set state with `scripts/set-tracking.js` or the desktop app's Tracking board; migrate legacy
   `@wip`/`@test`/`@done` tags with `scripts/migrate-tracking.js`.
 - **Scenarios are user-walkable, not technical.** Features and scenarios are written for a
   non-technical stakeholder to walk through and confirm in front of the running system: plain

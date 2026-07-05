@@ -23,4 +23,10 @@ if [ ! -x "node_modules/.bin/electron" ]; then
 fi
 
 echo "Starting Kartograph desktop…"
-exec npm start
+# Forward any extra args (e.g. a project directory to open) to Electron via
+# `npm start -- "$@"`. With no args, start normally.
+if [ "$#" -gt 0 ]; then
+  exec npm start -- "$@"
+else
+  exec npm start
+fi

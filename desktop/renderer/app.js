@@ -172,6 +172,12 @@ window.karto.onMenuOpenProject(() => doOpen());
     try { await openProjectByRoot(root, root.split(/[\\/]/).pop(), sess.tabs && sess.tabs[root]); } catch { /* skip dead roots */ }
   }
   if (sess.activeRoot && tabs.find((t) => t.root === sess.activeRoot)) setActive(sess.activeRoot);
+  // A project passed on the command line (e.g. via /karto-show) opens on top of the
+  // restored session and becomes the active tab.
+  const initial = await window.karto.initialProject();
+  if (initial && initial.root) {
+    try { await openProjectByRoot(initial.root, initial.name); setActive(initial.root); } catch { /* ignore bad root */ }
+  }
   renderStrip(); renderWorkspace();
 })();
 
