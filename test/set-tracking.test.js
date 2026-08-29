@@ -17,8 +17,8 @@ async function project() {
   await mkdir(join(root, '.kartograph'), { recursive: true });
   await writeFile(join(root, '.kartograph', 'kartograph.json'), JSON.stringify({
     version: '1', meta: { name: 'X' },
-    contexts: { core: { name: 'Core', definition: 'd' } },
-    capabilities: { greet: { name: 'Greet', context: 'core', definition: 'd' } },
+    contexts: { core: { name: 'Core' } },
+    capabilities: { greet: { name: 'Greet', context: 'core' } },
   }, null, 2) + '\n');
   const dir = join(root, 'features', 'core', 'greet');
   await mkdir(dir, { recursive: true });

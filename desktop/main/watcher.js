@@ -1,11 +1,11 @@
 import { watch } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { mapPath, isLayoutFile } from '../../workflows/lib/paths.js';
+import { mapPath, isLayoutFile, KNOWLEDGE_DIR } from '../../workflows/lib/paths.js';
 
 // Watch a project tree and call onChange() (debounced) when a relevant file changes.
 // Ignore our own kartograph.layout.json writes; only react to map/feature/decision/json
-// changes; fall back to watching the map file if recursive watch is unsupported on this
-// platform.
+// and knowledge-bundle changes; fall back to watching the map file if recursive watch is
+// unsupported on this platform.
 //
 // Backstop: fs.watch — especially recursive on macOS — can silently stop delivering
 // events over a long session or across sleep/wake, so an external write (e.g. a
@@ -19,7 +19,8 @@ export function watchProject(root, onChange, { pollMs = 2000 } = {}) {
   const handle = (_event, filename) => {
     if (isLayoutFile(filename)) return;
     if (!filename) return notify();
-    if (/kartograph|\.feature$|decisions|\.json$/.test(filename)) notify();
+    // `knowledge/` holds the glossary the sidebar reads, so a concept edit must reload too.
+    if (new RegExp(`kartograph|\\.feature$|decisions|\\.json$|^${KNOWLEDGE_DIR}[\\\\/]`).test(filename)) notify();
   };
   let watcher = null;
   try {

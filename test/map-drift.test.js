@@ -5,8 +5,8 @@ import { mapDrift } from '../workflows/lib/map-drift.js';
 // A map with one charted capability (has scenarios) and one dependency.
 const map = {
   capabilities: {
-    'plant-catalog': { name: 'Plant catalog', context: 'plants', definition: 'd', derived: { maturity: 'building', featureCount: 1, scenarioCount: 3 } },
-    'legacy-sync': { name: 'Legacy sync', context: 'plants', definition: 'd', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+    'plant-catalog': { name: 'Plant catalog', context: 'plants', derived: { maturity: 'building', featureCount: 1, scenarioCount: 3 } },
+    'legacy-sync': { name: 'Legacy sync', context: 'plants', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
   },
   dependencies: [{ from: 'legacy-sync', to: 'plant-catalog' }],
 };
@@ -15,7 +15,7 @@ const map = {
 // plant-catalog still present; legacy-sync is NOT surfaced (gone from code).
 const findings = {
   affectedCapabilities: ['plant-catalog'],
-  capabilityCandidates: [{ slug: 'billing-export', name: 'Billing export', context: 'billing', definition: 'd' }],
+  capabilityCandidates: [{ slug: 'billing-export', name: 'Billing export', context: 'billing' }],
   dependencies: [{ from: 'billing-export', to: 'plant-catalog' }],
 };
 
@@ -44,7 +44,7 @@ test('suggests exploring coded capabilities with no charted scenarios (incl. bra
 
 test('a map that matches the analysis exactly produces no drift', () => {
   const m = {
-    capabilities: { a: { name: 'A', context: 'c', definition: 'd', derived: { maturity: 'building', featureCount: 1, scenarioCount: 2 } } },
+    capabilities: { a: { name: 'A', context: 'c', derived: { maturity: 'building', featureCount: 1, scenarioCount: 2 } } },
     dependencies: [],
   };
   const f = { affectedCapabilities: ['a'], capabilityCandidates: [], dependencies: [] };
@@ -56,7 +56,7 @@ test('a map that matches the analysis exactly produces no drift', () => {
 test('suggests an existing still-coded capability that has no charted scenarios', () => {
   const m = {
     capabilities: {
-      coded: { name: 'Coded', context: 'c', definition: 'd', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+      coded: { name: 'Coded', context: 'c', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
     },
     dependencies: [],
   };

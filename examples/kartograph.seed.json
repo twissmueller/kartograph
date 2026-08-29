@@ -1,23 +1,37 @@
 {
   "version": "1",
-  "meta": { "name": "<project>", "tagline": "Uncharted — run /karto-init or /karto-explore to begin" },
+  "meta": {
+    "name": "<project>",
+    "tagline": "Uncharted — run /karto-init or /karto-explore to begin"
+  },
   "contexts": {
-    "core": { "name": "Core", "definition": "The starting area of the system.", "color": "#33aa77" }
+    "core": {
+      "name": "Core",
+      "color": "#33aa77",
+      "glossaryRef": "core/core"
+    }
   },
   "capabilities": {
     "start-here": {
       "name": "Start here",
       "context": "core",
-      "definition": "Seed capability. Replace it by exploring and charting your first real feature.",
       "declaredStage": "vision",
-      "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 }
+      "derived": {
+        "maturity": "vision",
+        "featureCount": 0,
+        "scenarioCount": 0
+      },
+      "glossaryRef": "core/start-here"
     }
   },
   "subjects": {},
   "actors": {},
   "events": {},
   "rules": {},
-  "glossary": {},
+  "knowledge": {
+    "bundle": "knowledge",
+    "okfVersion": "0.2"
+  },
   "adrs": {},
   "dependencies": []
 }

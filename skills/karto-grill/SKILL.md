@@ -13,9 +13,12 @@ vocabulary — ready to hand to the discovery workflow.
 ## Read first (read-only)
 
 - The **meta-glossary** (the ten framework terms) at `${CLAUDE_PLUGIN_ROOT}/reference/glossary.md`.
-- The **project glossary and current map** in `.kartograph/kartograph.json` (if it exists). Load the
-  existing contexts, capabilities, subjects, and glossary terms so you can challenge new
-  language against them.
+- The **current map** in `.kartograph/kartograph.json` (if it exists) — the existing contexts,
+  capabilities and subjects.
+- The **project glossary**, which is the OKF knowledge bundle at `knowledge/` (if it exists):
+  one markdown file per term. Read every concept's `title`, `description` and
+  `aliases_to_avoid` (the bundle's `index.md` lists them all) so you can challenge new
+  language against the terms the project already has.
 - If the user references a GitHub issue, fetch it (`gh issue view <n>`) and fold it in.
 
 ## The interview
@@ -26,9 +29,11 @@ one. Prefer to answer a question by reading the codebase rather than asking.
 
 As you go, actively:
 
-- **Challenge new terms against the glossary.** If the user says a word the glossary already
+- **Challenge new terms against the glossary.** If the user says a word the bundle already
   covers under a different name, call it out: *"You said 'user' — the glossary already defines
-  'Akteur (Actor)'. Same thing, or genuinely different?"* Drive toward the single canonical term.
+  'Akteur (Actor)'. Same thing, or genuinely different?"* A word already listed in some
+  concept's `aliases_to_avoid` has been rejected before: say so and name the canonical term
+  instead of relitigating it. Drive toward the single canonical term.
 - **Sharpen fuzzy language.** When a term is vague or overloaded, propose a precise canonical
   term and a one-line definition.
 - **Probe concrete scenarios.** Push for Given/When/Then examples — happy path, edge cases,
@@ -46,9 +51,11 @@ As you go, actively:
 
 ## Hard rule — read-only
 
-**Do not write anything except, ultimately, the survey.** Never modify `.kartograph/kartograph.json`, the
-glossary, `.feature` files, ADR files, or code. You *capture* glossary additions and ADR
-candidates as proposals; the separate `/karto-chart` phase is the only thing that writes them.
+**Do not write anything except, ultimately, the survey.** Never modify `.kartograph/kartograph.json`,
+the `knowledge/` bundle, `.feature` files, ADR files, or code. You *capture* glossary additions
+and ADR candidates as proposals — each addition naming the **Kontext** it belongs to, or no
+Kontext when the term genuinely spans several; the separate `/karto-chart` phase is the only
+thing that writes them.
 This division is deliberate: it preserves the human review gate and the atomic, schema-gated
 write.
 

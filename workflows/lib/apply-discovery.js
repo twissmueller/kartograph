@@ -1,7 +1,8 @@
 import { slugify } from './survey.js';
 import { applyRevisions } from './apply-revisions.js';
+import { termConceptId, KNOWLEDGE_DIR, OKF_VERSION } from './knowledge.js';
 
-const COLLECTIONS = ['contexts', 'capabilities', 'subjects', 'actors', 'events', 'rules', 'glossary', 'adrs'];
+const COLLECTIONS = ['contexts', 'capabilities', 'subjects', 'actors', 'events', 'rules', 'adrs'];
 
 // Dependency edges that still need grooming: missing a reason, or missing any justifying
 // features. Used by the dependency back-fill (/karto-sync deps) to target work.
@@ -28,40 +29,47 @@ export function applyDiscovery(map, discovery) {
   for (const c of COLLECTIONS) next[c] ||= {};
   next.dependencies ||= [];
   next.openQuestions ||= [];
+  next.knowledge ||= { bundle: KNOWLEDGE_DIR, okfVersion: OKF_VERSION };
   const f = discovery.findings;
-  const hasGlossary = new Set(f.glossaryAdditions.map((g) => g.slug));
+  // A glossary addition becomes a concept FILE in the knowledge bundle (written by the chart
+  // workflow), never an entry in the map. All the map gains is a `glossaryRef` pointer at the
+  // concept ID — `<kontext>/<slug>`, or `shared/<slug>` for a term spanning Kontexte.
+  const conceptRefs = new Map(f.glossaryAdditions.map((g) => [g.slug, termConceptId(g.kontext, g.slug)]));
 
+  // Contexts, capabilities and rules keep only their display name and structure here; their
+  // definitions are written as concept files in the knowledge bundle by the chart workflow,
+  // and the map points at them.
   for (const c of f.capabilityCandidates) {
     if (!next.contexts[c.context]) {
-      next.contexts[c.context] = { name: titleCase(c.context), definition: `Area: ${titleCase(c.context)}.` };
+      next.contexts[c.context] = { name: titleCase(c.context), glossaryRef: termConceptId(c.context, c.context) };
     }
     if (!next.capabilities[c.slug]) {
       next.capabilities[c.slug] = {
-        name: c.name, context: c.context, definition: c.definition,
+        name: c.name, context: c.context, glossaryRef: termConceptId(c.context, c.slug),
         declaredStage: 'vision', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 },
       };
     }
   }
   for (const s of f.subjects) {
     if (!next.subjects[s.slug]) {
-      next.subjects[s.slug] = hasGlossary.has(s.slug) ? { name: s.name, glossaryRef: s.slug } : { name: s.name };
+      next.subjects[s.slug] = conceptRefs.has(s.slug)
+        ? { name: s.name, glossaryRef: conceptRefs.get(s.slug) }
+        : { name: s.name };
     }
   }
   for (const group of ['actors', 'events']) {
     for (const n of f[group]) {
-      if (!next[group][n.slug]) next[group][n.slug] = hasGlossary.has(n.slug) ? { name: n.name, glossaryRef: n.slug } : { name: n.name };
-    }
-  }
-  for (const g of f.glossaryAdditions) {
-    if (!next.glossary[g.slug]) {
-      next.glossary[g.slug] = { term: g.term, definition: g.definition, type: g.type };
-      if (g.aliasesToAvoid) next.glossary[g.slug].aliasesToAvoid = g.aliasesToAvoid;
+      if (!next[group][n.slug]) {
+        next[group][n.slug] = conceptRefs.has(n.slug)
+          ? { name: n.name, glossaryRef: conceptRefs.get(n.slug) }
+          : { name: n.name };
+      }
     }
   }
   for (const r of f.rules) {
     const slug = r.slug || slugify(r.name);
     if (slug && !next.rules[slug]) {
-      const rule = { name: r.name, statement: r.statement };
+      const rule = { name: r.name, glossaryRef: termConceptId(null, slug) };
       if (r.subject && next.subjects[r.subject]) rule.subject = r.subject;
       next.rules[slug] = rule;
     }

@@ -9,6 +9,7 @@ import { readMap, writeMap } from '../../workflows/lib/map-store.js';
 import { scenarioId } from '../../workflows/lib/ids.js';
 import { resolveProjectFromDir, isSafeRelPath } from './project.js';
 import { mapPath, layoutPath } from '../../workflows/lib/paths.js';
+import { readBundle, buildIndex } from '../../workflows/lib/knowledge.js';
 import { loadSession, saveSession, addRecent } from './session.js';
 import { watchProject } from './watcher.js';
 
@@ -40,6 +41,13 @@ export function registerIpc(initialProject = null) {
     try { layout = JSON.parse(await readFile(layoutPath(root), 'utf8')); }
     catch { layout = {}; }
     return { map, layout };
+  });
+
+  // The glossary lives on disk in the OKF bundle, never in the map — so the sidebar reads
+  // it from there. Returns the derived index (status and trust are computed, not stored).
+  ipcMain.handle('read-knowledge', async (_e, root, bundle) => {
+    const { concepts } = await readBundle(root, bundle || undefined);
+    return [...buildIndex(concepts).values()];
   });
 
   ipcMain.handle('read-board', (_e, root) => buildBoard(root));

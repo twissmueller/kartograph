@@ -5,10 +5,10 @@ import { applyRevisions } from '../workflows/lib/apply-revisions.js';
 function baseMap() {
   return {
     version: '1', meta: { name: 'X' },
-    contexts: { care: { name: 'Care', definition: 'd' }, ops: { name: 'Ops', definition: 'd' } },
+    contexts: { care: { name: 'Care' }, ops: { name: 'Ops' } },
     capabilities: {
-      watering: { name: 'Watering', context: 'care', definition: 'd', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
-      reporting: { name: 'Reporting', context: 'ops', definition: 'd', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+      watering: { name: 'Watering', context: 'care', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+      reporting: { name: 'Reporting', context: 'ops', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
     },
     dependencies: [{ from: 'reporting', to: 'watering' }, { from: 'watering', to: 'reporting' }],
     tracking: { 'watering/water.feature#"A"': 'developed', 'reporting/r.feature#"B"': 'accepted' },

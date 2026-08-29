@@ -47,34 +47,10 @@ test('subject referencing a missing rule is caught', async () => {
   assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('order') && e.includes('ghost')));
 });
 
-test('subject referencing a missing glossary term is caught', async () => {
-  const doc = await seed();
-  doc.subjects.order = { name: 'Order', glossaryRef: 'ghost' };
-  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('order') && e.includes('ghost')));
-});
-
 test('rule referencing a missing subject is caught', async () => {
   const doc = await seed();
-  doc.rules.must_pay = { name: 'Must pay', statement: 's', subject: 'ghost' };
+  doc.rules.must_pay = { name: 'Must pay', subject: 'ghost' };
   assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('must_pay') && e.includes('ghost')));
-});
-
-test('actor referencing a missing glossary term is caught', async () => {
-  const doc = await seed();
-  doc.actors.gardener = { name: 'Gardener', glossaryRef: 'ghost' };
-  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('gardener') && e.includes('ghost')));
-});
-
-test('event referencing a missing glossary term is caught', async () => {
-  const doc = await seed();
-  doc.events.planted = { name: 'Planted', glossaryRef: 'ghost' };
-  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('planted') && e.includes('ghost')));
-});
-
-test('glossary term relating to a missing term is caught', async () => {
-  const doc = await seed();
-  doc.glossary.bed = { term: 'Bed', definition: 'd', type: 'subjekt', related: ['ghost'] };
-  assert.ok(checkReferentialIntegrity(doc).some(e => e.includes('bed') && e.includes('ghost')));
 });
 
 test('adr superseding a missing adr is caught', async () => {
@@ -98,16 +74,23 @@ test('reconcile-style maturity (stable with features+scenarios) passes integrity
 
 test('a rule with the wrong field names (definition/appliesToSubjects) is rejected', async () => {
   const doc = await seed();
-  doc.rules = { 'bad-rule': { name: 'Bad', definition: 'x', appliesToSubjects: ['start-here'] } };
+  doc.rules = { 'bad-rule': { name: 'Bad', appliesToSubjects: ['start-here'] } };
   const result = await validateKartograph(doc);
   assert.equal(result.valid, false, 'definition/appliesToSubjects must not validate');
 });
 
-test('a glossary entry with an out-of-enum type (begriff) is rejected', async () => {
+test('the map may not carry glossary data — that lives only in the knowledge bundle', async () => {
   const doc = await seed();
-  doc.glossary = { 'some-term': { term: 'X', definition: 'd', type: 'begriff' } };
+  doc.glossary = { 'some-term': { term: 'X', type: 'subjekt' } };
   const result = await validateKartograph(doc);
-  assert.equal(result.valid, false, 'type "begriff" is not in the enum');
+  assert.equal(result.valid, false, 'a glossary object in the map must be rejected as a duplicate of the bundle');
+});
+
+test('a glossaryRef must be shaped like an OKF concept ID', async () => {
+  const doc = await seed();
+  doc.subjects.order = { name: 'Order', glossaryRef: 'Garten/Pflanze.md' };
+  const result = await validateKartograph(doc);
+  assert.equal(result.valid, false, 'a concept ID is lowercase path segments with no .md suffix');
 });
 
 test('a tracking block of valid states on a real capability validates', async () => {

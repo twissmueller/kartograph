@@ -107,7 +107,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
 
   if (check) {
     const diffs = reconcileDiff(map, featuresByCapability);
-    const { valid, errors } = await validateKartograph(map);
+    const { valid, errors } = await validateKartograph(map, { projectRoot: root });
     const problems = [...diffs.map((d) => 'stale derived: ' + d), ...(valid ? [] : errors)];
     if (problems.length === 0) { console.log(`OK: ${mapPath} is reconciled and valid`); process.exit(0); }
     console.error(`CHECK FAILED: ${mapPath}`);
@@ -116,7 +116,10 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   }
 
   const next = reconcileMap(map, featuresByCapability);
-  const { valid, errors } = await validateKartograph(next);
+  // Pass the project root so every `glossaryRef` is resolved against the knowledge bundle —
+  // a pointer into `knowledge/` that no longer lands on a concept must fail the write.
+  const { valid, errors, warnings } = await validateKartograph(next, { projectRoot: root });
+  for (const w of warnings) console.error('  warning: ' + w);
   if (!valid) { console.error('INVALID after reconcile:'); for (const e of errors) console.error('  - ' + e); process.exit(1); }
   const names = await readFeatureNamesByCapability(root, next);
   for (const w of dependencyFeatureWarnings(next, names)) console.error('  warning: ' + w);

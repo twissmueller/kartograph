@@ -15,8 +15,13 @@ const VIEWS = { map: renderMap, tracking: renderTracking };
 
 async function loadProjectData(root) {
   const { map, layout } = await window.karto.readMap(root);
-  const [board, tree] = await Promise.all([window.karto.readBoard(root), window.karto.listFeatures(root)]);
-  return { root, map, layout, board, tree };
+  const [board, tree, knowledge] = await Promise.all([
+    window.karto.readBoard(root),
+    window.karto.listFeatures(root),
+    // The glossary is the OKF bundle on disk; the map only says where it lives.
+    window.karto.readKnowledge(root, map.knowledge && map.knowledge.bundle),
+  ]);
+  return { root, map, layout, board, tree, knowledge };
 }
 
 async function openProjectByRoot(root, name, saved) {

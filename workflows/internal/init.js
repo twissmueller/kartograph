@@ -15,6 +15,7 @@ export const meta = {
   phases: [
     { title: 'Scan', detail: 'survey the codebase for contexts, capabilities, subjects, dependencies and ADRs' },
     { title: 'Assemble', detail: 'merge the scan into one schema-valid draft map' },
+    { title: 'Knowledge', detail: 'write the glossary seed as an OKF bundle at knowledge/' },
   ],
 };
 
@@ -31,16 +32,17 @@ const SCAN_SCHEMA = {
 
 // Forces an OBJECT (not free text) with the core top-level keys, and pins the inner
 // shapes of the collections an LLM most often gets wrong by inventing German field
-// names (rules, glossary, subjects, actors, events) so the structured-output layer
-// rejects e.g. `definition`/`appliesToSubjects` on a rule or a `begriff` glossary type
-// and the agent must retry. Mirrors schemas/v1 — keep in sync. Deep cross-reference
+// names (rules, subjects, actors, events) so the structured-output layer rejects e.g.
+// `definition`/`appliesToSubjects` on a rule and the agent must retry. Mirrors schemas/v1 — keep in sync. Deep cross-reference
 // validation still runs via scripts/validate-kartograph.js in the command.
 const SLUG = { type: 'string', pattern: '^[a-z0-9][a-z0-9-]*$' };
+// A pointer into the knowledge bundle: an OKF concept ID, `<kontext>/<slug>`.
+const CONCEPT_REF = { type: 'string', pattern: '^[a-z0-9][a-z0-9-]*(?:/[a-z0-9][a-z0-9-]*)*$' };
 const slugMapOf = (item) => ({ type: 'object', additionalProperties: item });
 const NAMED = {
   type: 'object', additionalProperties: false,
   required: ['name'],
-  properties: { name: { type: 'string' }, glossaryRef: SLUG },
+  properties: { name: { type: 'string' }, glossaryRef: CONCEPT_REF },
 };
 const ASSEMBLE_SCHEMA = {
   type: 'object', additionalProperties: true,
@@ -48,19 +50,18 @@ const ASSEMBLE_SCHEMA = {
   properties: {
     version: { const: '1' },
     meta: { type: 'object' },
-    // Pin the required 'definition' on contexts + capabilities so the structured-output
-    // layer forces it (the schema gate requires it; without this the assembler drops it).
+    // Contexts, capabilities and rules carry NO definition text — it lives in the knowledge
+    // bundle. Pin `glossaryRef` as required so the assembler always emits the pointer.
     contexts: slugMapOf({
       type: 'object', additionalProperties: true,
-      required: ['name', 'definition'],
-      properties: { name: { type: 'string' }, definition: { type: 'string', minLength: 1 }, color: { type: 'string' } },
+      required: ['name', 'glossaryRef'],
+      properties: { name: { type: 'string' }, color: { type: 'string' }, glossaryRef: CONCEPT_REF },
     }),
     capabilities: slugMapOf({
       type: 'object', additionalProperties: true,
-      required: ['name', 'context', 'definition'],
+      required: ['name', 'context', 'glossaryRef'],
       properties: {
-        name: { type: 'string' }, context: SLUG,
-        definition: { type: 'string', minLength: 1 },
+        name: { type: 'string' }, context: SLUG, glossaryRef: CONCEPT_REF,
         declaredStage: { enum: ['vision', null] },
         derived: { type: 'object', additionalProperties: true },
       },
@@ -70,7 +71,7 @@ const ASSEMBLE_SCHEMA = {
       type: 'object', additionalProperties: false,
       required: ['name'],
       properties: {
-        name: { type: 'string' }, glossaryRef: SLUG,
+        name: { type: 'string' }, glossaryRef: CONCEPT_REF,
         properties: { type: 'array', items: { type: 'string' } },
         rules: { type: 'array', items: SLUG },
       },
@@ -79,19 +80,17 @@ const ASSEMBLE_SCHEMA = {
     events: slugMapOf(NAMED),
     rules: slugMapOf({
       type: 'object', additionalProperties: false,
-      required: ['name', 'statement'],
-      properties: { name: { type: 'string' }, statement: { type: 'string' }, subject: SLUG },
+      required: ['name', 'glossaryRef'],
+      properties: { name: { type: 'string' }, subject: SLUG, glossaryRef: CONCEPT_REF },
     }),
-    glossary: slugMapOf({
+    // The glossary is NOT part of the map — it is the OKF bundle on disk. All the map
+    // carries is where that bundle lives; definitions are written as concept files in the
+    // Knowledge phase below and referenced by `glossaryRef`.
+    knowledge: {
       type: 'object', additionalProperties: false,
-      required: ['term', 'definition', 'type'],
-      properties: {
-        term: { type: 'string' }, definition: { type: 'string' },
-        type: { enum: ['subjekt', 'capability', 'kontext', 'akteur', 'ereignis', 'regel', 'term'] },
-        aliasesToAvoid: { type: 'array', items: { type: 'string' } },
-        related: { type: 'array', items: SLUG },
-      },
-    }),
+      required: ['bundle'],
+      properties: { bundle: { type: 'string' }, okfVersion: { type: 'string' } },
+    },
     dependencies: { type: 'array' },
   },
 };
@@ -125,13 +124,67 @@ ${JSON.stringify(domain, null, 2)}
 Links (dependencies + existing ADRs):
 ${JSON.stringify(links, null, 2)}
 
-Produce an object with these top-level keys: version ("1"), meta {name}, and slug-keyed objects contexts, capabilities, subjects, actors, events, rules, glossary, adrs, plus a dependencies array of {from,to}.
+Produce an object with these top-level keys: version ("1"), meta {name}, knowledge { bundle: "knowledge", okfVersion: "0.2" }, and slug-keyed objects contexts, capabilities, subjects, actors, events, rules, adrs, plus a dependencies array of {from,to}.
+
+The map has NO glossary object. Definitions live on disk in the OKF knowledge bundle; the map only points at them.
 
 Use EXACTLY these English field names — never invent German equivalents:
-- rules: each entry is { name, statement, subject? } — the invariant goes in "statement" (NOT "definition"), and "subject" is a SINGLE subject slug (NOT "appliesToSubjects"; if a rule touches several subjects, pick the primary one and mention the others in the statement text).
-- glossary: each entry is { term, definition, type } where "type" is one of exactly: subjekt, capability, kontext, akteur, ereignis, regel, term (use "term" when unsure — never other words like "begriff").
-- subjects: each { name, glossaryRef?, properties?, rules? }; actors and events: each { name, glossaryRef? }. Give EVERY context a one-line "definition" and a distinct "color" (a #rrggbb hex string) so the map is readable — assign the colors in order from this palette, cycling if there are more than ten contexts: #33aa77, #7a6cff, #e2683c, #d9a521, #4f9dd6, #c0529b, #5bb26b, #b5573c, #8a7d4a, #6d6f78. Each capability MUST carry a one-line "definition" (what the capability does, in plain language), reference an existing context slug, and carry a "derived" block {maturity, featureCount, scenarioCount}; set featureCount/scenarioCount to the REAL number of .feature files / tagged scenarios you found (0 when none exist — do not use 1 as a placeholder). Maturity MUST be consistent with those counts: featureCount 0 -> "vision"; features but scenarioCount 0 -> "sketched"; scenarioCount > 0 -> "building". NEVER "usable" or "stable" — those require charted @edge/@error scenarios and are earned later via /karto-chart, not declared here (a map that claims them with zero coverage is rejected by validation). Capabilities with nothing built use declaredStage "vision". Every dependency and reference must point at a slug that exists in the draft (no dangling references). Return ONLY the kartograph object.`,
+- rules: each entry is { name, glossaryRef, subject? }. The invariant TEXT does not go in the map — it becomes the description of the rule's concept file, written in the next step. "subject" is a SINGLE subject slug (NOT "appliesToSubjects"; if a rule touches several subjects, pick the primary one).
+- subjects: each { name, glossaryRef?, properties?, rules? }; actors and events: each { name, glossaryRef? }. A "glossaryRef" is a path into the knowledge bundle — "<context-slug>/<term-slug>" for a term belonging to one context, or "shared/<term-slug>" for one used across several. Set it only for a term that appears in the glossary seed above; the matching file is written straight after this step. Give EVERY context a distinct "color" (a #rrggbb hex string) so the map is readable — assign the colors in order from this palette, cycling if there are more than ten contexts: #33aa77, #7a6cff, #e2683c, #d9a521, #4f9dd6, #c0529b, #5bb26b, #b5573c, #8a7d4a, #6d6f78. Every context needs "glossaryRef": "<context-slug>/<context-slug>". Each capability MUST carry "glossaryRef": "<its context slug>/<its own slug>", reference an existing context slug, and carry a "derived" block {maturity, featureCount, scenarioCount}; set featureCount/scenarioCount to the REAL number of .feature files / tagged scenarios you found (0 when none exist — do not use 1 as a placeholder). Maturity MUST be consistent with those counts: featureCount 0 -> "vision"; features but scenarioCount 0 -> "sketched"; scenarioCount > 0 -> "building". NEVER "usable" or "stable" — those require charted @edge/@error scenarios and are earned later via /karto-chart, not declared here (a map that claims them with zero coverage is rejected by validation). Capabilities with nothing built use declaredStage "vision". Every dependency and reference must point at a slug that exists in the draft (no dangling references). Return ONLY the kartograph object.`,
   { schema: ASSEMBLE_SCHEMA, label: 'assemble', phase: 'Assemble' }
 );
 
-return draft;
+phase('Knowledge');
+const conceptFiles = await agent(
+  `Write an Open Knowledge Format (OKF v0.2) bundle at "${root}/knowledge/" — one markdown file per term. This bundle is the single source of truth for what this project's words mean; the draft map only points into it and never repeats a definition.
+
+Write a concept for EVERY one of these, because the draft map points at each by "glossaryRef" and a pointer that does not resolve fails the write gate:
+
+Draft map (every glossaryRef in it names a file you must write):
+${JSON.stringify({ contexts: draft.contexts, capabilities: draft.capabilities, rules: draft.rules, subjects: draft.subjects, actors: draft.actors, events: draft.events }, null, 2)}
+
+Glossary seed and domain scan (the definitions to use):
+${JSON.stringify(domain, null, 2)}
+
+Structure scan (the definitions for contexts and capabilities):
+${JSON.stringify(structure, null, 2)}
+
+The file path is exactly the node's "glossaryRef" plus ".md", under knowledge/. So a glossaryRef of "checkout/place-an-order" means knowledge/checkout/place-an-order.md. Create directories as needed. NEVER write index.md or log.md — those names are reserved.
+
+Types: a context's concept is type Kontext, a capability's is Capability, a rule's is Regel, a subject's is Subjekt, an actor's is Akteur, an event's is Ereignis, and a plain domain word is Begriff. The "description" is ONE tight sentence: for a context, what area of the system it covers; for a capability, what it does; for a rule, the invariant itself; for a term, what the thing IS.
+
+If you genuinely cannot determine what something means from the code, write the description as "TODO — define this term." and say so in the body rather than inventing a plausible-sounding definition. A labelled gap is useful; a confident invention is not.
+
+Each file is YAML frontmatter, then a markdown body:
+
+---
+type: <Subjekt | Akteur | Ereignis | Regel | Kontext | Capability | Begriff>
+title: <the canonical term>
+description: <ONE tight sentence: what the thing IS, not what it does>
+status: draft
+aliases_to_avoid: [<synonym>, ...]      # omit when there are none
+generated: { by: kartograph/karto-init, at: <this moment, ISO 8601 with a Z offset> }
+sources:
+  - id: code
+    resource: <the file or directory in the codebase the term was read from>
+---
+
+# Definition
+
+<The definition sentence, then any elaboration the code supports.>
+
+Rules:
+- Map the seed's type slug to the type name: subjekt→Subjekt, akteur→Akteur, ereignis→Ereignis, regel→Regel, kontext→Kontext, capability→Capability, term→Begriff. No other type value is valid.
+- "status: draft" is mandatory. These terms were inferred from code and no human has confirmed them. Never write "stable", and never write a "verified" key.
+- ONE CANONICAL TERM PER CONCEPT. Two files may never share a title, and no file's title may appear in another file's aliases_to_avoid. Synonyms go in aliases_to_avoid on the single canonical file.
+- Every file records in "sources" where in the codebase the term came from — that provenance is the point.
+- Every "glossaryRef" in the draft map must match a file you write, and every file you write should be referenced by the node it defines.
+
+Return a plain list of the file paths you wrote.`,
+  { label: 'knowledge', phase: 'Knowledge' }
+);
+
+// Return the map alone — the /karto-init command writes it verbatim, and an extra
+// top-level key would be rejected by the schema. The written concept files ride along
+// under `meta` for the command to report.
+return { map: { ...draft, knowledge: draft.knowledge || { bundle: 'knowledge', okfVersion: '0.2' } }, conceptFiles };

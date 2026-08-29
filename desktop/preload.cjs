@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('karto', {
   openProject: () => ipcRenderer.invoke('open-project'),
   initialProject: () => ipcRenderer.invoke('initial-project'),
   readMap: (root) => ipcRenderer.invoke('read-map', root),
+  readKnowledge: (root, bundle) => ipcRenderer.invoke('read-knowledge', root, bundle),
   readBoard: (root) => ipcRenderer.invoke('read-board', root),
   listFeatures: (root) => ipcRenderer.invoke('list-features', root),
   readFeatures: (root, context, slug) => ipcRenderer.invoke('read-features', root, context, slug),

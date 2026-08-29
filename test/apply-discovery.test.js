@@ -4,18 +4,18 @@ import { applyDiscovery } from '../workflows/lib/apply-discovery.js';
 
 const baseMap = {
   version: '1', meta: { name: 'X' },
-  contexts: { care: { name: 'Care', definition: 'Care area.' } },
-  capabilities: {}, subjects: {}, actors: {}, events: {}, rules: {}, glossary: {}, adrs: {}, dependencies: [],
+  contexts: { care: { name: 'Care' } },
+  capabilities: {}, subjects: {}, actors: {}, events: {}, rules: {}, adrs: {}, dependencies: [],
 };
 
 const discovery = {
   date: '2026-06-05', slug: 's', conversationSummary: 'c', sources: { description: 'd' },
   findings: {
-    subjects: [{ slug: 'plant', name: 'Plant', definition: 'A plant.' }],
-    events: [], actors: [{ slug: 'gardener', name: 'Gardener' }], rules: [{ name: 'must water', statement: 'Plants must be watered.', subject: 'plant' }],
+    subjects: [{ slug: 'plant', name: 'Plant' }],
+    events: [], actors: [{ slug: 'gardener', name: 'Gardener' }], rules: [{ name: 'must water', subject: 'plant' }],
     affectedCapabilities: [],
-    capabilityCandidates: [{ slug: 'task-reminders', name: 'Task reminders', context: 'care', definition: 'Remind the gardener.' }],
-    glossaryAdditions: [{ slug: 'plant', term: 'Plant', definition: 'A cultivated plant.', type: 'subjekt' }],
+    capabilityCandidates: [{ slug: 'task-reminders', name: 'Task reminders', context: 'care' }],
+    glossaryAdditions: [{ slug: 'plant', term: 'Plant', type: 'subjekt', kontext: 'care' }],
     adrCandidates: [{ title: 'Use local notifications', rationale: 'Offline-friendly.', capabilities: ['task-reminders'] }],
     placement: [{ kind: 'capabilityCandidate', slug: 'task-reminders', context: 'care' }],
   },
@@ -28,13 +28,27 @@ test('adds a candidate capability in vision', () => {
   assert.equal(m.capabilities['task-reminders'].context, 'care');
 });
 
-test('adds subject, actor, glossary term, and a rule linked to an existing subject', () => {
+test('adds subject, actor, and a rule linked to an existing subject', () => {
   const m = applyDiscovery(baseMap, discovery);
   assert.ok(m.subjects.plant);
   assert.ok(m.actors.gardener);
-  assert.equal(m.glossary.plant.term, 'Plant');
   const rule = Object.values(m.rules)[0];
   assert.equal(rule.subject, 'plant');
+});
+
+test('a glossary addition becomes a concept pointer, never glossary data in the map', () => {
+  const m = applyDiscovery(baseMap, discovery);
+  assert.equal(m.glossary, undefined, 'the map must not carry a glossary object');
+  assert.equal(m.subjects.plant.glossaryRef, 'care/plant', 'the subject points at the concept in the bundle');
+  assert.equal(m.knowledge.bundle, 'knowledge');
+  assert.equal(m.knowledge.okfVersion, '0.2');
+});
+
+test('a term with no Kontext lands in the shared area of the bundle', () => {
+  const d = structuredClone(discovery);
+  delete d.findings.glossaryAdditions[0].kontext;
+  const m = applyDiscovery(baseMap, d);
+  assert.equal(m.subjects.plant.glossaryRef, 'shared/plant');
 });
 
 test('creates a missing context referenced by a candidate', () => {

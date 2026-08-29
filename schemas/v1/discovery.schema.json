@@ -39,6 +39,7 @@
         "term": { "type": "string", "minLength": 1 },
         "definition": { "type": "string", "minLength": 1 },
         "type": { "enum": ["subjekt", "capability", "kontext", "akteur", "ereignis", "regel", "term"] },
+        "kontext": { "$ref": "#/$defs/slug" },
         "aliasesToAvoid": { "type": "array", "items": { "type": "string" } }
       }
     },

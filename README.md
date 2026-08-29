@@ -33,8 +33,11 @@ skill now is laying your thoughts out in front of you, as a map, precisely enoug
 where you want to go — and holding the AI to it. That is what Kartograph gives you and
 your AI assistant:
 
-- **A shared language.** A ten-term ontology plus a project glossary, so "what the system
-  does" is stated in named, defined terms — not re-derived from the code on every prompt.
+- **A shared language.** A ten-term ontology plus a project glossary — kept as an
+  [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+  bundle of plain markdown files in `knowledge/`, one per term — so "what the system does" is
+  stated in named, defined terms, not re-derived from the code on every prompt. Each term
+  records where it came from and who confirmed it, and travels with your repo.
 - **Executable specifications.** Every behavior is a Gherkin scenario in version control:
   deterministic, reviewable, and stable while implementations come and go. The scenario is
   the contract the agent works against — a fitness function it iterates toward.
@@ -72,7 +75,7 @@ between each:
 | Phase | BDD practice | Command | What it does |
 | --- | --- | --- | --- |
 | **Explore** | Discovery | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + a converging interview), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
-| **Chart** | Formulation | `/karto-chart` | Record the approved survey onto the map: update `.kartograph/kartograph.json`, grow the glossary, write `.feature` scenarios in Gherkin, add ADRs. |
+| **Chart** | Formulation | `/karto-chart` | Record the approved survey: update `.kartograph/kartograph.json`, grow the `knowledge/` glossary bundle, write `.feature` scenarios in Gherkin, add ADRs. |
 | **Build** | Automation (ATDD) | `/karto-build <capability>` | Implement the open scenarios with **double-loop TDD**: the acceptance scenario is the outer loop, red–green–refactor unit testing is the inner loop. |
 | **Walk** | Acceptance | `/karto-walk [scope]` | Walk a person through the **Developed** scenarios one at a time, in front of the running app, in plain language. Pass marks a scenario **Accepted**; Fail records why (a scenario note) and points you at `/karto-build`. The only way to reach Accepted. |
 
@@ -88,7 +91,7 @@ Four more commands view and maintain the map:
 | `/karto-show` | Open the live desktop app on the current project. |
 | `/karto-init` | Bootstrap a draft map from an **existing** codebase. |
 | `/karto-revise <target>` | The counterpart to explore for behavior that's wrong or gone: retire an obsolete scenario or capability, or rename a capability/context's display name. Read-only — assembles a reviewable survey (mixable with additive findings), which you then `/karto-chart`. |
-| `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Non-destructive; you approve every change. |
+| `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Migrates a pre-v0.18 map to the `knowledge/` bundle first if needed. Non-destructive; you approve every change. |
 
 `/karto-build-all [scope]` builds every open scenario in a scope autonomously — the whole map,
 `context:<slug>`, or a `<capability-slug>` (and its dependencies). It computes a dependency-ordered
@@ -116,9 +119,14 @@ cd kartograph
 npm install
 npm test                                    # run the test suite
 npm run validate                            # validate the seed map
+node scripts/validate-knowledge.js .        # validate the knowledge/ glossary bundle
+
+# upgrading a map made before v0.18 (idempotent, safe to re-run)
+node scripts/migrate-glossary-to-okf.js .   # moves every definition into knowledge/
 
 # preview the demo map in the desktop app (first run installs Electron)
 mkdir -p .kartograph && cp examples/demo.kartograph.json .kartograph/kartograph.json
+cp -r examples/demo-knowledge knowledge     # the demo's glossary bundle
 bash scripts/start-desktop.sh "$(pwd)"      # opens a native window on this project
 ```
 
@@ -248,6 +256,7 @@ Kartograph is built in milestones:
 - ✅ **M2 — chart**: `/karto-chart` and `/karto-sync`, the glossary/ADR grooming skills, the
   chart workflow, and the deterministic discovery→map transform + maturity reconciliation from
   `.feature` files. *(Pure transforms are unit-tested; live charting is verified in Claude Code.)*
+  The glossary later moved out of the map into an OKF bundle on disk (see below).
 - ✅ **M3 — build**: `/karto-build` with double-loop TDD driven entirely by the map's
   `.feature` scenarios — no separate config — plus the open-scenario helper. *(Helpers
   unit-tested; the TDD loop runs live.)*

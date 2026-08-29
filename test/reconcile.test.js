@@ -7,10 +7,10 @@ import { reconcileMap, readFeaturesByCapability, reconcileDiff } from '../script
 
 const map = {
   version: '1', meta: { name: 'X' },
-  contexts: { care: { name: 'Care', definition: 'd' } },
+  contexts: { care: { name: 'Care' } },
   capabilities: {
-    'watering-schedule': { name: 'W', context: 'care', definition: 'd', declaredStage: null, derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
-    'task-reminders': { name: 'T', context: 'care', definition: 'd', declaredStage: 'vision', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+    'watering-schedule': { name: 'W', context: 'care', declaredStage: null, derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+    'task-reminders': { name: 'T', context: 'care', declaredStage: 'vision', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
   },
 };
 
@@ -51,8 +51,8 @@ test('reconcileDiff is empty when stored derived blocks already match the featur
   const consistent = {
     ...map,
     capabilities: {
-      'watering-schedule': { name: 'W', context: 'care', definition: 'd', declaredStage: null, derived: { maturity: 'usable', featureCount: 1, scenarioCount: 2 } },
-      'task-reminders': { name: 'T', context: 'care', definition: 'd', declaredStage: 'vision', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
+      'watering-schedule': { name: 'W', context: 'care', declaredStage: null, derived: { maturity: 'usable', featureCount: 1, scenarioCount: 2 } },
+      'task-reminders': { name: 'T', context: 'care', declaredStage: 'vision', derived: { maturity: 'vision', featureCount: 0, scenarioCount: 0 } },
     },
   };
   const featuresByCapability = {

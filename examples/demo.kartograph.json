@@ -1,46 +1,188 @@
 {
   "version": "1",
-  "meta": { "name": "TerraGarden", "tagline": "Home garden planning, care & tracking — a Kartograph demo map" },
+  "meta": {
+    "name": "TerraGarden",
+    "tagline": "Home garden planning, care & tracking — a Kartograph demo map"
+  },
   "contexts": {
-    "planning": { "name": "Garden Planning", "definition": "Designing beds, rotations and the seasonal plan.", "color": "#33aa77" },
-    "plants": { "name": "Plant Knowledge", "definition": "Everything the system knows about plants.", "color": "#7a6cff" },
-    "care": { "name": "Care & Tasks", "definition": "Keeping plants alive: watering, reminders, jobs.", "color": "#e2683c" }
+    "planning": {
+      "name": "Garden Planning",
+      "color": "#33aa77",
+      "glossaryRef": "planning/planning"
+    },
+    "plants": {
+      "name": "Plant Knowledge",
+      "color": "#7a6cff",
+      "glossaryRef": "plants/plants"
+    },
+    "care": {
+      "name": "Care & Tasks",
+      "color": "#e2683c",
+      "glossaryRef": "care/care"
+    }
   },
   "capabilities": {
-    "bed-layout": { "name": "Bed layout designer", "context": "planning", "definition": "Lay out garden beds visually.", "declaredStage": null, "derived": { "maturity": "stable", "featureCount": 10, "scenarioCount": 28 } },
-    "crop-rotation": { "name": "Crop rotation", "context": "planning", "definition": "Plan rotations across seasons to keep soil healthy.", "declaredStage": null, "derived": { "maturity": "usable", "featureCount": 7, "scenarioCount": 15 } },
-    "season-planner": { "name": "Season planner", "context": "planning", "definition": "Schedule sowing and harvesting per season.", "declaredStage": null, "derived": { "maturity": "building", "featureCount": 4, "scenarioCount": 6 } },
-    "plant-catalog": { "name": "Plant catalog", "context": "plants", "definition": "The central catalog of known plants.", "declaredStage": null, "derived": { "maturity": "stable", "featureCount": 12, "scenarioCount": 33 } },
-    "plant-search": { "name": "Plant search", "context": "plants", "definition": "Find plants by traits and conditions.", "declaredStage": null, "derived": { "maturity": "usable", "featureCount": 8, "scenarioCount": 17 } },
-    "disease-id": { "name": "Disease ID", "context": "plants", "definition": "Identify plant diseases from symptoms.", "declaredStage": null, "derived": { "maturity": "sketched", "featureCount": 5, "scenarioCount": 0 } },
-    "watering-schedule": { "name": "Watering schedule", "context": "care", "definition": "Compute and remind watering per plant.", "declaredStage": null, "derived": { "maturity": "building", "featureCount": 9, "scenarioCount": 11 } },
-    "task-reminders": { "name": "Task reminders", "context": "care", "definition": "Remind the gardener of upcoming jobs.", "declaredStage": "vision", "derived": { "maturity": "vision", "featureCount": 0, "scenarioCount": 0 } }
+    "bed-layout": {
+      "name": "Bed layout designer",
+      "context": "planning",
+      "declaredStage": null,
+      "derived": {
+        "maturity": "stable",
+        "featureCount": 10,
+        "scenarioCount": 28
+      },
+      "glossaryRef": "planning/bed-layout"
+    },
+    "crop-rotation": {
+      "name": "Crop rotation",
+      "context": "planning",
+      "declaredStage": null,
+      "derived": {
+        "maturity": "usable",
+        "featureCount": 7,
+        "scenarioCount": 15
+      },
+      "glossaryRef": "planning/crop-rotation"
+    },
+    "season-planner": {
+      "name": "Season planner",
+      "context": "planning",
+      "declaredStage": null,
+      "derived": {
+        "maturity": "building",
+        "featureCount": 4,
+        "scenarioCount": 6
+      },
+      "glossaryRef": "planning/season-planner"
+    },
+    "plant-catalog": {
+      "name": "Plant catalog",
+      "context": "plants",
+      "declaredStage": null,
+      "derived": {
+        "maturity": "stable",
+        "featureCount": 12,
+        "scenarioCount": 33
+      },
+      "glossaryRef": "plants/plant-catalog"
+    },
+    "plant-search": {
+      "name": "Plant search",
+      "context": "plants",
+      "declaredStage": null,
+      "derived": {
+        "maturity": "usable",
+        "featureCount": 8,
+        "scenarioCount": 17
+      },
+      "glossaryRef": "plants/plant-search"
+    },
+    "disease-id": {
+      "name": "Disease ID",
+      "context": "plants",
+      "declaredStage": null,
+      "derived": {
+        "maturity": "sketched",
+        "featureCount": 5,
+        "scenarioCount": 0
+      },
+      "glossaryRef": "plants/disease-id"
+    },
+    "watering-schedule": {
+      "name": "Watering schedule",
+      "context": "care",
+      "declaredStage": null,
+      "derived": {
+        "maturity": "building",
+        "featureCount": 9,
+        "scenarioCount": 11
+      },
+      "glossaryRef": "care/watering-schedule"
+    },
+    "task-reminders": {
+      "name": "Task reminders",
+      "context": "care",
+      "declaredStage": "vision",
+      "derived": {
+        "maturity": "vision",
+        "featureCount": 0,
+        "scenarioCount": 0
+      },
+      "glossaryRef": "care/task-reminders"
+    }
   },
   "subjects": {
-    "bed": { "name": "Bed", "glossaryRef": "bed", "properties": ["size", "soil"], "rules": [] },
-    "plant": { "name": "Plant", "glossaryRef": "plant", "properties": ["species", "waterNeed"], "rules": [] }
+    "bed": {
+      "name": "Bed",
+      "glossaryRef": "shared/bed",
+      "properties": [
+        "size",
+        "soil"
+      ],
+      "rules": []
+    },
+    "plant": {
+      "name": "Plant",
+      "glossaryRef": "shared/plant",
+      "properties": [
+        "species",
+        "waterNeed"
+      ],
+      "rules": []
+    }
   },
   "actors": {
-    "gardener": { "name": "Gardener", "glossaryRef": "gardener" }
+    "gardener": {
+      "name": "Gardener",
+      "glossaryRef": "shared/gardener"
+    }
   },
   "events": {
-    "plant-watered": { "name": "Plant watered" }
+    "plant-watered": {
+      "name": "Plant watered",
+      "glossaryRef": "shared/plant-watered"
+    }
   },
   "rules": {},
-  "glossary": {
-    "bed": { "term": "Bed", "definition": "A bounded growing area in the garden.", "type": "subjekt", "aliasesToAvoid": ["plot", "patch"], "related": ["plant"] },
-    "plant": { "term": "Plant", "definition": "A single cultivated plant tracked by the system.", "type": "subjekt", "aliasesToAvoid": ["crop"], "related": ["bed"] },
-    "gardener": { "term": "Gardener", "definition": "The person who tends the garden.", "type": "akteur", "aliasesToAvoid": ["user"], "related": [] }
-  },
   "adrs": {
-    "0001-static-viewer": { "id": "0001-static-viewer", "title": "Render the map with a static, no-build viewer", "status": "accepted", "date": "2026-06-05", "contexts": [], "capabilities": [], "supersedes": null }
+    "0001-static-viewer": {
+      "id": "0001-static-viewer",
+      "title": "Render the map with a static, no-build viewer",
+      "status": "accepted",
+      "date": "2026-06-05",
+      "contexts": [],
+      "capabilities": [],
+      "supersedes": null
+    }
   },
   "dependencies": [
-    { "from": "bed-layout", "to": "plant-catalog" },
-    { "from": "crop-rotation", "to": "plant-catalog" },
-    { "from": "plant-search", "to": "plant-catalog" },
-    { "from": "watering-schedule", "to": "plant-catalog" },
-    { "from": "season-planner", "to": "crop-rotation" },
-    { "from": "disease-id", "to": "plant-catalog" }
-  ]
+    {
+      "from": "bed-layout",
+      "to": "plant-catalog"
+    },
+    {
+      "from": "crop-rotation",
+      "to": "plant-catalog"
+    },
+    {
+      "from": "plant-search",
+      "to": "plant-catalog"
+    },
+    {
+      "from": "watering-schedule",
+      "to": "plant-catalog"
+    },
+    {
+      "from": "season-planner",
+      "to": "crop-rotation"
+    },
+    {
+      "from": "disease-id",
+      "to": "plant-catalog"
+    }
+  ],
+  "knowledge": {
+    "bundle": "knowledge",
+    "okfVersion": "0.2"
+  }
 }

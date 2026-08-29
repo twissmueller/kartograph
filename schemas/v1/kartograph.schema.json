@@ -2,23 +2,28 @@
   "$id": "https://kartograph.dev/schemas/v1/kartograph.schema.json",
   "$defs": {
     "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "conceptRef": {
+      "description": "An OKF concept ID inside the knowledge bundle: the concept file's path with .md removed, e.g. 'garten/pflanze'. The definition itself lives only in that file.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*(?:/[a-z0-9][a-z0-9-]*)*$"
+    },
     "maturity": { "enum": ["vision", "sketched", "building", "usable", "stable"] },
     "context": {
       "type": "object", "additionalProperties": false,
-      "required": ["name", "definition"],
+      "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
-        "definition": { "type": "string", "minLength": 1 },
-        "color": { "type": "string" }
+        "color": { "type": "string" },
+        "glossaryRef": { "$ref": "#/$defs/conceptRef" }
       }
     },
     "capability": {
       "type": "object", "additionalProperties": false,
-      "required": ["name", "context", "definition"],
+      "required": ["name", "context"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "context": { "$ref": "#/$defs/slug" },
-        "definition": { "type": "string", "minLength": 1 },
+        "glossaryRef": { "$ref": "#/$defs/conceptRef" },
         "declaredStage": { "enum": ["vision", null] },
         "derived": {
           "type": "object", "additionalProperties": false,
@@ -35,7 +40,7 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
-        "glossaryRef": { "$ref": "#/$defs/slug" },
+        "glossaryRef": { "$ref": "#/$defs/conceptRef" },
         "properties": { "type": "array", "items": { "type": "string" } },
         "rules": { "type": "array", "items": { "$ref": "#/$defs/slug" } }
       }
@@ -45,16 +50,16 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
-        "glossaryRef": { "$ref": "#/$defs/slug" }
+        "glossaryRef": { "$ref": "#/$defs/conceptRef" }
       }
     },
     "rule": {
       "type": "object", "additionalProperties": false,
-      "required": ["name", "statement"],
+      "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
-        "statement": { "type": "string", "minLength": 1 },
-        "subject": { "$ref": "#/$defs/slug" }
+        "subject": { "$ref": "#/$defs/slug" },
+        "glossaryRef": { "$ref": "#/$defs/conceptRef" }
       }
     },
     "slugMap": {
@@ -109,7 +114,15 @@
       "allOf": [{ "$ref": "#/$defs/slugMap" }],
       "additionalProperties": { "$ref": "#/$defs/rule" }
     },
-    "glossary": { "$ref": "https://kartograph.dev/schemas/v1/glossary.schema.json#/$defs/glossary" },
+    "knowledge": {
+      "description": "Where the project glossary lives. The map holds this pointer and nothing else — every term, definition, alias, source and relationship is in the OKF bundle on disk, never duplicated here.",
+      "type": "object", "additionalProperties": false,
+      "required": ["bundle"],
+      "properties": {
+        "bundle": { "type": "string", "minLength": 1 },
+        "okfVersion": { "type": "string" }
+      }
+    },
     "adrs": { "$ref": "https://kartograph.dev/schemas/v1/adr.schema.json#/$defs/adrs" },
     "dependencies": {
       "type": "array",

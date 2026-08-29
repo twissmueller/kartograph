@@ -58,8 +58,78 @@ untouched.
 A map is valid only if it passes **both**:
 - **JSON Schema** (`schemas/v1/*.json`), and
 - **referential integrity** (`checkReferentialIntegrity`) — no dangling slugs between
-  capabilities↔contexts, dependencies↔capabilities, rules↔subjects, glossary refs, ADR
-  supersession, etc.
+  capabilities↔contexts, dependencies↔capabilities, rules↔subjects, ADR supersession, etc.
+
+Passing `{ projectRoot }` adds a third gate: every `glossaryRef` is resolved against the
+knowledge bundle on disk. That gate reads the filesystem by design — see below.
+
+### The glossary is an OKF bundle on disk, never map data
+
+The project glossary is a single [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+(OKF v0.2) bundle at **`knowledge/`** — one markdown file per term, YAML frontmatter plus a
+markdown body. **The bundle is the single source of truth and nothing is ever duplicated
+back into `.kartograph/kartograph.json`.** The map carries exactly two kinds of pointer:
+
+- a top-level `knowledge: { bundle, okfVersion }` saying where the bundle is, and
+- a `glossaryRef` on a subject/actor/event/rule/context/capability, holding the OKF **concept
+  ID** — the concept's path inside the bundle without `.md` (`garten/pflanze`).
+
+There is no `glossary` object in the map, and the schema rejects one. Nor is there any
+definition text anywhere else in the map: `context.definition`, `capability.definition` and
+`rule.statement` are **gone from the schema** — those sentences are the `description` of the
+node's own concept. What the map keeps is the display `name`, the structure (context,
+dependencies, `derived` counts, `subject` links) and the `glossaryRef`.
+
+```
+knowledge/
+  index.md            bundle root index (generated); the only index.md that may carry
+                      frontmatter, and only `okf_version`
+  log.md              dated update history, newest first
+  <kontext>/<slug>.md a term belonging to that Kontext
+  shared/<slug>.md    a term genuinely used across more than one Kontext
+```
+
+`workflows/lib/okf.js` is the only place that knows the file syntax (a hand-rolled parser for
+the YAML subset OKF uses — no dependency). `workflows/lib/knowledge.js` holds the bundle
+semantics; `scripts/validate-knowledge.js` is the gate.
+
+What OKF buys us beyond the old JSON blob, and what the workflows must keep honest:
+
+- **Provenance** — `sources` records the survey (or the code `/karto-init` read) a term came
+  from, so a definition is traceable to where it was agreed.
+- **Trust** — `generated.by` is who wrote it, `verified[].by` is who *confirmed* it, and the
+  trust tier (`unverified` → `machine-confirmed` → `human-reviewed`) is **derived** from the
+  `human:` actor prefix, never stored. An LLM may never write a `human:` verification.
+- **Lifecycle** — `status: draft | stable | deprecated` (absent means `stable`). Terms
+  Kartograph writes are born `draft`; a retired term is **deprecated, never deleted**, so
+  links and history keep resolving.
+- **One canonical term** survives as the producer extension `aliases_to_avoid`. OKF
+  deliberately prescribes no glossary structure (§4.1), so that rule is ours to enforce:
+  `checkBundle` rejects two concepts sharing a title, or a title another concept rejects.
+
+Follow the spec's tolerance rules: a broken cross-link and a missing optional field are
+**warnings, never errors** (§6.1, §11) — the deterministic layer reports them and moves on.
+
+### Migrating a pre-v0.18 map (`scripts/migrate-glossary-to-okf.js`)
+
+`node scripts/migrate-glossary-to-okf.js [projectRoot]` moves both the old `glossary` object
+and the map's own `definition`/`statement` text into the bundle, leaving a `glossaryRef`
+behind. It is **deterministic and idempotent** — a second run reports nothing to do — and
+atomic: every concept file is written before the map is swapped in.
+
+Rules it follows, which any code touching it must preserve:
+
+- **Placement**: a capability's concept goes in its context's directory, a context's in its
+  own, everything else in `shared/`. A node that already points at a concept ID keeps that
+  placement, and a concept already on disk is pointed at, **never overwritten**.
+- **Never invent meaning.** A node with a name but no definition anywhere (subjects, actors
+  and events carry only a `name`) becomes a concept whose description is the literal
+  `TODO — define this term.` stub, reported on stderr and warned about by `checkBundle` on
+  every later run until a human writes the real sentence.
+- Everything it writes is `status: draft`, attributed to `process:kartograph-migrate`, sourced
+  back at the old map, and never `verified`.
+
+`/karto-sync` runs it as step 1a when it detects an unmigrated map.
 
 ### Maturity is derived, never declared (`workflows/lib/maturity-derive.js`)
 
@@ -78,18 +148,20 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
 - `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`, `build-all`).
 - `workflows/lib/` — **pure, testable** helpers shared by scripts and the desktop app
-  (`apply-discovery`, `board`, `board-data`, `feature-read`, `gherkin`, `ids`, `layout`,
-  `maturity-derive`, `map-drift`, `open-scenarios`, `paths`, `survey`, `survey-html`, `tracking`).
-  `paths.js` is the single source of truth for where the map and layout live. `ids`, `board`
+  (`apply-discovery`, `board`, `board-data`, `feature-read`, `gherkin`, `ids`, `knowledge`,
+  `layout`, `maturity-derive`, `map-drift`, `okf`, `open-scenarios`, `paths`, `survey`,
+  `survey-html`, `tracking`). `paths.js` is the single source of truth for where the map,
+  layout and knowledge bundle live. `ids`, `board`
   and `layout` were the browser viewer's pure libs; the viewer is gone and the desktop
   renderer imports them from here.
-- `scripts/` — deterministic CLIs (`validate-kartograph`, `validate-discovery`, `reconcile`,
-  `survey-to-html`). Each is a pure function + a thin `import.meta.url`-guarded CLI.
+- `scripts/` — deterministic CLIs (`validate-kartograph`, `validate-knowledge`,
+  `validate-discovery`, `reconcile`, `survey-to-html`). Each is a pure function + a thin `import.meta.url`-guarded CLI.
 - `desktop/` — the Electron desktop app (the only UI). `main/` is the Node main process
   (filesystem, watchers, IPC, session), `preload.cjs` is the sandboxed bridge, and
   `renderer/` is the vanilla-JS UI (Map view + Tracking board). Launch it with
   `scripts/start-desktop.sh [projectDir]`; `/karto-show` wraps that.
-- `schemas/v1/` — JSON Schemas for the map, glossary, ADR, and discovery survey.
+- `schemas/v1/` — JSON Schemas for the map, knowledge concept frontmatter, ADR, and discovery
+  survey.
 - `test/` — `node:test` unit tests for the pure helpers and the schemas.
 
 ## Conventions & gotchas
@@ -106,10 +178,11 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   (`kartograph.layout.json`), surveys (`.kartograph/surveys/`), and decisions
   (`.kartograph/decisions/`) all live in a hidden `.kartograph/` directory at the project root —
   never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `surveysDir`,
-  `decisionsDir`, `KARTO_DIR`) is the only place that constructs these paths; Node code imports
-  it, while the commands hardcode the same relative paths. Only `.feature` files (`features/`)
-  stay top-level — they are the product's living
-  spec, deliberately visible. There is **no fallback** to the old `kartograph/` locations.
+  `decisionsDir`, `knowledgeDir`, `KARTO_DIR`, `KNOWLEDGE_DIR`) is the only place that constructs
+  these paths; Node code imports it, while the commands hardcode the same relative paths. Two
+  directories stay top-level because they are the product's living spec, deliberately visible:
+  `features/` (the scenarios) and `knowledge/` (the glossary bundle). There is **no fallback**
+  to the old `kartograph/` locations.
 - **Slugs are the key space.** Everything is keyed by lowercase-hyphen slugs
   (`^[a-z0-9][a-z0-9-]*$`); cross-references are slugs and must resolve (integrity gate).
 - **Survey artifacts.** `/karto-explore` writes `.kartograph/surveys/<date>-<slug>.discovery.json`
@@ -132,7 +205,8 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   them. Set state with `scripts/set-tracking.js` or the desktop app's Tracking board.
 - **Scenarios are user-walkable, not technical.** Features and scenarios are written for a
   non-technical stakeholder to walk through and confirm in front of the running system: plain
-  domain language (glossary terms), only observable behaviour (Given = recognisable situation,
+  domain language (the `knowledge/` bundle's canonical titles — a word in any concept's
+  `aliases_to_avoid` must never appear), only observable behaviour (Given = recognisable situation,
   When = user action, Then = confirmable outcome), and **no leaked implementation detail**
   (no DBs, endpoints, status codes, function/file names, internal IDs, frameworks). The authoring
   rules live in `workflows/internal/chart.js`.

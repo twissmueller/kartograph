@@ -1,8 +1,8 @@
 export function renderSidebar(container, tab) {
-  const { map } = tab.data;
+  const { map, knowledge } = tab.data;
   container.innerHTML = '';
   container.appendChild(maturityPanel(map));
-  container.appendChild(glossaryPanel(map));
+  container.appendChild(glossaryPanel(knowledge));
   container.appendChild(adrPanel(map));
   container.appendChild(questionsPanel(map));
 }
@@ -31,11 +31,23 @@ function maturityPanel(map) {
   return panel('Maturity', rows);
 }
 
-function glossaryPanel(map) {
-  const terms = Object.values(map.glossary || {});
+// Terms come from the knowledge bundle on disk (one OKF concept per term), not from the
+// map. `status` and `trust` are derived on read — a term Kartograph wrote but no human has
+// confirmed shows as draft/unverified, which is the point of surfacing them here.
+function glossaryPanel(knowledge) {
+  const terms = (knowledge || []).filter((t) => t.status !== 'deprecated');
   if (!terms.length) return panel('Glossary', '<p class="muted">No terms.</p>');
-  const rows = terms.map((t) => `<tr><td>${esc(t.term || '')}</td><td>${esc(t.definition || '')}</td></tr>`).join('');
-  return panel('Glossary', `<table>${rows}</table>`);
+  const flag = (t) => {
+    const bits = [];
+    if (t.status === 'draft') bits.push('draft');
+    if (t.trust === 'human-reviewed') bits.push('reviewed');
+    return bits.length ? ` <span class="muted">(${esc(bits.join(', '))})</span>` : '';
+  };
+  const rows = terms
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .map((t) => `<tr><td>${esc(t.title)}${flag(t)}</td><td>${esc(t.description)}</td></tr>`)
+    .join('');
+  return panel(`Glossary (${terms.length})`, `<table>${rows}</table>`);
 }
 
 function adrPanel(map) {

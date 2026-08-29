@@ -62,6 +62,7 @@ const FINDINGS_SCHEMA = {
         properties: {
           slug: SLUG, term: { type: 'string' }, definition: { type: 'string' },
           type: { enum: ['subjekt', 'capability', 'kontext', 'akteur', 'ereignis', 'regel', 'term'] },
+          kontext: SLUG,
           aliasesToAvoid: { type: 'array', items: { type: 'string' } },
         },
       },
@@ -115,7 +116,7 @@ Then analyze the code at ${where} and extract Kartograph findings describing wha
 - affectedCapabilities: slugs of EXISTING map capabilities that the code still implements.
 - capabilityCandidates: capabilities present in the code but NOT yet on the map (each with its context slug). They are born "vision".
 - dependencies: capability→capability data dependencies inferred from imports/call graphs, as { from, to } (add a one-line "reason" describing how from uses to when clear).
-- glossaryAdditions: recurring domain terms worth defining, one canonical term each.
+- glossaryAdditions: recurring domain terms worth defining, one canonical term each, each with a ONE-sentence definition of what the thing IS. Set "kontext" to the Kontext the term belongs to; omit it only for a term genuinely used across several. Do not propose a term the knowledge/ bundle already defines — read it first.
 - adrCandidates: only genuinely hard-to-reverse, surprising, trade-off decisions evident in the code.
 - placement: where each affected/candidate capability lands (its context).
 

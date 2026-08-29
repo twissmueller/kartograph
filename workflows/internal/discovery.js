@@ -57,6 +57,7 @@ const FINDINGS_SCHEMA = {
         properties: {
           slug: SLUG, term: { type: 'string' }, definition: { type: 'string' },
           type: { enum: ['subjekt', 'capability', 'kontext', 'akteur', 'ereignis', 'regel', 'term'] },
+          kontext: SLUG,
           aliasesToAvoid: { type: 'array', items: { type: 'string' } },
         },
       },
@@ -123,7 +124,7 @@ Then extract Kartograph findings:
 - rules: invariants that must always hold (each tied to a subject when possible).
 - affectedCapabilities: slugs of EXISTING capabilities this feature changes.
 - capabilityCandidates: NEW capabilities (each with the context slug it belongs to). They are born in "vision".
-- glossaryAdditions: domain terms worth defining, ONE canonical term each (list synonyms under aliasesToAvoid). Do not duplicate existing glossary terms.
+- glossaryAdditions: domain terms worth defining, ONE canonical term each (list synonyms under aliasesToAvoid). Do not duplicate terms the knowledge bundle already defines. Set "kontext" to the Kontext the term belongs to; omit it only when the term is genuinely used across more than one Kontext (it then lands in the bundle's shared/ area). The "definition" must be ONE tight sentence saying what the thing IS.
 - adrCandidates: architecture decisions, but ONLY when the decision is hard to reverse AND surprising without context AND the result of a real trade-off. Otherwise it is a plain feature, not an ADR.
 - placement: where each affected/candidate capability lands (its context).
 - openQuestions: valid questions the survey raised that the user could NOT answer yet (look for an "Offene Fragen / Open questions" section in the conversation summary, or anything the user explicitly deferred). Record each verbatim as { question }, with an optional "context" slug when it clearly relates to one capability/context. Do not invent questions; only capture genuinely unresolved ones.

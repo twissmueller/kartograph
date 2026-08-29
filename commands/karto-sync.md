@@ -8,7 +8,21 @@ Keep `.kartograph/kartograph.json` in sync with the codebase. Optional focus fro
 **flagged, never deleted**.
 
 1. Confirm `.kartograph/kartograph.json` exists. If it does not, suggest `/karto-init` to bootstrap first.
-   Start a working copy: `cp .kartograph/kartograph.json .kartograph/kartograph.tmp.json`.
+
+1a. **Migrate first if the map predates v0.18.** A map still holding a `glossary` object, or
+   `definition`/`statement` fields on contexts/capabilities/rules, keeps definitions in two
+   places and will fail the write gate. Run the deterministic migration — it moves every
+   definition into the `knowledge/` bundle, leaves a `glossaryRef` pointer behind, and is
+   idempotent (a no-op on an already-migrated map):
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/migrate-glossary-to-okf.js .
+   ```
+   It reports any concept it had to write as a **stub** — a node that carried a name but no
+   definition anywhere. Do not invent those definitions silently: list them for the user, and
+   offer to draft one sentence each for review. Then continue with the sync below, which will
+   groom the result.
+
+1b. Start a working copy: `cp .kartograph/kartograph.json .kartograph/kartograph.tmp.json`.
 
 2. **Code drift** (when `$ARGUMENTS` is empty or `code`): use the **`karto-analyze-repo`**
    skill for guidance on what to extract, then invoke the **Workflow** tool with:
@@ -29,8 +43,12 @@ Keep `.kartograph/kartograph.json` in sync with the codebase. Optional focus fro
      `suggestExplore` capabilities — coded but unscenarioed). Do **not** edit or delete
      flagged entries.
 
-3. **Glossary** (empty or `glossary`): apply the **`karto-groom-glossary`** skill's logic to
-   the working copy `.kartograph/kartograph.tmp.json`.
+3. **Glossary** (empty or `glossary`): apply the **`karto-groom-glossary`** skill's logic to the
+   OKF bundle at `knowledge/` — the concept files themselves, not the map. Then regenerate
+   `knowledge/index.md`, append a dated `knowledge/log.md` entry, and run
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-knowledge.js .` until it reports OK. If a
+   concept was renamed or moved, update the matching `glossaryRef` in
+   `.kartograph/kartograph.tmp.json` so the pointer still resolves.
 4. **ADRs** (empty or `adr`): apply the **`karto-groom-adr`** skill's logic to the working
    copy and `.kartograph/decisions/*.md`.
 5. **Dependencies** (empty, `dependencies`, or `deps`): apply the

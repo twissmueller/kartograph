@@ -1,0 +1,53 @@
+{
+  "$id": "https://kartograph.dev/schemas/v1/knowledge-concept.schema.json",
+  "title": "Kartograph knowledge concept (OKF v0.2 frontmatter)",
+  "description": "The YAML frontmatter of one concept document in the knowledge/ bundle. OKF requires only `type`; Kartograph additionally requires `title` and `description` (the one-sentence definition) and constrains `type` to the meta-glossary vocabulary. Producers may add keys and consumers must tolerate them (OKF §4.1), so additional properties are allowed.",
+  "$defs": {
+    "actor": {
+      "description": "OKF §7 actor: `<producer>/<version>`, `human:<id>` or `process:<id>`.",
+      "type": "string", "minLength": 1
+    },
+    "stamp": {
+      "type": "object",
+      "required": ["by"],
+      "properties": {
+        "by": { "$ref": "#/$defs/actor" },
+        "at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["resource"],
+      "properties": {
+        "id": { "type": "string" },
+        "resource": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "usage_count": { "type": "integer", "minimum": 0 },
+        "last_modified": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "type": "object",
+  "required": ["type", "title", "description"],
+  "properties": {
+    "type": { "enum": ["Subjekt", "Akteur", "Ereignis", "Regel", "Kontext", "Capability", "Begriff"] },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "resource": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "status": { "enum": ["draft", "stable", "deprecated"] },
+    "aliases_to_avoid": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "stale_after": { "type": "string", "format": "date-time" },
+    "generated": { "$ref": "#/$defs/stamp" },
+    "verified": {
+      "description": "One stamp or a list of them; OKF §5.2 requires consumers to read a bare mapping as a one-element list.",
+      "anyOf": [{ "$ref": "#/$defs/stamp" }, { "type": "array", "items": { "$ref": "#/$defs/stamp" } }]
+    },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
+    "usage_window": {
+      "type": "object",
+      "properties": { "from": { "type": "string" }, "to": { "type": "string" } }
+    }
+  }
+}
