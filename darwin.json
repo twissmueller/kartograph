@@ -1,0 +1,19 @@
+{
+  "name": "Kartograph",
+  "description": "Claude-Code-Plugin, das eine lebende Karte eines Softwaresystems pflegt: Ontologie als validiertes JSON, Verhalten als Gherkin-Szenarien, Double-Loop-TDD, Electron-Viewer.",
+  "delivery": {
+    "github": {
+      "status": "live",
+      "monetization": [
+        {
+          "channel": "buy_me_a_coffee",
+          "status": "active",
+          "offerings": [
+            "donation"
+          ]
+        }
+      ]
+    }
+  },
+  "tasks": []
+}
