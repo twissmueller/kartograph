@@ -123,6 +123,8 @@ test('an unmigrated map is rejected with an error that names the fix', async () 
   const { validateKartograph } = await import('../scripts/validate-kartograph.js');
   const { valid, errors } = await validateKartograph(legacy());
   assert.equal(valid, false);
-  assert.ok(errors[0].includes('predates v0.18') && errors[0].includes('migrate-glossary-to-okf'),
+  assert.ok(errors[0].includes('predates v0.18') && errors[0].includes('/karto-sync'),
     `the first error must tell the user what to run, got: ${errors[0]}`);
+  assert.ok(errors[0].includes('CLAUDE_PLUGIN_ROOT'),
+    'the script path must be the plugin-root one a downstream project can actually run');
 });

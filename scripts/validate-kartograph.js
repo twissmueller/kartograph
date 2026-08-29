@@ -89,8 +89,9 @@ export async function validateKartograph(doc, { projectRoot, bundleDir } = {}) {
   // fix instead, so the wall a downstream user hits tells them how to get past it.
   if (needsMigration(doc)) {
     errors.push('this map predates v0.18: it still holds definitions that now live in the '
-      + 'knowledge/ bundle. Run `node scripts/migrate-glossary-to-okf.js .` (or `/karto-sync`) '
-      + 'to move them — it is deterministic, idempotent, and leaves pointers behind.');
+      + 'knowledge/ bundle. Run /karto-sync to migrate it, or invoke the script directly: '
+      + '`node "$CLAUDE_PLUGIN_ROOT"/scripts/migrate-glossary-to-okf.js .` — it is '
+      + 'deterministic, idempotent, and leaves a pointer behind for every definition it moves.');
   }
   if (!validate(doc)) {
     for (const e of validate.errors) errors.push(`schema: ${e.instancePath || '/'} ${e.message}`);
