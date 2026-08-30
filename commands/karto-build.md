@@ -4,10 +4,10 @@ description: Implement a capability's open scenarios with double-loop TDD — Gh
 
 Build the capability named in `$ARGUMENTS` by implementing its **open** scenarios (those whose
 tracking state is not yet **Accepted**) with **double-loop, outside-in TDD**. Everything build
-needs lives in the map: `.kartograph/kartograph.json` and its `.feature` files. There is **no
-separate config** — the only files Kartograph keeps are `.kartograph/kartograph.json` (the
-content, including each scenario's tracking state) and `.kartograph/kartograph.layout.json`
-(UI layout only).
+needs lives in the map: `.kartograph/kartograph.json` and its `.feature` files. The only other
+file Kartograph keeps is `.kartograph/kartograph.layout.json` (UI layout only), plus
+`.kartograph/automation.json` — the automation policy the user set during `/karto-explore`,
+which decides how much of this command runs without asking.
 
 **Tracking state lives in the map, not in tags.** A scenario carries exactly one *path* tag in
 its `.feature` file (`@happy`/`@edge`/`@error`, which drives maturity). Its *progress* —
@@ -38,6 +38,19 @@ recorded and point the user to `/karto-revise` to fix the spec (which then flows
 `/karto-chart`). Recording friction is the correct outcome for an unbuildable scenario — a
 forced or hand-edited `.feature` is not.
 
+0. **Read the automation policy** before anything else, and obey it for the whole run — never
+   substitute your own judgement about what is "worth" running:
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/automation.js . show
+   ```
+
+   Three of its steps govern this command: `acceptance-suite` (how much of the outer loop runs),
+   `commit` (whether finished scenarios are committed), and `walk-after-build` and `rewalk-check`
+   (what happens when the build is done). If the build was reached from a specific survey, pass
+   `--survey <survey>` so that survey's own stamp wins. Say in one line which policy you are
+   working under, so the user can see why the full suite did or did not run.
+
 1. **Find open scenarios.** Locate the capability in `.kartograph/kartograph.json` to get its
    context, then read `features/<context>/<capability>/*.feature`. The open scenarios are those
    whose tracking state in the map is **not Accepted** (Open or Developed). Work them in
@@ -59,9 +72,16 @@ forced or hand-edited `.feature` is not.
    you must finish, and the surface through which the scenario gets confirmed.
 
 3. **For each open scenario, run the double loop:**
-   - **Outer loop (acceptance):** run the scenario through the project's acceptance runner and
-     **watch it fail**. If the project has no acceptance runner, skip the outer run and rely on
-     the inner unit tests as the loop's signal — tell the user the acceptance loop is disabled.
+   - **Outer loop (acceptance) — scoped by `acceptance-suite`:** run the scenario through the
+     project's acceptance runner and **watch it fail**.
+     - `scenario` (the default) → run **only the scenario being built**, selected by name or tag
+       (e.g. the runner's `--name`/`-n`, `--tags`, or single-file argument). Do **not** run the
+       whole suite; that is the user's call before a release, not this loop's job.
+     - `full` → run the project's whole acceptance/e2e suite each time round the loop.
+     - `off` → skip the outer run entirely; the inner unit tests are the only signal. Say so
+       explicitly in the report, since the scenario has then never been executed as written.
+     If the project has no acceptance runner at all, skip the outer run whatever the mode says
+     and tell the user the acceptance loop is disabled.
    - **Inner loop (unit):** if the **`superpowers`** plugin is installed, use the
      **`superpowers:test-driven-development`** skill to drive the implementation unit by unit.
      Otherwise follow this condensed **Iron Law**: write a failing unit test and **watch it
@@ -79,20 +99,27 @@ forced or hand-edited `.feature` is not.
      still needs wiring before it is testable.
    - Mark the now-passing scenario **Developed** in the map:
      `node ${CLAUDE_PLUGIN_ROOT}/scripts/set-tracking.js <projectRoot> <context> <capability> <feature.feature> "<scenario>" developed`.
-     Leave it for the user to flip to **Accepted** once they've walked it. Commit.
+     Leave it for the user to flip to **Accepted** once they've walked it. Then honour the
+     `commit` mode: `auto` → commit the scenario's work now; `manual` → leave it in the working
+     tree and say so, so the user can review and commit it themselves.
 
 4. **Re-derive maturity.** After scenarios are built, run
    `node ${CLAUDE_PLUGIN_ROOT}/scripts/reconcile.js` so the capability's maturity recomputes
    from its `.feature` path tags (`@happy`/`@edge`/`@error`) — maturity is independent of
    tracking state — then suggest `/karto-show` to watch it climb.
 
-5. **Flag re-walk candidates.** Building this capability may have changed behaviour that other
-   capabilities **depend on**, so their already-**Accepted** scenarios could now be broken. Run
+5. **Flag re-walk candidates — if `rewalk-check` is `auto`.** Building this capability may have
+   changed behaviour that other capabilities **depend on**, so their already-**Accepted**
+   scenarios could now be broken. Run
    `node ${CLAUDE_PLUGIN_ROOT}/scripts/rewalk-candidates.js <projectRoot> <capability>`. If the
    JSON list is non-empty, list the affected scenarios grouped by capability and suggest running
    `/karto-walk <capability>` for each affected capability to re-confirm them. (This is direct
    dependents only — the map's dependency edges carry the information.) If the list is empty, say
-   nothing changed downstream.
+   nothing changed downstream. If the mode is `manual`, skip the check and mention the script in
+   one line instead of running it.
 
 6. Stop when every open scenario for the capability is at least **Developed**, and report what
-   moved (and which scenarios are now waiting on the user's Accept).
+   moved (and which scenarios are now waiting on the user's Accept). Then honour
+   `walk-after-build`: `auto` → say the automation policy walks them, and continue straight into
+   **`/karto-walk <capability>`**; `manual` → stop, and tell them `/karto-walk <capability>` is
+   how those scenarios become Accepted.

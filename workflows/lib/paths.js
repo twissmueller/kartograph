@@ -15,6 +15,11 @@ export const KNOWLEDGE_DIR = 'knowledge';
 
 // Absolute path to a project's map / layout, given the project root directory.
 export const mapPath = (projectRoot) => join(projectRoot, KARTO_DIR, 'kartograph.json');
+
+// Absolute path to a project's automation preferences — which pipeline steps run on
+// their own and which wait for the user (see workflows/lib/automation.js). Tracked in
+// git like the map: it is the team's policy, not a per-machine setting.
+export const automationPath = (projectRoot) => join(projectRoot, KARTO_DIR, 'automation.json');
 export const layoutPath = (projectRoot) => join(projectRoot, KARTO_DIR, 'kartograph.layout.json');
 
 // Absolute path to a project's knowledge bundle (the OKF glossary).

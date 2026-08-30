@@ -131,6 +131,59 @@ Rules it follows, which any code touching it must preserve:
 
 `/karto-sync` runs it as step 1a when it detects an unmigrated map.
 
+### Which steps run on their own (`workflows/lib/automation.js`)
+
+The pipeline is a chain — explore/revise → chart → build → walk — and how much of it runs
+without stopping to ask is the **user's** policy, not the command's judgement. That policy is a
+small `{ version, steps }` file at **`.kartograph/automation.json`**, tracked in git like the
+map because it is the team's convention. `/karto-explore` and `/karto-revise` end by putting
+the questionnaire to the user (via **AskUserQuestion**); every later command reads the answers
+and acts **without asking again**.
+
+Six steps, each with its own mode vocabulary — `workflows/lib/automation.js` is the single
+source of truth for the catalogue, and `scripts/automation.js` is the only way commands touch it:
+
+| step | governs | modes | default |
+|---|---|---|---|
+| `chart-after-explore` | end of explore/revise | `auto` \| `ask` \| `manual` | `ask` |
+| `build-after-chart` | end of chart | `auto` \| `ask` \| `manual` | `ask` |
+| `acceptance-suite` | build's outer loop | `full` \| `scenario` \| `off` | `scenario` |
+| `commit` | after each scenario is Developed | `auto` \| `manual` | `auto` |
+| `rewalk-check` | end of build | `auto` \| `manual` | `auto` |
+| `walk-after-build` | end of build | `auto` \| `manual` | `manual` |
+
+```bash
+node scripts/automation.js . show                     # the policy, explained
+node scripts/automation.js . get [<step>] [--survey <s>]   # JSON, or one step's mode
+node scripts/automation.js . set <step> <mode> [...]  # atomic write
+node scripts/automation.js . questions                # the AskUserQuestion payload
+```
+
+Rules any code touching this must preserve:
+
+- **Tolerant, never blocking.** A preferences file must not be able to stop the pipeline, so
+  `normalizePlan` and `readPlan` *never throw*: a missing file, unparseable JSON, an unknown
+  step or a misspelled mode is a **warning plus a fallback to the default**. This is the same
+  tolerance rule the OKF bundle follows.
+- **Per-run override.** A survey carries the policy it was written under in its optional
+  `automation` block (in `discovery.schema.json`, mirrored one-for-one from the catalogue and
+  guarded by a test). `mergePlan(projectPolicy, survey.automation)` — the survey's stamp wins
+  for the run that survey drives, so changing the defaults later never rewrites a decision the
+  user already made about a specific feature. `--survey` on the CLI does exactly this.
+- **The questionnaire is generated, not written by hand.** `questionnaire(plan)` emits the
+  AskUserQuestion payload with each step's *current* mode listed first, sized to fit that tool's
+  limits (≤4 questions, ≤4 options, 12-char headers — asserted by a test). The commands print it
+  and ask it verbatim; they must not invent steps or reword options.
+- **An unchecked box is an answer.** In the shared multi-select, *not* selecting a toggle means
+  `manual` — `planFromAnswers` sets it explicitly rather than leaving the old value standing.
+- **Two things are deliberately NOT configurable**, because they are correctness gates rather
+  than preferences: `reconcile.js` (a map whose stored maturity disagrees with its scenarios
+  fails the integrity gate) and build's **inner unit-test loop** (the double loop *is* the build
+  method). Do not add them to the catalogue.
+- **Workflows cannot read it.** `workflows/internal/build-all.js` can't touch the filesystem, so
+  `/karto-build-all` reads the policy and passes it in `args.automation`; the script re-validates
+  what it gets and falls back to the defaults.
+
 ### Maturity is derived, never declared (`workflows/lib/maturity-derive.js`)
 
 A capability's `derived.maturity` is **computed** from its on-disk `.feature` scenarios, not
@@ -148,14 +201,14 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   `karto-groom-*` skills (glossary / ADR / dependencies). Registered in `plugin.json`.
 - `workflows/internal/` — dynamic LLM workflows (`discovery`, `chart`, `init`, `sync`, `build-all`).
 - `workflows/lib/` — **pure, testable** helpers shared by scripts and the desktop app
-  (`apply-discovery`, `board`, `board-data`, `feature-read`, `gherkin`, `ids`, `knowledge`,
-  `layout`, `maturity-derive`, `map-drift`, `okf`, `open-scenarios`, `paths`, `survey`,
-  `survey-html`, `tracking`). `paths.js` is the single source of truth for where the map,
-  layout and knowledge bundle live. `ids`, `board`
+  (`apply-discovery`, `automation`, `automation-store`, `board`, `board-data`, `feature-read`,
+  `gherkin`, `ids`, `knowledge`, `layout`, `maturity-derive`, `map-drift`, `okf`,
+  `open-scenarios`, `paths`, `survey`, `survey-html`, `tracking`). `paths.js` is the single
+  source of truth for where the map, layout, automation policy and knowledge bundle live. `ids`, `board`
   and `layout` were the browser viewer's pure libs; the viewer is gone and the desktop
   renderer imports them from here.
 - `scripts/` — deterministic CLIs (`validate-kartograph`, `validate-knowledge`,
-  `validate-discovery`, `reconcile`, `survey-to-html`). Each is a pure function + a thin `import.meta.url`-guarded CLI.
+  `validate-discovery`, `reconcile`, `survey-to-html`, `automation`). Each is a pure function + a thin `import.meta.url`-guarded CLI.
 - `desktop/` — the Electron desktop app (the only UI). `main/` is the Node main process
   (filesystem, watchers, IPC, session), `preload.cjs` is the sandboxed bridge, and
   `renderer/` is the vanilla-JS UI (Map view + Tracking board). Launch it with
@@ -175,9 +228,10 @@ later when real edge/error scenarios are charted and `reconcile.js` recomputes.
   instead. Use the plain form everywhere else; only reach for the `realpathSync` variant when a
   script is a declared bin.
 - **Map files live under `.kartograph/`.** The map (`kartograph.json`), the viewer layout
-  (`kartograph.layout.json`), surveys (`.kartograph/surveys/`), and decisions
-  (`.kartograph/decisions/`) all live in a hidden `.kartograph/` directory at the project root —
-  never loose in the root. `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `surveysDir`,
+  (`kartograph.layout.json`), the automation policy (`automation.json`), surveys
+  (`.kartograph/surveys/`), and decisions (`.kartograph/decisions/`) all live in a hidden
+  `.kartograph/` directory at the project root — never loose in the root.
+  `workflows/lib/paths.js` (`mapPath`, `layoutPath`, `automationPath`, `surveysDir`,
   `decisionsDir`, `knowledgeDir`, `KARTO_DIR`, `KNOWLEDGE_DIR`) is the only place that constructs
   these paths; Node code imports it, while the commands hardcode the same relative paths. Two
   directories stay top-level because they are the product's living spec, deliberately visible:

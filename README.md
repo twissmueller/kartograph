@@ -93,6 +93,40 @@ Four more commands view and maintain the map:
 | `/karto-revise <target>` | The counterpart to explore for behavior that's wrong or gone: retire an obsolete scenario or capability, or rename a capability/context's display name. Read-only — assembles a reviewable survey (mixable with additive findings), which you then `/karto-chart`. |
 | `/karto-sync` | Re-scan the code and propose drift (add new, flag missing — never delete), plus glossary/ADR/dependency grooming. Migrates a pre-v0.18 map to the `knowledge/` bundle first if needed. Non-destructive; you approve every change. |
 
+### You decide which steps run on their own
+
+The chain above is a chain, not a conveyor belt: `/karto-explore` and `/karto-revise` end by
+asking you — as a short questionnaire — how much of the rest should happen without stopping to
+check. Chart automatically, or pause? Build straight after charting? Run the **whole** e2e suite
+on every build, or only the scenario being built? Commit each finished scenario, or leave it in
+your working tree?
+
+Your answers are stored in `.kartograph/automation.json` and tracked in git, so they are the
+team's convention rather than one machine's setting. Every later command reads them and acts
+**without asking again**; the next survey is where you revisit them. A survey also records the
+policy it was written under, so changing your defaults later never quietly rewrites a decision
+you already made about a feature that's mid-flight.
+
+| Step | Governs | Options | Default |
+| --- | --- | --- | --- |
+| `chart-after-explore` | end of explore/revise | automatically · ask · only when I ask | ask |
+| `build-after-chart` | end of chart | automatically · ask · only when I ask | ask |
+| `acceptance-suite` | build's outer loop | full suite · only this scenario · skip | only this scenario |
+| `commit` | after each scenario is Developed | automatically · only when I ask | automatically |
+| `rewalk-check` | end of build | automatically · only when I ask | automatically |
+| `walk-after-build` | end of build | automatically · only when I ask | only when I ask |
+
+Read or change the policy directly at any time:
+
+```bash
+node scripts/automation.js . show                    # the policy, explained
+node scripts/automation.js . set acceptance-suite full commit manual
+```
+
+Two things are deliberately **not** optional, because they are correctness gates rather than
+preferences: the maturity reconcile-and-validate after a build, and the unit-test inner loop of
+the double loop.
+
 `/karto-build-all [scope]` builds every open scenario in a scope autonomously — the whole map,
 `context:<slug>`, or a `<capability-slug>` (and its dependencies). It computes a dependency-ordered
 plan, then spawns one build subagent per capability (each in its own context window), taking every
@@ -202,6 +236,7 @@ Uninstall + reinstall forces it too.
 .kartograph/
   kartograph.json          the map (validated, slug-keyed)
   kartograph.layout.json   node positions (desktop-app-written)
+  automation.json          which pipeline steps run without asking
   surveys/                 dated survey notes from /karto-explore
   decisions/               ADRs (Markdown, MADR style)
 features/<context>/<capability>/*.feature   the behavior, in Gherkin

@@ -75,5 +75,19 @@ write is **atomic** — on any failure nothing in `.kartograph/kartograph.json` 
    fall back to `rm -rf` if the path was never committed). Retiring scenarios can lower a
    capability's maturity — that is correct; maturity is earned, not declared.
 
-7. **Pause and ask:** continue with `/karto-build <capability>` now, or review the diff
-   (`git diff`, or `/karto-show`) first? Do not build automatically.
+7. **Hand off according to the automation policy** — never on your own judgement. Read the
+   `build-after-chart` mode, preferring the survey's own stamp over the project default (the
+   survey records the policy the user agreed to *for this feature*):
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/automation.js . get build-after-chart --survey <survey>
+   ```
+
+   - `auto` → name the capability that was charted, say the automation policy builds it, then
+     continue straight into **`/karto-build <capability>`**. If the survey charted more than one
+     capability, build them in the order they appear in the map's dependency edges, dependencies
+     first, and say which order you chose.
+   - `ask` → report what landed on the map and **pause and ask**: build now, or review the diff
+     (`git diff`, or `/karto-show`) first?
+   - `manual` → stop, report what landed, and tell them `/karto-build <capability>` is ready
+     when they are.

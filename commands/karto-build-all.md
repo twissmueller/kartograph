@@ -17,12 +17,18 @@ one build subagent per capability — invoking the command is your opt-in.
 2. **Stop early if empty.** If `order` is empty, report "nothing to build in this scope" (plus any
    `skippedEmpty`) and stop.
 
+2a. **Read the automation policy** — the workflow cannot touch the filesystem, so it has to be
+   passed in: `node ${CLAUDE_PLUGIN_ROOT}/scripts/automation.js . get`. Only two of its steps
+   apply here, because build-all is autonomous by definition and never asks: `acceptance-suite`
+   (how much of the outer loop each subagent runs) and `commit`. The rest are ignored.
+
 3. **Run the orchestrator workflow** via the **Workflow** tool:
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/build-all.js`
-   - `args: { "plan": <the plan JSON>, "projectRoot": ".", "pluginRoot": "${CLAUDE_PLUGIN_ROOT}" }`
+   - `args: { "plan": <the plan JSON>, "projectRoot": ".", "pluginRoot": "${CLAUDE_PLUGIN_ROOT}", "automation": <the automation policy JSON from step 2a> }`
    Each capability builds in its own subagent/context window, sequentially, dependencies first; a
    capability whose dependency failed is skipped. The subagents mark passing scenarios **Developed**
-   via `scripts/set-tracking.js` and commit their own work.
+   via `scripts/set-tracking.js`, and commit their own work unless the policy's `commit` step says
+   `manual`.
 
 4. **Reconcile + validate.** Run
    `node ${CLAUDE_PLUGIN_ROOT}/scripts/reconcile.js .kartograph/kartograph.json` to recompute derived

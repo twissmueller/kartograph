@@ -6,8 +6,9 @@ Run the **revise** phase of Kartograph for: `$ARGUMENTS`
 
 Revise is the counterpart to explore: explore discovers *new* behavior, revise records that
 some *existing* behavior is wrong or gone. Like explore it is **read-only** — it never touches
-`.kartograph/kartograph.json`, the `.feature` files, or code. Its only output is a survey you
-review, then chart. All map/file mutation happens later in `/karto-chart`.
+`.kartograph/kartograph.json`, the `.feature` files, or code. Its only outputs are a survey you
+review, then chart, and `.kartograph/automation.json`, the automation policy Phase C asks you to
+confirm. All map/file mutation happens later in `/karto-chart`.
 
 **v1 scope (final):** `retire-scenario`, `retire-capability`, and display-name renames
 (`rename-capability`, `rename-context`). **Out of scope — do not attempt here:** slug renames,
@@ -56,12 +57,43 @@ Revisions are precise, not creative, so there is **no LLM workflow** — build t
 7. On success, save it to `.kartograph/surveys/<date>-<slug>.discovery.json` (create
    `.kartograph/surveys/` if needed). This is the same append-only expedition log explore
    writes to.
-8. Render the readable HTML next to it:
-   `node ${CLAUDE_PLUGIN_ROOT}/scripts/survey-to-html.js .kartograph/surveys/<date>-<slug>.discovery.json`.
 
-## Phase C — Handoff
+## Phase C — Automation questionnaire, then handoff
 
-9. Summarize the revisions (and any additive findings) for the user, then **pause and ask**:
-   continue with `/karto-chart` now, or review the survey first? Point them at
-   `.kartograph/surveys/<date>-<slug>.discovery.html`. Do not chart automatically — charting is
-   where the map and `.feature` files actually change.
+8. Summarize the revisions (and any additive findings) for the user.
+
+9. **Ask which of the remaining steps should run on their own.** Print the questionnaire,
+   already filled in with the project's current policy:
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/automation.js . questions
+   ```
+
+   It prints a JSON array of questions; every option carries the `step` and `mode` it stands
+   for, and each step's current mode is listed first and marked `(current)`. Put them to the
+   user in **one AskUserQuestion call**, exactly as printed — do not invent steps, reword the
+   options, or bolt on questions of your own. Then persist the answers in a single call
+   (every option *left unchecked* in the multi-select means `manual` — pass it explicitly):
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/automation.js . set <step> <mode> [<step> <mode> ...]
+   ```
+
+   This is the project's standing policy, stored in `.kartograph/automation.json` and tracked
+   in git. Every later command reads it and acts **without asking again**.
+
+10. **Stamp the survey** with the answers, so this revision keeps the policy it was surveyed
+    under even if the defaults change later: add an `automation` object to
+    `.kartograph/surveys/<date>-<slug>.discovery.json` holding the same `"<step>": "<mode>"`
+    pairs, then re-run `validate-discovery.js` on it.
+
+11. Render the readable HTML next to it, and point the user at it:
+    `node ${CLAUDE_PLUGIN_ROOT}/scripts/survey-to-html.js .kartograph/surveys/<date>-<slug>.discovery.json`.
+
+12. **Hand off according to `chart-after-explore`** — never on your own judgement. Charting is
+    where the map and `.feature` files actually change, so be explicit about which branch you
+    are taking:
+    - `auto` → say that the automation policy charts automatically, then continue straight into
+      **`/karto-chart`** on this survey.
+    - `ask` → **pause and ask**: chart now, or review the survey first?
+    - `manual` → stop here, and tell them `/karto-chart` applies the revisions when they are ready.

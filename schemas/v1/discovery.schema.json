@@ -161,6 +161,18 @@
         "openQuestions": { "type": "array", "items": { "$ref": "#/$defs/openQuestion" } }
       }
     },
-    "revisions": { "type": "array", "items": { "$ref": "#/$defs/revision" } }
+    "revisions": { "type": "array", "items": { "$ref": "#/$defs/revision" } },
+    "automation": {
+      "description": "The automation policy in force when this survey was written (workflows/lib/automation.js). Optional and partial: an absent key falls back to the project default in .kartograph/automation.json.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "chart-after-explore": { "enum": ["auto", "ask", "manual"] },
+        "build-after-chart": { "enum": ["auto", "ask", "manual"] },
+        "acceptance-suite": { "enum": ["full", "scenario", "off"] },
+        "commit": { "enum": ["auto", "manual"] },
+        "rewalk-check": { "enum": ["auto", "manual"] },
+        "walk-after-build": { "enum": ["auto", "manual"] }
+      }
+    }
   }
 }

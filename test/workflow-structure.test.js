@@ -135,3 +135,41 @@ test('plugin.json registers all commands and skills', async () => {
     './skills/karto-groom-glossary', './skills/karto-groom-adr',
   ]) assert.ok(p.skills.includes(s), `skills includes ${s}`);
 });
+
+// --- automation policy wiring -----------------------------------------------------
+// The commands are prose, so the only thing a test can hold them to is that they still
+// name the step they are supposed to obey and still call the CLI that reads it. Actual
+// behaviour is verified by running the commands in Claude Code.
+
+test('explore and revise both end by asking the automation questionnaire and persisting it', async () => {
+  for (const cmd of ['commands/karto-explore.md', 'commands/karto-revise.md']) {
+    const src = await read(cmd);
+    assert.match(src, /scripts\/automation\.js \. questions/, `${cmd} prints the questionnaire`);
+    assert.match(src, /scripts\/automation\.js \. set/, `${cmd} persists the answers`);
+    assert.match(src, /AskUserQuestion/, `${cmd} asks with AskUserQuestion`);
+    assert.match(src, /chart-after-explore/, `${cmd} branches on chart-after-explore`);
+    assert.match(src, /automation.*discovery\.json|discovery\.json.*automation/s, `${cmd} stamps the survey`);
+  }
+});
+
+test('chart branches on build-after-chart, reading the survey stamp', async () => {
+  const src = await read('commands/karto-chart.md');
+  assert.match(src, /scripts\/automation\.js \. get build-after-chart --survey/);
+  assert.doesNotMatch(src, /Do not build automatically\./, 'the unconditional pause is gone');
+});
+
+test('build obeys the acceptance-suite, commit, rewalk-check and walk-after-build steps', async () => {
+  const src = await read('commands/karto-build.md');
+  assert.match(src, /scripts\/automation\.js \. show/, 'build reads the policy first');
+  for (const step of ['acceptance-suite', 'commit', 'rewalk-check', 'walk-after-build']) {
+    assert.match(src, new RegExp(step), `build names the ${step} step`);
+  }
+});
+
+test('build-all passes the policy into the workflow, since the workflow cannot read it', async () => {
+  const cmd = await read('commands/karto-build-all.md');
+  assert.match(cmd, /scripts\/automation\.js \. get/);
+  assert.match(cmd, /"automation":/);
+  const wf = await read('workflows/internal/build-all.js');
+  assert.match(wf, /a\.automation/);
+});

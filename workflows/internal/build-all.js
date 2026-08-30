@@ -8,7 +8,12 @@
 // subagents), and the final maturity reconcile + validate are done by the
 // /karto-build-all command around this workflow — this workflow never writes the map.
 //
-// args: { plan, projectRoot, pluginRoot }
+// args: { plan, projectRoot, pluginRoot, automation }
+//
+// `automation` is the project's automation policy (workflows/lib/automation.js), read by
+// the command and passed in — this script cannot touch the filesystem. Only two of its
+// steps mean anything here, since build-all is autonomous by definition: `acceptance-suite`
+// (how much of the outer loop each subagent runs) and `commit`.
 
 export const meta = {
   name: 'karto-build-all',
@@ -24,6 +29,20 @@ if (typeof a === 'string') { try { a = JSON.parse(a) || {}; } catch { a = {}; } 
 const plan = a.plan || { order: [], skippedEmpty: [] };
 const projectRoot = a.projectRoot || '.';
 const pluginRoot = a.pluginRoot || '.';
+const automation = a.automation || {};
+const suite = ['full', 'scenario', 'off'].includes(automation['acceptance-suite'])
+  ? automation['acceptance-suite'] : 'scenario';
+const commitMode = automation.commit === 'manual' ? 'manual' : 'auto';
+
+const OUTER_LOOP = {
+  full: "Outer loop: run the project's WHOLE acceptance/e2e suite for each scenario if a runner exists; else rely on unit tests.",
+  scenario: "Outer loop: run ONLY the scenario being built through the project's acceptance runner (select it by name or tag, e.g. --name/--tags), if a runner exists; else rely on unit tests. Do NOT run the whole suite.",
+  off: 'Outer loop: DISABLED by the project automation policy — do not run the acceptance suite at all; unit tests are your only signal.',
+}[suite];
+
+const COMMIT_LINE = commitMode === 'auto'
+  ? '- Commit your work for this capability.'
+  : '- Do NOT commit: the project automation policy leaves committing to the human. Leave your work in the working tree.';
 
 const BUILD_RESULT = {
   type: 'object',
@@ -49,8 +68,8 @@ ${scenarios}
 
 How to build (double-loop, outside-in TDD):
 - Work scenarios in order @happy -> @edge -> @error.
-- Outer loop: drive each scenario through the project's acceptance runner if one exists; else rely
-  on unit tests. Inner loop: write a failing unit test, watch it fail, minimal code to pass, refactor
+- ${OUTER_LOOP}
+- Inner loop: write a failing unit test, watch it fail, minimal code to pass, refactor
   while green. No production code without a failing test you saw fail.
 - Build the WHOLE VERTICAL SLICE: every layer the scenario crosses (frontend, backend/API, worker,
   persistence) must be wired together so the scenario is walkable END-TO-END through the real UI /
@@ -66,7 +85,7 @@ Definition of done per scenario — the user can walk it:
   list it under scenariosLeftOpen with a one-line reason.
 
 Finish:
-- Commit your work for this capability.
+${COMMIT_LINE}
 - Return ONLY the result object: status 'built' (all scenarios Developed), 'partial' (some), or
   'failed' (none); scenariosDeveloped and scenariosLeftOpen arrays of scenario names; note = one-line
   reason when partial/failed.`;
