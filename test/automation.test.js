@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import {
-  STEPS, STEP_KEYS, DEFAULT_PLAN, MODE_LABELS, isMode, step,
+  STEPS, STEP_KEYS, DEFAULT_PLAN, MODE_LABELS, modeLabel, isMode, step,
   normalizePlan, mergePlan, stepMode, describePlan, questionnaire, planFromAnswers,
 } from '../workflows/lib/automation.js';
 import { readPlan, writePlan } from '../workflows/lib/automation-store.js';
@@ -20,26 +20,27 @@ const tmpProject = async () => {
 test('the catalogue covers the pipeline and every step declares a valid default', () => {
   assert.deepEqual(STEP_KEYS, [
     'chart-after-explore', 'build-after-chart', 'acceptance-suite',
-    'commit', 'rewalk-check', 'walk-after-build',
+    'commit', 'rewalk-check', 'walk-after-build', 'walk-driver',
   ]);
   for (const s of STEPS) {
     assert.ok(s.modes.includes(s.default), `${s.key} default is one of its modes`);
     assert.ok(s.title && s.when, `${s.key} is described`);
     for (const m of s.modes) {
-      assert.ok(MODE_LABELS[m], `mode ${m} has a label`);
+      assert.ok(modeLabel(s.key, m), `mode ${m} has a label`);
       assert.ok(s.hints[m], `${s.key} explains mode ${m}`);
     }
   }
 });
 
-test('the defaults keep the old ask-before-continuing behaviour but stop running the full suite', () => {
+test('the defaults ask before charting and building, but walk without being asked', () => {
   assert.deepEqual(DEFAULT_PLAN, {
     'chart-after-explore': 'ask',
     'build-after-chart': 'ask',
     'acceptance-suite': 'scenario',
     commit: 'auto',
     'rewalk-check': 'auto',
-    'walk-after-build': 'manual',
+    'walk-after-build': 'auto',
+    'walk-driver': 'auto',
   });
 });
 
@@ -92,7 +93,7 @@ test('mergePlan reads an override in the stored envelope shape too', () => {
 
 test('stepMode defaults safely and rejects an unknown step', () => {
   assert.equal(stepMode({}, 'commit'), 'auto');
-  assert.equal(stepMode(null, 'walk-after-build'), 'manual');
+  assert.equal(stepMode(null, 'walk-after-build'), 'auto');
   assert.equal(stepMode({ commit: 'bogus' }, 'commit'), 'auto');
   assert.equal(stepMode({ commit: 'manual' }, 'commit'), 'manual');
   assert.throws(() => stepMode({}, 'nope'), /unknown automation step/);
@@ -107,6 +108,14 @@ test('describePlan renders one labelled, explained row per step in catalogue ord
   assert.match(suite.hint, /unit-test/);
 });
 
+test('a step can override a mode label where the generic word reads wrong', () => {
+  assert.equal(modeLabel('commit', 'auto'), 'Automatically', 'no override, generic label');
+  assert.equal(modeLabel('walk-driver', 'auto'), 'Detect', 'auto means "work it out" here');
+  assert.equal(modeLabel('walk-driver', 'manual'), 'Never drive');
+  assert.equal(modeLabel('walk-driver', 'chrome'), MODE_LABELS.chrome, 'falls through when not overridden');
+  assert.equal(describePlan(DEFAULT_PLAN).find((r) => r.key === 'walk-driver').label, 'Detect');
+});
+
 test('the questionnaire fits AskUserQuestion: at most 4 questions of at most 4 options', () => {
   const qs = questionnaire(DEFAULT_PLAN);
   assert.ok(qs.length <= 4, `${qs.length} questions`);
@@ -118,11 +127,13 @@ test('the questionnaire fits AskUserQuestion: at most 4 questions of at most 4 o
   }
 });
 
-test('the questionnaire covers every step exactly once and lists the current mode first', () => {
+test('the questionnaire covers every asked step exactly once and lists the current mode first', () => {
   const plan = { ...DEFAULT_PLAN, 'acceptance-suite': 'off', 'chart-after-explore': 'auto' };
   const qs = questionnaire(plan);
   const covered = qs.flatMap((q) => q.options.map((o) => o.step));
-  assert.deepEqual([...new Set(covered)].sort(), [...STEP_KEYS].sort());
+  const asked = STEPS.filter((s) => s.group !== 'cli').map((s) => s.key);
+  assert.deepEqual([...new Set(covered)].sort(), [...asked].sort());
+  assert.equal(covered.includes('walk-driver'), false, 'a cli step is never asked');
   const single = qs.filter((q) => !q.multiSelect);
   for (const q of single) {
     assert.equal(q.options[0].mode, stepMode(plan, q.options[0].step), 'current mode leads');
@@ -133,6 +144,8 @@ test('the questionnaire covers every step exactly once and lists the current mod
 
 test('planFromAnswers applies the picks and reads an unchecked toggle as manual', () => {
   const base = { ...DEFAULT_PLAN, commit: 'auto', 'rewalk-check': 'auto', 'walk-after-build': 'auto' };
+  // walk-driver is a `cli` step: the questionnaire never offers it, so it must survive
+  // untouched rather than being read as an unchecked toggle.
   const plan = planFromAnswers(base, [
     { step: 'chart-after-explore', mode: 'auto' },
     { step: 'acceptance-suite', mode: 'full' },
@@ -144,6 +157,7 @@ test('planFromAnswers applies the picks and reads an unchecked toggle as manual'
   assert.equal(plan['rewalk-check'], 'manual', 'unchecked toggle is turned off');
   assert.equal(plan['walk-after-build'], 'manual', 'unchecked toggle is turned off');
   assert.equal(plan['build-after-chart'], 'ask', 'an unanswered single-choice step keeps its base value');
+  assert.equal(plan['walk-driver'], 'auto', 'a cli-only step is not turned off by the questionnaire');
 });
 
 test('planFromAnswers ignores selections that are not in the catalogue', () => {

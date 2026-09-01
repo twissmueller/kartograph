@@ -19,8 +19,9 @@ one build subagent per capability — invoking the command is your opt-in.
 
 2a. **Read the automation policy** — the workflow cannot touch the filesystem, so it has to be
    passed in: `node ${CLAUDE_PLUGIN_ROOT}/scripts/automation.js . get`. Only two of its steps
-   apply here, because build-all is autonomous by definition and never asks: `acceptance-suite`
-   (how much of the outer loop each subagent runs) and `commit`. The rest are ignored.
+   apply to the autonomous part, because build-all never asks mid-run: `acceptance-suite` (how
+   much of the outer loop each subagent runs) and `commit`. `walk-after-build` applies at the
+   very end, in step 6. The rest are ignored.
 
 3. **Run the orchestrator workflow** via the **Workflow** tool:
    - `scriptPath: ${CLAUDE_PLUGIN_ROOT}/workflows/internal/build-all.js`
@@ -40,4 +41,13 @@ one build subagent per capability — invoking the command is your opt-in.
    - **Failed** — capability + reason.
    - **Skipped (blocked)** — capability + which failed dependency blocked it.
    - **Skipped (empty)** — capability has no charted scenarios.
-   Close with: "Walk the Developed scenarios and mark them **Accepted** on the Board once confirmed."
+
+6. **Hand off to the walk**, honouring `walk-after-build` from the policy you read in step 2a.
+   Build-all runs without questions, but a *walk* is a conversation with a person, so it happens
+   after the autonomous part is over, not inside it:
+   - `auto` (the default) → continue into **`/karto-walk`**, scoped to what you just built, and
+     say so: it opens their app and drives each new scenario in front of them, asking after each
+     one whether it was implemented correctly.
+   - `manual` → close with: "Walk the Developed scenarios and mark them **Accepted** on the Board
+     once confirmed."
+

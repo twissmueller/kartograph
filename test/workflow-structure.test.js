@@ -173,3 +173,33 @@ test('build-all passes the policy into the workflow, since the workflow cannot r
   const wf = await read('workflows/internal/build-all.js');
   assert.match(wf, /a\.automation/);
 });
+
+test('walk names both drivers, honours walk-driver, and still routes state through set-tracking', async () => {
+  const src = await read('commands/karto-walk.md');
+  assert.match(src, /scripts\/automation\.js" \. get walk-driver/);
+  assert.match(src, /mcp__claude-in-chrome__/, 'names the Claude in Chrome tools');
+  assert.match(src, /mcp__plugin_playwright_playwright__/, 'names the Playwright tools');
+  assert.match(src, /scripts\/set-tracking\.js/, 'state still flows through the deterministic CLI');
+  assert.match(src, /list-tracking\.js" \. developed/, 'still walks Developed scenarios only');
+});
+
+test('walk keeps the agent from accepting its own work', async () => {
+  const src = await read('commands/karto-walk.md');
+  // The whole point of automating the walk is that the agent PRESENTS and VERIFIES; the
+  // person still decides. If these guardrails ever go missing the command becomes a way to
+  // self-certify, and Accepted stops meaning anything.
+  assert.match(src, /observation is never the verdict/i);
+  assert.match(src, /Pass, Fail, or Skip/, 'asks after every scenario');
+  assert.match(src, /never.{0,40}mark it Accepted/is);
+  assert.match(src, /Stop rather than improvise/i, 'no retrying until something passes');
+  assert.match(src, /destructive/i, 'confirms before destructive actions');
+  assert.match(src, /alert.*confirm.*prompt/s, 'avoids blocking browser dialogs');
+});
+
+test('build and build-all both hand off to the walk', async () => {
+  for (const cmd of ['commands/karto-build.md', 'commands/karto-build-all.md']) {
+    const src = await read(cmd);
+    assert.match(src, /walk-after-build/, `${cmd} reads the step`);
+    assert.match(src, /\/karto-walk/, `${cmd} hands off to the walk`);
+  }
+});

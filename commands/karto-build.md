@@ -45,9 +45,9 @@ forced or hand-edited `.feature` is not.
    node ${CLAUDE_PLUGIN_ROOT}/scripts/automation.js . show
    ```
 
-   Three of its steps govern this command: `acceptance-suite` (how much of the outer loop runs),
-   `commit` (whether finished scenarios are committed), and `walk-after-build` and `rewalk-check`
-   (what happens when the build is done). If the build was reached from a specific survey, pass
+   Four of its steps govern this command: `acceptance-suite` (how much of the outer loop runs),
+   `commit` (whether finished scenarios are committed), and `rewalk-check` and `walk-after-build`
+   (what happens when the build is done — by default the new scenarios are walked immediately). If the build was reached from a specific survey, pass
    `--survey <survey>` so that survey's own stamp wins. Say in one line which policy you are
    working under, so the user can see why the full suite did or did not run.
 
@@ -120,6 +120,11 @@ forced or hand-edited `.feature` is not.
 
 6. Stop when every open scenario for the capability is at least **Developed**, and report what
    moved (and which scenarios are now waiting on the user's Accept). Then honour
-   `walk-after-build`: `auto` → say the automation policy walks them, and continue straight into
-   **`/karto-walk <capability>`**; `manual` → stop, and tell them `/karto-walk <capability>` is
-   how those scenarios become Accepted.
+   `walk-after-build`:
+   - `auto` (the default) → continue straight into **`/karto-walk <capability>`**. Say you are
+     doing so first: the walk opens their app and drives each new scenario in front of them, one
+     at a time, asking after each one whether it was implemented correctly. Their answers are
+     what move scenarios to **Accepted** — the walk presents and verifies, it never accepts on
+     its own.
+   - `manual` → stop, and tell them `/karto-walk <capability>` is how those scenarios become
+     Accepted.

@@ -77,7 +77,7 @@ between each:
 | **Explore** | Discovery | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + a converging interview), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
 | **Chart** | Formulation | `/karto-chart` | Record the approved survey: update `.kartograph/kartograph.json`, grow the `knowledge/` glossary bundle, write `.feature` scenarios in Gherkin, add ADRs. |
 | **Build** | Automation (ATDD) | `/karto-build <capability>` | Implement the open scenarios with **double-loop TDD**: the acceptance scenario is the outer loop, red–green–refactor unit testing is the inner loop. |
-| **Walk** | Acceptance | `/karto-walk [scope]` | Walk a person through the **Developed** scenarios one at a time, in front of the running app, in plain language. Pass marks a scenario **Accepted**; Fail records why (a scenario note) and points you at `/karto-build`. The only way to reach Accepted. |
+| **Walk** | Acceptance | `/karto-walk [scope]` | **Drives your running app** — via the Claude in Chrome extension or Playwright — performing each **Developed** scenario in front of you, one at a time, in plain language. It both shows you what was built and checks it works, then asks after every scenario whether it was implemented correctly. Pass marks it **Accepted**; Fail records why (a scenario note) and points you at `/karto-build`. The only way to reach Accepted. |
 
 The outer loop is what makes agentic development converge instead of drift: the agent's
 starting prompt *is* a set of acceptance criteria, it can self-verify against them, and the
@@ -114,7 +114,8 @@ you already made about a feature that's mid-flight.
 | `acceptance-suite` | build's outer loop | full suite · only this scenario · skip | only this scenario |
 | `commit` | after each scenario is Developed | automatically · only when I ask | automatically |
 | `rewalk-check` | end of build | automatically · only when I ask | automatically |
-| `walk-after-build` | end of build | automatically · only when I ask | only when I ask |
+| `walk-after-build` | end of build | automatically · only when I ask | automatically |
+| `walk-driver` | how a walk is driven | detect · Claude in Chrome · Playwright · never drive | detect |
 
 Read or change the policy directly at any time:
 
@@ -123,9 +124,15 @@ node scripts/automation.js . show                    # the policy, explained
 node scripts/automation.js . set acceptance-suite full commit manual
 ```
 
+`walk-driver` is the one knob the questionnaire doesn't ask about — it's detected (Claude in
+Chrome if available, else Playwright, else it just reads the steps out for you) and you override
+it only if you want to. Set it to `manual` for a CLI, a TUI, or anything without a web UI.
+
 Two things are deliberately **not** optional, because they are correctness gates rather than
 preferences: the maturity reconcile-and-validate after a build, and the unit-test inner loop of
-the double loop.
+the double loop. A third is not optional either, for a different reason: **the agent never
+accepts its own work.** It can drive your app and tell you what it saw, but a scenario only
+becomes **Accepted** when *you* say it was implemented correctly.
 
 `/karto-build-all [scope]` builds every open scenario in a scope autonomously — the whole map,
 `context:<slug>`, or a `<capability-slug>` (and its dependencies). It computes a dependency-ordered

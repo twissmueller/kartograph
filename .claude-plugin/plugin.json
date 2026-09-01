@@ -1,7 +1,7 @@
 {
   "name": "kartograph",
   "description": "Living map of a software system: explore, chart, build, walk, and keep in sync through schema-gated workflows, shown in a desktop app.",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "author": { "name": "Tobias Wissmüller", "email": "tobias@wissmueller.net" },
   "commands": [
     "./commands/karto-explore.md",

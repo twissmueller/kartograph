@@ -22,6 +22,8 @@
 //   full     — (acceptance-suite) run the project's whole acceptance suite
 //   scenario — (acceptance-suite) run only the scenario being built
 //   off      — (acceptance-suite) skip the outer loop; unit tests are the only signal
+// A step may override one of these when the generic word reads wrong for it — `auto` means
+// "do it without asking" for most steps, but "work it out yourself" for `walk-driver`.
 export const MODE_LABELS = {
   auto: 'Automatically',
   ask: 'Ask me each time',
@@ -29,11 +31,16 @@ export const MODE_LABELS = {
   full: 'Full suite',
   scenario: 'Only this scenario',
   off: 'Skip the suite',
+  chrome: 'Claude in Chrome',
+  playwright: 'Playwright',
 };
 
 // The step catalogue, in pipeline order. `question`/`hints` drive the questionnaire;
-// `group` is how the step is asked (`single` = its own question, `toggle` = one option
-// of the shared "which of these happen without asking" multi-select).
+// `group` is how the step is asked — `single` = its own question, `toggle` = one option of
+// the shared "which of these happen without asking" multi-select, and `cli` = not asked at
+// all, only set with `scripts/automation.js set`. A `cli` step is for a knob whose sensible
+// value is detected rather than chosen, which would only pad a questionnaire that is already
+// at AskUserQuestion's four-question ceiling.
 export const STEPS = [
   {
     key: 'chart-after-explore',
@@ -109,11 +116,26 @@ export const STEPS = [
     title: 'Walk the new scenarios',
     when: 'at the end of /karto-build',
     modes: ['auto', 'manual'],
-    default: 'manual',
+    default: 'auto',
     group: 'toggle',
     hints: {
-      auto: 'Start /karto-walk on the built capability as soon as the build finishes.',
+      auto: 'Run /karto-walk as soon as the build finishes: drive each new scenario through the running app, show you what it does, and ask you to confirm it.',
       manual: 'Report what is waiting for acceptance; you run /karto-walk when you are ready.',
+    },
+  },
+  {
+    key: 'walk-driver',
+    title: 'How a walk is driven',
+    when: 'throughout /karto-walk',
+    modes: ['auto', 'chrome', 'playwright', 'manual'],
+    default: 'auto',
+    group: 'cli',
+    labels: { auto: 'Detect', manual: 'Never drive' },
+    hints: {
+      auto: 'Detect it: prefer Claude in Chrome (you watch it happen in your own browser), else Playwright, else read the steps out for you to perform.',
+      chrome: 'Always drive the walk with the Claude in Chrome extension.',
+      playwright: 'Always drive the walk with the Playwright MCP browser.',
+      manual: 'Never drive the app — read each scenario out and let the person perform it. The right choice for a CLI, a TUI or a native app with no web UI.',
     },
   },
 ];
@@ -130,6 +152,12 @@ export function step(key) { return BY_KEY.get(key); }
 export const DEFAULT_PLAN = Object.freeze(
   Object.fromEntries(STEPS.map((s) => [s.key, s.default])),
 );
+
+// The label for a mode in the context of one step, honouring the step's override.
+export function modeLabel(key, mode) {
+  const s = BY_KEY.get(key);
+  return (s && s.labels && s.labels[mode]) || MODE_LABELS[mode];
+}
 
 export function isMode(key, mode) {
   const s = BY_KEY.get(key);
@@ -189,7 +217,7 @@ export function stepMode(plan, key) {
 export function describePlan(plan) {
   return STEPS.map((s) => {
     const mode = stepMode(plan, s.key);
-    return { key: s.key, title: s.title, when: s.when, mode, label: MODE_LABELS[mode], hint: s.hints[mode] };
+    return { key: s.key, title: s.title, when: s.when, mode, label: modeLabel(s.key, mode), hint: s.hints[mode] };
   });
 }
 
@@ -207,7 +235,7 @@ export function questionnaire(plan) {
       header: s.header,
       multiSelect: false,
       options: modes.map((m) => ({
-        label: MODE_LABELS[m] + (m === current ? ' (current)' : ''),
+        label: modeLabel(s.key, m) + (m === current ? ' (current)' : ''),
         description: s.hints[m],
         mode: m,
         step: s.key,

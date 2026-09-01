@@ -30,6 +30,19 @@ node scripts/validate-discovery.js <survey.discovery.json>
 installed plugin both compare the manifest `version`, so an un-bumped release is invisible
 downstream. Feature commits here are patch bumps (the log uses `feat(...): … (vX.Y.Z)`).
 
+**Then tag it.** Every release carries an annotated tag `vX.Y.Z` on the release commit,
+matching the three manifests exactly, and the tag is pushed with the commit:
+
+```bash
+git tag -a v0.20.0 -m "v0.20.0 — <the one-line headline>"
+git push origin main && git push origin v0.20.0
+```
+
+This repo is its own plugin marketplace (`.claude-plugin/marketplace.json` has
+`"source": "./"`), so the catalog resolves against **`main`** — a release has to land there to
+be installable, and the tag is what makes the released commit findable afterwards. Tagging
+started at v0.19.0; earlier releases are untagged.
+
 ## The core architectural rule: who is allowed to write the map
 
 Every map mutation flows through three distinct layers with a strict division of labor.
@@ -150,7 +163,8 @@ source of truth for the catalogue, and `scripts/automation.js` is the only way c
 | `acceptance-suite` | build's outer loop | `full` \| `scenario` \| `off` | `scenario` |
 | `commit` | after each scenario is Developed | `auto` \| `manual` | `auto` |
 | `rewalk-check` | end of build | `auto` \| `manual` | `auto` |
-| `walk-after-build` | end of build | `auto` \| `manual` | `manual` |
+| `walk-after-build` | end of build | `auto` \| `manual` | `auto` |
+| `walk-driver` | how `/karto-walk` drives | `auto` \| `chrome` \| `playwright` \| `manual` | `auto` |
 
 ```bash
 node scripts/automation.js . show                     # the policy, explained
@@ -170,6 +184,11 @@ Rules any code touching this must preserve:
   guarded by a test). `mergePlan(projectPolicy, survey.automation)` — the survey's stamp wins
   for the run that survey drives, so changing the defaults later never rewrites a decision the
   user already made about a specific feature. `--survey` on the CLI does exactly this.
+- **A `cli` step is not asked.** `walk-driver`'s sensible value is *detected*, not chosen, and
+  AskUserQuestion is already at its four-question ceiling, so the step carries `group: 'cli'`:
+  it is stored and read like any other, but `questionnaire()` skips it and `planFromAnswers`
+  must leave it alone (an unchecked box means `manual` only for `toggle` steps). Put a new knob
+  in `cli` unless a person genuinely needs to be asked.
 - **The questionnaire is generated, not written by hand.** `questionnaire(plan)` emits the
   AskUserQuestion payload with each step's *current* mode listed first, sized to fit that tool's
   limits (≤4 questions, ≤4 options, 12-char headers — asserted by a test). The commands print it
@@ -183,6 +202,22 @@ Rules any code touching this must preserve:
 - **Workflows cannot read it.** `workflows/internal/build-all.js` can't touch the filesystem, so
   `/karto-build-all` reads the policy and passes it in `args.automation`; the script re-validates
   what it gets and falls back to the defaults.
+
+### The walk is driven, but never self-accepted (`commands/karto-walk.md`)
+
+`/karto-walk` is the only path to **Accepted**, and by default `/karto-build` and
+`/karto-build-all` run it as soon as they finish. Where the product has a web UI, the command
+*drives* it — Claude in Chrome preferred (the person watches their own browser), Playwright
+otherwise, `walk-driver` to pin or disable it — performing each scenario's Given/When/Then in
+front of the person so the walk both **presents** what was built and **verifies** it works.
+
+The guardrail that makes this safe to automate: **driving is not accepting.** The agent may
+report what it observed; only the person's answer to "was this implemented correctly?", asked
+after every single scenario, moves anything, and it still moves through `set-tracking.js`. An
+agent that cannot reach a `Given` or find a `When`'s control must **stop and say where it got
+stuck** — never retry until something passes, never touch the app or the `.feature` file to make
+a scenario walkable. A scenario that could not be driven is a finding about the product, and it
+belongs in the walk's summary.
 
 ### Maturity is derived, never declared (`workflows/lib/maturity-derive.js`)
 

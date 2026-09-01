@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { readPlan, writePlan } from '../workflows/lib/automation-store.js';
 import {
-  STEPS, STEP_KEYS, MODE_LABELS, isMode, describePlan, questionnaire, stepMode, mergePlan,
+  STEPS, STEP_KEYS, modeLabel, isMode, describePlan, questionnaire, stepMode, mergePlan,
 } from '../workflows/lib/automation.js';
 
 const USAGE = `usage:
@@ -78,7 +78,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
     const next = mergePlan(plan, override);
     await writePlan(root, next);
-    for (const key of Object.keys(override)) console.log(`set ${key} -> ${override[key]} (${MODE_LABELS[override[key]]})`);
+    for (const key of Object.keys(override)) console.log(`set ${key} -> ${override[key]} (${modeLabel(key, override[key])})`);
   } else if (cmd === 'questions') {
     console.log(JSON.stringify(questionnaire(plan), null, 2));
   } else if (cmd === 'init') {

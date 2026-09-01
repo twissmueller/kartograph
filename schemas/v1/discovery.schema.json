@@ -171,7 +171,8 @@
         "acceptance-suite": { "enum": ["full", "scenario", "off"] },
         "commit": { "enum": ["auto", "manual"] },
         "rewalk-check": { "enum": ["auto", "manual"] },
-        "walk-after-build": { "enum": ["auto", "manual"] }
+        "walk-after-build": { "enum": ["auto", "manual"] },
+        "walk-driver": { "enum": ["auto", "chrome", "playwright", "manual"] }
       }
     }
   }
