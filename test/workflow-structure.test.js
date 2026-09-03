@@ -174,11 +174,14 @@ test('build-all passes the policy into the workflow, since the workflow cannot r
   assert.match(wf, /a\.automation/);
 });
 
-test('walk names both drivers, honours walk-driver, and still routes state through set-tracking', async () => {
+test('walk names all three drivers, honours walk-driver, and still routes state through set-tracking', async () => {
   const src = await read('commands/karto-walk.md');
   assert.match(src, /scripts\/automation\.js" \. get walk-driver/);
   assert.match(src, /mcp__claude-in-chrome__/, 'names the Claude in Chrome tools');
   assert.match(src, /mcp__plugin_playwright_playwright__/, 'names the Playwright tools');
+  assert.match(src, /mcp__compose-hot-reload__/, 'names the Compose Hot Reload MCP tools');
+  assert.match(src, /hotMcpServerJvm/, 'names the Gradle task that serves them');
+  assert.match(src, /get_semantic_tree/, 'reads a Compose window through its semantic tree');
   assert.match(src, /scripts\/set-tracking\.js/, 'state still flows through the deterministic CLI');
   assert.match(src, /list-tracking\.js" \. developed/, 'still walks Developed scenarios only');
 });
@@ -194,6 +197,20 @@ test('walk keeps the agent from accepting its own work', async () => {
   assert.match(src, /Stop rather than improvise/i, 'no retrying until something passes');
   assert.match(src, /destructive/i, 'confirms before destructive actions');
   assert.match(src, /alert.*confirm.*prompt/s, 'avoids blocking browser dialogs');
+  // Through Compose Hot Reload the agent could swap the build under test for whatever is on
+  // disk; a walk that reloads is no longer verifying what was handed over.
+  assert.match(src, /Never reload, restart or reset the app under test/);
+  assert.match(src, /`reload`, `restart` and `reset_ui` are off limits/);
+  assert.match(src, /desktop \(JVM\) target only/, 'says what a Compose walk did not cover');
+});
+
+test('build uses Compose Hot Reload as the outer loop\'s eyes, never as a verdict', async () => {
+  const src = await read('commands/karto-build.md');
+  assert.match(src, /mcp__compose-hot-reload__/, 'names the MCP tools');
+  assert.match(src, /`reload` after each green inner loop/);
+  assert.match(src, /get_ui_error/);
+  assert.match(src, /never marks\s+anything/, 'a screenshot is not Developed, let alone Accepted');
+  assert.match(src, /do not\s+add the plugin to the project/i, 'never changes the project to get the tool');
 });
 
 test('build and build-all both hand off to the walk', async () => {

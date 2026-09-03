@@ -113,6 +113,7 @@ test('a step can override a mode label where the generic word reads wrong', () =
   assert.equal(modeLabel('walk-driver', 'auto'), 'Detect', 'auto means "work it out" here');
   assert.equal(modeLabel('walk-driver', 'manual'), 'Never drive');
   assert.equal(modeLabel('walk-driver', 'chrome'), MODE_LABELS.chrome, 'falls through when not overridden');
+  assert.equal(modeLabel('walk-driver', 'compose'), 'Compose Hot Reload', 'a Compose window is driven through its MCP server');
   assert.equal(describePlan(DEFAULT_PLAN).find((r) => r.key === 'walk-driver').label, 'Detect');
 });
 

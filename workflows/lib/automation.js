@@ -33,6 +33,7 @@ export const MODE_LABELS = {
   off: 'Skip the suite',
   chrome: 'Claude in Chrome',
   playwright: 'Playwright',
+  compose: 'Compose Hot Reload',
 };
 
 // The step catalogue, in pipeline order. `question`/`hints` drive the questionnaire;
@@ -127,15 +128,16 @@ export const STEPS = [
     key: 'walk-driver',
     title: 'How a walk is driven',
     when: 'throughout /karto-walk',
-    modes: ['auto', 'chrome', 'playwright', 'manual'],
+    modes: ['auto', 'chrome', 'playwright', 'compose', 'manual'],
     default: 'auto',
     group: 'cli',
     labels: { auto: 'Detect', manual: 'Never drive' },
     hints: {
-      auto: 'Detect it: prefer Claude in Chrome (you watch it happen in your own browser), else Playwright, else read the steps out for you to perform.',
+      auto: 'Detect it: a Compose Multiplatform app is driven through its Compose Hot Reload MCP server; a web UI through Claude in Chrome (you watch it happen in your own browser), else Playwright; anything else is read out for you to perform.',
       chrome: 'Always drive the walk with the Claude in Chrome extension.',
       playwright: 'Always drive the walk with the Playwright MCP browser.',
-      manual: 'Never drive the app — read each scenario out and let the person perform it. The right choice for a CLI, a TUI or a native app with no web UI.',
+      compose: 'Always drive the walk through the Compose Hot Reload MCP server (`./gradlew hotMcpServer`) of a Compose Multiplatform app — the running desktop window, not a browser.',
+      manual: 'Never drive the app — read each scenario out and let the person perform it. The right choice for a CLI, a TUI or a native app with no web UI and no Compose Hot Reload.',
     },
   },
 ];

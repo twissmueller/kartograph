@@ -164,7 +164,7 @@ source of truth for the catalogue, and `scripts/automation.js` is the only way c
 | `commit` | after each scenario is Developed | `auto` \| `manual` | `auto` |
 | `rewalk-check` | end of build | `auto` \| `manual` | `auto` |
 | `walk-after-build` | end of build | `auto` \| `manual` | `auto` |
-| `walk-driver` | how `/karto-walk` drives | `auto` \| `chrome` \| `playwright` \| `manual` | `auto` |
+| `walk-driver` | how `/karto-walk` drives | `auto` \| `chrome` \| `playwright` \| `compose` \| `manual` | `auto` |
 
 ```bash
 node scripts/automation.js . show                     # the policy, explained
@@ -206,10 +206,17 @@ Rules any code touching this must preserve:
 ### The walk is driven, but never self-accepted (`commands/karto-walk.md`)
 
 `/karto-walk` is the only path to **Accepted**, and by default `/karto-build` and
-`/karto-build-all` run it as soon as they finish. Where the product has a web UI, the command
-*drives* it — Claude in Chrome preferred (the person watches their own browser), Playwright
+`/karto-build-all` run it as soon as they finish. Where the product has a drivable UI, the
+command *drives* it — a Compose Multiplatform app through its **Compose Hot Reload MCP server**
+(`./gradlew :<app>:hotMcpServerJvm`, registered by the project, not by the plugin; it drives the
+desktop/JVM window, which is a proxy for the shared UI but proves nothing platform-specific),
+a web UI through Claude in Chrome preferred (the person watches their own browser), Playwright
 otherwise, `walk-driver` to pin or disable it — performing each scenario's Given/When/Then in
 front of the person so the walk both **presents** what was built and **verifies** it works.
+The same server is `/karto-build`'s eyes: after each green inner loop it may `reload` and look
+at the window (`get_ui_error`, `take_screenshot`, `get_semantic_tree`) to see the slice is
+wired. The walk uses only its read-and-click tools — `reload`, `restart` and `reset_ui` would
+swap the build under test for whatever is on disk, so they are off limits during a walk.
 
 The guardrail that makes this safe to automate: **driving is not accepting.** The agent may
 report what it observed; only the person's answer to "was this implemented correctly?", asked

@@ -77,7 +77,7 @@ between each:
 | **Explore** | Discovery | `/karto-explore <feature>` | Survey a feature *with you* (brainstorm + a converging interview), then discover Subjects, Events, Actors, Rules, affected and candidate Capabilities, and ADR candidates. Read-only — writes a survey, nothing else. |
 | **Chart** | Formulation | `/karto-chart` | Record the approved survey: update `.kartograph/kartograph.json`, grow the `knowledge/` glossary bundle, write `.feature` scenarios in Gherkin, add ADRs. |
 | **Build** | Automation (ATDD) | `/karto-build <capability>` | Implement the open scenarios with **double-loop TDD**: the acceptance scenario is the outer loop, red–green–refactor unit testing is the inner loop. |
-| **Walk** | Acceptance | `/karto-walk [scope]` | **Drives your running app** — via the Claude in Chrome extension or Playwright — performing each **Developed** scenario in front of you, one at a time, in plain language. It both shows you what was built and checks it works, then asks after every scenario whether it was implemented correctly. Pass marks it **Accepted**; Fail records why (a scenario note) and points you at `/karto-build`. The only way to reach Accepted. |
+| **Walk** | Acceptance | `/karto-walk [scope]` | **Drives your running app** — via the Claude in Chrome extension, Playwright, or a Compose Multiplatform app's Compose Hot Reload MCP server — performing each **Developed** scenario in front of you, one at a time, in plain language. It both shows you what was built and checks it works, then asks after every scenario whether it was implemented correctly. Pass marks it **Accepted**; Fail records why (a scenario note) and points you at `/karto-build`. The only way to reach Accepted. |
 
 The outer loop is what makes agentic development converge instead of drift: the agent's
 starting prompt *is* a set of acceptance criteria, it can self-verify against them, and the
@@ -115,7 +115,7 @@ you already made about a feature that's mid-flight.
 | `commit` | after each scenario is Developed | automatically · only when I ask | automatically |
 | `rewalk-check` | end of build | automatically · only when I ask | automatically |
 | `walk-after-build` | end of build | automatically · only when I ask | automatically |
-| `walk-driver` | how a walk is driven | detect · Claude in Chrome · Playwright · never drive | detect |
+| `walk-driver` | how a walk is driven | detect · Claude in Chrome · Playwright · Compose Hot Reload · never drive | detect |
 
 Read or change the policy directly at any time:
 
@@ -124,9 +124,14 @@ node scripts/automation.js . show                    # the policy, explained
 node scripts/automation.js . set acceptance-suite full commit manual
 ```
 
-`walk-driver` is the one knob the questionnaire doesn't ask about — it's detected (Claude in
-Chrome if available, else Playwright, else it just reads the steps out for you) and you override
-it only if you want to. Set it to `manual` for a CLI, a TUI, or anything without a web UI.
+`walk-driver` is the one knob the questionnaire doesn't ask about — it's detected (a Compose
+Multiplatform app through its [Compose Hot Reload](https://github.com/JetBrains/compose-hot-reload#mcp-server-for-ai-agents)
+MCP server, a web UI through Claude in Chrome if available, else Playwright, else it just reads
+the steps out for you) and you override it only if you want to. Set it to `manual` for a CLI, a
+TUI, or anything without a drivable UI. The Compose driver needs the project to register the
+server itself (`./gradlew :<app>:hotMcpServerJvm` in its `.mcp.json`); `/karto-build` uses the
+same server to reload and look at the running window after each green inner loop, and the walk
+uses only its read-and-click tools — never `reload`, `restart` or `reset_ui`.
 
 Two things are deliberately **not** optional, because they are correctness gates rather than
 preferences: the maturity reconcile-and-validate after a build, and the unit-test inner loop of

@@ -90,6 +90,21 @@ forced or hand-edited `.feature` is not.
      way, work through **every layer the scenario crosses** — when the backend behaviour is
      green, keep going and wire it up through to the user-facing entry point, so the outcome is
      reachable and confirmable from the real UI.
+   - **See it in the running app when you can — Compose Hot Reload.** If the project is a
+     Compose Multiplatform app that applies the `org.jetbrains.compose.hot-reload` Gradle plugin
+     and its MCP server is registered (the tools of `./gradlew hotMcpServerJvm`, conventionally
+     `mcp__compose-hot-reload__*`; load them in one `ToolSearch` call), use it as the outer
+     loop's eyes once the inner loop is green: ask the person to start the app with the
+     hot-reload run task (`./gradlew :<app>:hotRunJvm`) if `status` reports nothing connected,
+     then `reload` after each green inner loop, read `get_ui_error` and `get_logs` for a
+     failing composition, and `take_screenshot` / `get_semantic_tree` to confirm the scenario's
+     `Then` is actually visible where a user would look. Drive the `When` with `click` /
+     `type_text` if the scenario needs it. This is **not** the acceptance run and it never marks
+     anything: a screenshot that looks right lets you continue; a rendering exception or a
+     missing outcome means the slice is not wired yet, however green the unit tests are. It
+     only ever sees the desktop (JVM) target — say so if the scenario's behaviour is
+     platform-specific. Without the plugin or the server, skip this bullet silently; do not
+     add the plugin to the project to get it.
    - **Definition of done — the user can walk it.** Before marking the scenario **Developed**,
      confirm it is reachable end-to-end through the final interface (the actual UI screen /
      command the user uses), with all layers connected — not just the backend passing its own
