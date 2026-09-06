@@ -4,6 +4,12 @@
 // and each scenario's tags and steps.  Tags accumulate on lines above a
 // Scenario and attach to the next one; the Feature line resets pending tags
 // so feature-level tags don't leak into scenarios.
+//
+// Inside a DocString (the triple-quote block that carries a step's payload)
+// nothing is interpreted. Tools that read feature files are tested by FEEDING
+// them feature files, so those blocks are full of lines that look like Gherkin —
+// they belong to the step, not to this file. Reading them as scenarios would
+// inflate every count downstream: maturity, build plans, tracking.
 export function parseFeature(text) {
   const scenarios = [];
   let pending = [];
@@ -13,8 +19,20 @@ export function parseFeature(text) {
   let current = null;        // scenario currently collecting steps
   let inDescription = false; // between the Feature: line and the first tag/scenario
   let inBackground = false;  // collecting the Background block's steps
+  let inDocString = false;   // inside a triple-quote block: payload, not syntax
+  const FENCE = ['"' + '""', "'" + "''"];
   for (const raw of String(text).split(/\r?\n/)) {
     const line = raw.trim();
+    if (FENCE.some((f) => line.startsWith(f))) {
+      // The fence itself is scaffolding and belongs to no step.
+      inDocString = !inDocString;
+      continue;
+    }
+    if (inDocString) {
+      if (current) current.steps.push(line);
+      else if (inBackground) background.push(line);
+      continue;
+    }
     if (line.startsWith('@')) {
       pending.push(...line.split(/\s+/).filter((t) => t.startsWith('@')));
       current = null;
