@@ -14,6 +14,12 @@ what was built, and it **verifies** it works. But driving it is not accepting it
 single scenario you stop and ask the person whether it was implemented correctly, and only
 their answer moves the scenario.
 
+**Show before you drive.** Before anything happens on screen, the person sees **which feature
+and which scenario** is about to be walked — the feature's title and its description, then
+the scenario's full text as it stands in the `.feature` file. Every scenario, every time. They
+cannot judge whether something was implemented correctly if they do not know what was
+promised, and a walk that dives straight into clicking hides exactly that.
+
 **Scope** from `$ARGUMENTS`:
 - empty → the whole map;
 - `context:<slug>` → only capabilities in that context;
@@ -97,13 +103,30 @@ what you are doing to the page ("clicking `#plan-btn`").
    then `list_windows` to find the window you will walk. If `status` says nothing is connected,
    ask them to start the app — never start, reload or restart it yourself.
 
-4. **Walk one scenario at a time.** For each scenario in the filtered list, in order:
+4. **Walk one scenario at a time.** For each scenario in the filtered list, in order, and
+   **always in this order — present first, drive second, ask last**:
 
-   - Announce it as: **capability · feature · scenario name**.
-   - Read the scenario's **Given / When / Then** steps **verbatim** from its `.feature` file
-     (in `features/<context>/<capability>/<feature>`). Plain language only.
-   - If the entry carries a `note`, mention briefly that this scenario previously had friction
+   **Present the feature and the scenario.** This block is printed for **every** scenario,
+   without exception — the first one, the tenth one, one they walked yesterday, one they say
+   they already know. Read the `.feature` file (in `features/<context>/<capability>/<feature>`)
+   and show:
+
+   - a heading naming where you are: **context · capability · feature · scenario name**, with a
+     position counter (`scenario 3 of 12`) so they know how far along the walk is;
+   - the **feature**: its `Feature:` title and the description lines beneath it, verbatim — when
+     several scenarios of the same feature follow each other, the feature's description may be
+     shown once for the first of them and referred back to for the rest, but the title is always
+     repeated;
+   - the **scenario**, as a fenced `gherkin` block copied **verbatim** from the file — the path
+     tag, the `Scenario:` line, and every `Given` / `When` / `Then` / `And` / `But` step, including
+     any DocString or data table they carry. Nothing summarised, nothing reworded, nothing left
+     out. Plain language only, exactly as written;
+   - if the entry carries a `note`, one line saying that this scenario previously had friction
      (show the note's `reason`) so they know what to look for.
+
+   Only once that is on screen do you touch the app. Never announce a scenario by its name
+   alone, and never start driving from memory of an earlier read — the person judges against
+   the text in front of them, so the text is what goes in front of them.
 
    Then, **if you are driving**, perform it before asking anything:
 
