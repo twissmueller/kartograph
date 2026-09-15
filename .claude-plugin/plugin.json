@@ -1,13 +1,26 @@
 {
   "name": "kartograph",
-  "description": "Explore a person's intent in one conversation and write it down as intents/<date>-<slug>.md: goals, role, intended outcomes, non-goals, assumptions, decisions, open questions.",
-  "version": "1.0.1",
-  "author": { "name": "Tobias Wissmüller", "email": "tobias@wissmueller.net" },
+  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, and derive capabilities and Gherkin features under features/.",
+  "version": "1.2.0",
+  "author": {
+    "name": "Tobias Wissmüller",
+    "email": "tobias@wissmueller.net"
+  },
   "homepage": "https://github.com/twissmueller/kartograph",
   "repository": "https://github.com/twissmueller/kartograph",
   "license": "MIT",
-  "keywords": ["intent", "discovery", "brainstorming", "requirements", "interview"],
+  "keywords": [
+    "intent",
+    "discovery",
+    "brainstorming",
+    "requirements",
+    "interview",
+    "gherkin",
+    "features"
+  ],
   "skills": [
-    "./skills/kartograph-explore"
+    "./skills/kartograph-explore",
+    "./skills/kartograph-knowledge",
+    "./skills/kartograph-features"
   ]
 }

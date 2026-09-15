@@ -1,7 +1,7 @@
 {
   "name": "kartograph",
-  "version": "1.0.1",
-  "description": "Explore a person's intent in one conversation and write it down as intents/<date>-<slug>.md: goals, role, intended outcomes, non-goals, assumptions, decisions, open questions.",
+  "version": "1.2.0",
+  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, and derive capabilities and Gherkin features under features/.",
   "author": {
     "name": "Tobias Wissmüller",
     "email": "tobias@wissmueller.net",
@@ -10,19 +10,35 @@
   "homepage": "https://github.com/twissmueller/kartograph",
   "repository": "https://github.com/twissmueller/kartograph",
   "license": "MIT",
-  "keywords": ["intent", "discovery", "brainstorming", "requirements", "interview"],
+  "keywords": [
+    "intent",
+    "discovery",
+    "brainstorming",
+    "requirements",
+    "interview",
+    "knowledge",
+    "okf",
+    "glossary",
+    "gherkin",
+    "features"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Kartograph",
     "shortDescription": "Draw out what a person really wants before anything gets built",
-    "longDescription": "Kartograph runs one exploring conversation with you — opening the idea up, then converging on it question by question — and writes the result to intents/<date>-<slug>.md: your goals, the role you speak from, the intended outcomes, non-goals, assumptions, decisions with their reasons, and the questions still open.",
+    "longDescription": "Kartograph has three skills that build on each other through plain files. kartograph-explore runs one exploring conversation with you and writes intents/<date>-<slug>.md. kartograph-knowledge reads an intent and records every concept it introduces in an Open Knowledge Format bundle at knowledge/. kartograph-features reads an intent and derives capabilities and Gherkin features under features/, updating what already exists.",
     "developerName": "Tobias Wissmüller",
     "category": "Engineering",
-    "capabilities": ["Interactive", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "websiteURL": "https://github.com/twissmueller/kartograph",
     "defaultPrompt": [
       "Explore my intent for a new feature with kartograph-explore",
-      "I have a rough idea for a product change — help me write down what I actually want"
+      "I have a rough idea for a product change — help me write down what I actually want",
+      "Extract the concepts of my newest intent into the knowledge base with kartograph-knowledge",
+      "Derive the capabilities and features of my newest intent with kartograph-features"
     ]
   }
 }

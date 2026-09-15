@@ -1,7 +1,7 @@
 {
   "name": "opencode-kartograph",
-  "version": "1.0.1",
-  "description": "OpenCode plugin: explore a person's intent in one conversation and write it down as intents/<date>-<slug>.md.",
+  "version": "1.2.0",
+  "description": "OpenCode plugin: Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, and derive capabilities and Gherkin features under features/.",
   "type": "module",
   "main": "opencode/index.js",
   "exports": "./opencode/index.js",
@@ -11,7 +11,17 @@
     "README.md",
     "NOTICE"
   ],
-  "keywords": ["opencode", "opencode-plugin", "intent", "discovery", "brainstorming", "interview"],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "intent",
+    "discovery",
+    "brainstorming",
+    "interview",
+    "knowledge",
+    "okf",
+    "gherkin"
+  ],
   "author": "Tobias Wissmüller <tobias@wissmueller.net>",
   "license": "MIT",
   "repository": "github:twissmueller/kartograph",

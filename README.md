@@ -1,30 +1,34 @@
 # 🗺️ Kartograph
 
-**Draw out what a person really wants before anything gets built.**
+**Draw out what a person really wants, write down the words it is made of, then the behaviour it asks for.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/twissmueller)
 
 Kartograph is a plugin for [Claude Code](https://code.claude.com),
-[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with a
-single skill, **`kartograph-explore`**.
-It runs one exploring conversation with you and ends by writing down your intent as a
-plain markdown file in your project:
+[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with three
+skills that build on each other through plain files in your repository:
 
-```
-intents/2026-09-15-1042-offline-watering-schedule.md
-```
+| skill | reads | writes |
+|---|---|---|
+| **`kartograph-explore`** | a conversation with you | `intents/<date>-<slug>.md` |
+| **`kartograph-knowledge`** | one intent file | `knowledge/`, an Open Knowledge Format bundle |
+| **`kartograph-features`** | one intent file | `features/`, capabilities and Gherkin features |
 
-That file is the whole output. No code, no plan, no design — just what you want, in a form
-that you, a colleague, or a later AI session can pick up and act on.
+Each run starts from a fresh context. What one skill knows, it knows from the files the
+previous one wrote, so everything worth keeping is in your repo, versioned, and readable
+by you, a colleague, or a later AI session.
 
 ## Why
 
 AI assistants write code faster than anyone can think. What they cannot do is know what you
 meant. Every drifting implementation, every "that's not what I asked for", starts with an
-intent that lived only in someone's head and was never pulled out and written down.
+intent that lived only in someone's head and was never pulled out and written down. And once
+written down, the words it uses drift too, unless they are defined once and reused.
 
-Kartograph makes that the first, separate step. The conversation has two halves:
+## `kartograph-explore` — one conversation, one intent file
+
+The conversation has two halves:
 
 1. **Opening up.** Before any solution is on the table: who you are in this, what you want
    and why, who it is for, and how you would recognise success. When your goal could be
@@ -36,26 +40,69 @@ Kartograph makes that the first, separate step. The conversation has two halves:
    alternatives you rejected. Anything you cannot answer yet becomes an open question with
    a name next to it, not a loop.
 
-## What the intent file holds
+The intent file has the same sections every time, and an empty section says so: summary,
+who (your role, who benefits, who is affected), goals, intended outcomes, non-goals,
+constraints, assumptions, decisions with reasons, open questions with who can answer them,
+terms, notes. It is written in the language of the conversation.
 
-Every file has the same sections, and an empty section says so, so a reader knows the
-question was asked:
+## `kartograph-knowledge` — one intent, a growing knowledge base
 
-- **Summary**, one paragraph
-- **Who**: the role you spoke from, who benefits, who is affected
-- **Goals**: why the work exists
-- **Intended outcomes**: what will observably be true when it is done
-- **Non-goals**: what is deliberately left out, and why
-- **Constraints**: what cannot change
-- **Assumptions**: what either side is taking for granted, stated so it can be denied
-- **Decisions**: each with its reason and what was rejected
-- **Open questions**: each with who can answer it and why it matters
-- **Terms**: the words you used with a specific meaning
-- **Notes**: anything said that fits nowhere else
+Reads the intent you name, or the newest one, and records every concept it introduces in
+`knowledge/`, a bundle in Google's
+[Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+v0.2: one markdown file per concept, YAML frontmatter plus a body, the path being the
+concept's identity.
 
-The file is written in the language the conversation was held in. Its frontmatter carries
-the date, your role, a `draft`/`confirmed` status, and links to any earlier intent it
-revisits.
+```
+knowledge/
+  index.md      generated listing, grouped by type
+  log.md        one entry per processed intent, newest first
+  concepts/     a domain word with a definition
+  actors/       a role or system that acts
+  subjects/     a thing acted upon, with a lifecycle
+  events/       something that happened, past tense
+  commands/     an action an actor issues, imperative
+  policies/     when <event> then <command>, or a constraint that must hold
+```
+
+Every concept records where it came from (`sources` points back at the intent, with
+footnoted quotes in the body), who generated it, and its lifecycle (`draft`, `stable`,
+`deprecated`). One canonical title per concept: a synonym joins `aliases_to_avoid` instead
+of becoming a second file. Existing definitions are extended, never rewritten; a
+contradicting intent is recorded under a `# Collision` heading for a person to settle. A
+word the intent uses but never defines becomes a draft stub that says so, not a guess.
+Retired concepts are deprecated, never deleted.
+
+The run is fully automated: it asks nothing, writes, commits, pushes, and reports the
+stubs and collisions left for you.
+
+## `kartograph-features` — one intent, the behaviour it asks for
+
+Reads the intent you name, or the newest one, and turns it into what the product must let
+someone achieve and how that behaves, under `features/`:
+
+```
+features/
+  <capability>/
+    capability.md        the lasting ability: sources, purpose, scope, constraints, open questions
+    <feature>.feature    one Feature, scenarios grouped under Rule: headings
+```
+
+Each rule states its requirement in [EARS](https://alistairmavin.com/ears/) form
+("When <trigger>, the system shall <response>"), and each scenario is a concrete example
+in the domain's own words, using the canonical titles from `knowledge/` and never a word
+listed there as an alias to avoid. Every feature file names the intent and capability it
+came from.
+
+It reconciles before it writes. A behaviour already covered by an existing scenario is
+linked, not duplicated. A behaviour an intent changes updates only the steps that
+changed, since scenario steps may be bound to step definitions downstream. A behaviour
+the intent leaves undecided becomes an open question in `capability.md`, never a scenario
+with a guessed outcome. A contradiction with an existing agreement is recorded with both
+statements, never resolved by the AI. Nothing is removed unless the intent says so.
+
+Fully automated, like knowledge: no questions, then commit, push, and a report of what
+was created, updated, reused, and left open.
 
 ## Install
 
@@ -70,65 +117,63 @@ Then, in any project:
 
 ```
 /kartograph:kartograph-explore I want the app to work without a network connection
+/kartograph:kartograph-knowledge
+/kartograph:kartograph-features
 ```
 
-The skill also triggers on its own when you bring an idea or change request and no intent
-for it exists yet.
+All three skills also trigger on their own when the situation fits.
 
-### Codex
+### Codex and the ChatGPT app
 
-Clone this repository and register it as a local marketplace in `~/.codex/config.toml`:
+Register the repository as a marketplace, then install from it. The ChatGPT desktop app
+reads the same configuration; restart it afterwards and start a new chat.
 
-```toml
-[marketplaces.twissmueller]
-source_type = "local"
-source = "/path/to/kartograph"
-
-[plugins."kartograph@twissmueller"]
-enabled = true
+```
+codex plugin marketplace add twissmueller/kartograph
+codex plugin add kartograph@twissmueller
 ```
 
-Alternatively, copy or symlink `skills/kartograph-explore` into `~/.codex/skills/`. Codex
-reads the same `SKILL.md`.
+Later releases: `codex plugin marketplace upgrade twissmueller`. Plugins are not
+available in the IDE extension.
 
 ### OpenCode
 
-OpenCode plugins register tools rather than skills, so the plugin exposes the skill as a
-tool named `kartograph_explore` that hands the model the same `SKILL.md`. Add the npm
-package to `opencode.json`:
+OpenCode plugins register tools rather than skills, so the plugin exposes the skills as
+tools named `kartograph_explore`, `kartograph_knowledge` and `kartograph_features` that
+hand the model the same `SKILL.md`. Add the npm package to `opencode.json`:
 
 ```json
 { "plugin": ["opencode-kartograph"] }
 ```
 
 Or skip the plugin: OpenCode also reads skills straight from `~/.agents/skills/`, so a copy
-or symlink of `skills/kartograph-explore` there is enough, and Codex picks it up from the
-same place.
+or symlink of the three `skills/kartograph-*` directories there is enough, and Codex picks
+them up from the same place.
 
 ### Any agent that reads `SKILL.md`
 
-The skill follows the [agentskills.io](https://agentskills.io) format and depends on no
-runtime-specific tool. Drop `skills/kartograph-explore` wherever your agent looks for
-skills.
+The skills follow the [agentskills.io](https://agentskills.io) format and depend on no
+runtime-specific tool. Drop the `skills/` directories wherever your agent looks for skills.
 
 ## Guardrails
 
-- The skill writes **only** the intent file. It never touches code or other files.
-- Once you confirm the playback, it writes the file, commits just that file as
-  `intent: <title>`, and pushes to the current branch's upstream. Without git or a remote it
-  says so and moves on.
-- It drives: every message ends with the next question, the playback, or the written file.
-- It never fills a gap with a guess. What you did not say is an assumption or an open
-  question, labelled as such.
-- It never overwrites an earlier intent; revisiting one produces a new file that names the
-  old one.
-- It does not start any further phase. What you do with the intent is your call.
+- Each skill writes only its own output: explore the intent file, knowledge the
+  `knowledge/` bundle, features the `features/` directory. None touches code.
+- Each commits only what it wrote (`intent: <title>`, `knowledge: <intent title>`,
+  `features: <intent title>`) and pushes to the branch's upstream. Without git or a remote
+  it says so and moves on.
+- None invents. What was not said is an assumption, an open question, or a stub marked as
+  undefined; never a guessed rule or a scenario with a guessed outcome.
+- None writes a `verified` stamp or claims a feature is approved, implemented or tested.
+- All drive. Explore ends every message with the next question or the written file;
+  knowledge and features ask nothing at all.
 
 ## History
 
 Versions up to `v0.21.2` were a much larger Kartograph: a living map of a software system
 with a desktop app, validators, nine commands, and a build-and-walk pipeline. That work is
-still in git history under its tags. `v1.0.0` restarts from the one step that mattered most.
+still in git history under its tags. `v1.0.0` restarted from the one step that mattered
+most; `v1.1.0` added the knowledge base; `v1.2.0` the features.
 
 ## License
 

@@ -4,45 +4,96 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Kartograph is a plugin with exactly **one skill**, `kartograph-explore`. The skill runs one
-exploring conversation with a person and writes what they want down as
-`intents/<YYYY-MM-DD-HHMM>-<slug>.md` in the target project. That file is the whole
-product. There is no build and no test suite.
+Kartograph is a plugin with **three skills** and no build or test suite. Each skill starts
+from a fresh context and knows only what the files in the target project tell it:
 
-The same skill is served to three runtimes from one place:
+- `kartograph-explore` runs one exploring conversation and writes
+  `intents/<YYYY-MM-DD-HHMM>-<slug>.md`.
+- `kartograph-knowledge` reads one intent file and records its concepts in `knowledge/`,
+  an Open Knowledge Format v0.2 bundle (one markdown file per concept, path = identity).
+- `kartograph-features` reads one intent file and derives capabilities
+  (`features/<capability>/capability.md`) and Gherkin features
+  (`features/<capability>/<feature>.feature`), updating what already exists.
+
+The same skills are served to three runtimes from one place:
 
 ```
-skills/kartograph-explore/SKILL.md          the skill (agentskills.io format, read by all three)
-skills/kartograph-explore/intent-template.md the skeleton of the intent file
-.claude-plugin/plugin.json                  Claude Code manifest  (lists the skill directory)
+skills/<name>/SKILL.md                      the skill (agentskills.io format, read by all three)
+skills/kartograph-explore/intent-template.md   skeleton of the intent file
+skills/kartograph-knowledge/concept-template.md skeleton of one OKF concept file
+skills/kartograph-features/capability-template.md skeleton of capability.md
+skills/kartograph-features/example.md         worked example (fictional) for features
+.claude-plugin/plugin.json                  Claude Code manifest  (lists each skill directory)
 .claude-plugin/marketplace.json             Claude Code marketplace, source "./"
 .codex-plugin/plugin.json                   Codex manifest        (points at ./skills/)
 .agents/plugins/marketplace.json            Codex marketplace, local source "./"
-opencode/index.js                           OpenCode plugin: a `kartograph_explore` tool that
-                                            returns SKILL.md + template at call time
+opencode/index.js                           OpenCode plugin: one tool per skill, returning
+                                            SKILL.md + template at call time
 package.json                                npm manifest for the OpenCode plugin only
 ```
 
 OpenCode plugins can register tools but not skills, which is why the OpenCode entry is a
-tiny JS module: it reads the two skill files from the package and returns them. It must
-never carry a copy of the skill text. `package.json` exists only to publish that module as
+tiny JS module: it reads the skill files from the package and returns them. It must never
+carry a copy of the skill text. `package.json` exists only to publish that module as
 `opencode-kartograph`; its single peer dependency is the OpenCode plugin SDK.
 
-## Rules for editing the skill
+## Rules for editing a skill
 
-- **Tool-neutral.** The skill must behave the same in Claude Code and Codex, so it asks in
-  plain chat and reads files with whatever the runtime offers. Never reference a
+- **Tool-neutral.** A skill must behave the same in Claude Code, Codex and OpenCode, so it
+  asks in plain chat and reads files with whatever the runtime offers. Never reference a
   runtime-specific tool, variable (`${CLAUDE_PLUGIN_ROOT}`), or slash command in `SKILL.md`.
-  The template is addressed as "`intent-template.md` in the same directory as this file".
-- **The intent file is the only output.** The skill writes nothing else and never starts,
-  names, or hints at a later phase. Keep it that way; if a follow-up phase ever exists it
-  will be a separate skill that *reads* intents.
-- **Frontmatter is the contract.** `name` stays `kartograph-explore` (it is the slash name
-  and the Codex skill folder). `description` states *when* to use the skill, never *how* it
-  works — a description that summarises the process makes agents skip the body.
-- **Every template section survives.** The skill promises a reader that an empty section
-  means "asked, nothing found". Adding a section means adding it to the template, the
-  skill's bucket table, and the README's list.
+  Templates are addressed as "`<file>` in this file's directory".
+- **Each skill writes only its own output** and commits only that: explore the intent
+  file, knowledge the `knowledge/` directory, features the `features/` directory. None
+  names or starts a phase beyond itself; the next phase is a separate skill that *reads*
+  the previous one's files.
+- **The AI drives.** Explore ends every message with the next question or the written
+  file and never waits to be asked what comes next. Knowledge and features are fully
+  automated: no question, no review, no confirmation; each runs to the end, commits,
+  pushes, reports. Anything undecided becomes an open question in the written file.
+- **Frontmatter is the contract.** `name` is the slash name and the Codex skill folder.
+  `description` states *when* to use the skill, never *how* it works — a description that
+  summarises the process makes agents skip the body.
+- **Adding a skill** means: a directory under `skills/`, an entry in
+  `.claude-plugin/plugin.json`'s `skills` list (Codex needs nothing, it scans `./skills/`), a
+  tool in `opencode/index.js` (list its supporting files in `files`), and a row in the
+  README table.
+
+## Rules the knowledge skill must keep (OKF v0.2)
+
+- Only `type` is required by the spec; we always write `title`, `description`, `status`,
+  `generated`, `sources`. Six types, one directory each: Concept, Actor, Subject, Event,
+  Command, Policy.
+- **Provenance:** `sources[]` points back at the intent (`../intents/<file>.md`) and body
+  quotes are footnoted to `sources[].id`.
+- **Trust:** an LLM never writes `verified`; the trust tier (`unverified` →
+  `machine-confirmed` → `human-reviewed`) is derived from the `human:` prefix, never stored.
+- **Lifecycle:** new concepts are `draft`; retired ones become `deprecated`, never deleted.
+- **One canonical title** per concept; synonyms live in `aliases_to_avoid` (our extension,
+  the spec prescribes no glossary structure). Same title → extend; contradiction → the
+  existing definition stays and the intent's wording is recorded under `# Collision`;
+  undefined word → a `draft` stub reading `TODO — define this term.`, never invented.
+- `index.md` carries only `okf_version: "0.2"` as frontmatter; `log.md` is date-grouped,
+  newest first. Broken cross-links are tolerated by the spec, so a link to a not-yet-written
+  concept is allowed.
+- The `generated.by` actor is `kartograph-knowledge/<plugin version>`; bump it with the
+  version in `SKILL.md` and `concept-template.md`.
+
+## Rules the features skill must keep
+
+- One directory per **capability**, never per intent; `capability.md` plus one `Feature:`
+  per `.feature` file, scenarios under `Rule:` headings, each rule's requirement in EARS
+  form on a `Requirement:` line (a bare `When …` line parses as a step).
+- **Never invent requirements**: no permissions, states, limits, UI, error wording or
+  integrations the intent does not state. Undecided behaviour is an open question in
+  `capability.md`, never a scenario with a guessed outcome or a `TODO` step.
+- **Steps are bound downstream.** Existing scenario steps change only when the behaviour
+  changed; titles are safe. Nothing is removed unless the intent explicitly retires it.
+- **Vocabulary comes from `knowledge/`**: canonical titles only, never a word in any
+  concept's `aliases_to_avoid`. The skill reads the bundle but never writes it.
+- Idempotent: a re-run with unchanged input changes nothing. Provenance is the
+  `# Source intent:` / `# Capability:` comments and the capability's *Sources* list; no
+  UUIDs, hashes, or extra logs.
 
 ## Releasing
 
@@ -53,8 +104,8 @@ repo is its own marketplace and resolves against `main`. OpenCode users get the 
 after `npm publish`:
 
 ```bash
-git tag -a v1.1.0 -m "v1.1.0 — <the one-line headline>"
-git push origin main && git push origin v1.1.0
+git tag -a v1.3.0 -m "v1.3.0 — <the one-line headline>"
+git push origin main && git push origin v1.3.0
 ```
 
 Tags `v0.19.0` … `v0.21.2` mark the earlier, much larger Kartograph (a living map with a
