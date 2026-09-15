@@ -1,0 +1,270 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1150" viewBox="0 0 1500 1150" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    .bg { fill: #f6f8fb; }
+    .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; fill: #1d4ed8; }
+    .h1 { font-size: 28px; font-weight: 800; fill: #0f172a; letter-spacing: -.02em; }
+    .sub { font-size: 12.5px; fill: #475569; }
+    .rowlabel { font-size: 13px; font-weight: 700; fill: #0f172a; }
+    .rowsub { font-size: 10.5px; fill: #64748b; }
+    .band { fill: #ffffff; stroke: #e2e8f0; }
+    .card-blue { fill: #eef4ff; stroke: #c7d7fb; }
+    .card-teal { fill: #ecf8f5; stroke: #bfe3d8; }
+    .phase-blue { fill: #1d4ed8; }
+    .phase-teal { fill: #0f766e; }
+    .phase-text { font-size: 14px; font-weight: 700; fill: #ffffff; }
+    .phase-skill { font-size: 10.5px; fill: #dbeafe; font-family: ui-monospace, Menlo, monospace; }
+    .num { font-size: 11px; font-weight: 700; fill: #1d4ed8; }
+    .num-teal { fill: #0f766e; }
+    .t { font-size: 12px; fill: #1f2937; }
+    .t-head { font-size: 12.5px; font-weight: 700; fill: #1d4ed8; }
+    .t-head-teal { fill: #0f766e; }
+    .t-soft { font-size: 11.5px; fill: #475569; }
+    .s-head { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+    .chip { fill: #eef2f7; stroke: #dfe5ee; }
+    .chip-t { font-size: 11px; fill: #1f2937; }
+    .mono { font-family: ui-monospace, Menlo, monospace; font-size: 11px; fill: #1f2937; }
+    .gate-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; }
+    .gate-text { font-size: 12.5px; font-weight: 700; fill: #0f172a; }
+    .back { fill: none; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .back-t { font-size: 11.5px; font-weight: 700; }
+    .note-t { font-size: 12px; fill: #1f2937; }
+    .foot { font-size: 11px; fill: #64748b; }
+  </style>
+
+  <rect class="bg" width="1500" height="1150"/>
+
+  <!-- Header -->
+  <text class="eyebrow" x="20" y="28">KARTOGRAPH · CAPABILITY-CENTRED AI-NATIVE SDL · STATUS v1.4.0</text>
+  <text class="h1" x="20" y="60">Four phases. One planned human–AI session.</text>
+  <text class="sub" x="20" y="82">Every phase is a skill, starts from a fresh context and reads only the files the previous phase wrote. Three runtimes (Claude Code, Codex/ChatGPT, OpenCode), one source.</text>
+
+  <!-- ===== Row: Sessions ===== -->
+  <rect class="band" x="20" y="98" width="1460" height="86" rx="6"/>
+  <text class="rowlabel" x="30" y="120">Human–AI</text>
+  <text class="rowlabel" x="30" y="136">sessions</text>
+  <text class="rowsub" x="30" y="154">Planned only here</text>
+
+  <rect class="card-blue" x="140" y="106" width="325" height="70" rx="6"/>
+  <text class="s-head" x="152" y="126" fill="#1d4ed8">SESSION 1 · CLARIFY THE INTENT</text>
+  <text class="t" x="152" y="145">Role, goal, benefit, success, non-goals and</text>
+  <text class="t" x="152" y="161">decisions worked out together.</text>
+  <text class="t-soft" x="152" y="173" font-weight="700" fill="#1d4ed8">Ends when the person confirms the playback.</text>
+
+  <rect class="card-teal" x="477" y="106" width="999" height="70" rx="6"/>
+  <text class="s-head" x="489" y="126" fill="#0f766e">AUTONOMOUS AI STRETCH</text>
+  <text class="t" x="489" y="145">Record the knowledge, specify the behaviour, build the screens on sample data – no questions, no review.</text>
+  <text class="t-soft" x="489" y="161">Every phase validates its files, commits only its own directory and pushes.</text>
+  <text class="t-soft" x="489" y="173" font-weight="700" fill="#0f766e">No scheduled meeting. Anything undecided lands in the files as a stub, a collision or an open question.</text>
+
+  <!-- ===== Row: Phases ===== -->
+  <text class="rowlabel" x="30" y="214">Phases</text>
+  <text class="rowsub" x="30" y="232">Every change</text>
+  <text class="rowsub" x="30" y="245">runs through</text>
+  <text class="rowsub" x="30" y="258">the sequence</text>
+
+  <rect class="phase-blue" x="140" y="196" width="325" height="66" rx="6"/>
+  <circle cx="158" cy="214" r="9" fill="#ffffff"/><text class="num" x="158" y="218" text-anchor="middle">1</text>
+  <text class="phase-text" x="302" y="226" text-anchor="middle">Clarify the intent</text>
+  <text class="phase-skill" x="302" y="248" text-anchor="middle">kartograph-explore</text>
+
+  <rect class="phase-teal" x="477" y="196" width="325" height="66" rx="6"/>
+  <circle cx="495" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="495" y="218" text-anchor="middle">2</text>
+  <text class="phase-text" x="639" y="226" text-anchor="middle">Record the knowledge</text>
+  <text class="phase-skill" x="639" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-knowledge</text>
+
+  <rect class="phase-teal" x="814" y="196" width="325" height="66" rx="6"/>
+  <circle cx="832" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="832" y="218" text-anchor="middle">3</text>
+  <text class="phase-text" x="976" y="226" text-anchor="middle">Specify the behaviour</text>
+  <text class="phase-skill" x="976" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-features</text>
+
+  <rect class="phase-teal" x="1151" y="196" width="325" height="66" rx="6"/>
+  <circle cx="1169" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="1169" y="218" text-anchor="middle">4</text>
+  <text class="phase-text" x="1313" y="226" text-anchor="middle">Show the screens</text>
+  <text class="phase-skill" x="1313" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-views</text>
+
+  <!-- ===== Row: Developer ===== -->
+  <rect class="band" x="20" y="272" width="1460" height="100" rx="6"/>
+  <text class="rowlabel" x="30" y="294">Developer</text>
+  <text class="rowsub" x="30" y="312">Decides on intent</text>
+  <text class="rowsub" x="30" y="325">and on whether</text>
+  <text class="rowsub" x="30" y="338">the UI is right</text>
+
+  <text class="t-head" x="152" y="296">Explain the idea</text>
+  <text class="t" x="152" y="314">States, from their role, the goal, the</text>
+  <text class="t" x="152" y="330">users, success and non-goals; answers</text>
+  <text class="t" x="152" y="346">one question per message.</text>
+  <text class="t" x="152" y="362">Confirms the playback.</text>
+
+  <text class="t" x="489" y="296" fill="#475569">Only when needed</text>
+  <text class="t" x="489" y="314">Defines stubs (“TODO – define this</text>
+  <text class="t" x="489" y="330">term”) and settles collisions in the</text>
+  <text class="t" x="489" y="346">knowledge base – later, never</text>
+  <text class="t" x="489" y="362">during the run.</text>
+
+  <text class="t" x="826" y="296" fill="#475569">Only when needed</text>
+  <text class="t" x="826" y="314">Answers open questions and</text>
+  <text class="t" x="826" y="330">contradictions in capability.md –</text>
+  <text class="t" x="826" y="346">as a new intent in the next</text>
+  <text class="t" x="826" y="362">session 1.</text>
+
+  <text class="t-head" x="1163" y="296">Use the screens</text>
+  <text class="t" x="1163" y="314">Starts the app themselves, walks the</text>
+  <text class="t" x="1163" y="330">scenarios on sample data and judges</text>
+  <text class="t" x="1163" y="346">the flow and the UX.</text>
+  <text class="t" x="1163" y="362">Feedback becomes a new intent.</text>
+
+  <!-- ===== Row: AI agent ===== -->
+  <rect class="band" x="20" y="382" width="1460" height="118" rx="6"/>
+  <text class="rowlabel" x="30" y="404">AI agent</text>
+  <text class="rowsub" x="30" y="422">Works the task</text>
+  <text class="rowsub" x="30" y="435">within the files</text>
+  <text class="rowsub" x="30" y="448">it finds</text>
+
+  <text class="t-head" x="152" y="406">Exploration</text>
+  <text class="t" x="152" y="424">Opens up (role, why, for whom, success),</text>
+  <text class="t" x="152" y="440">then grills: one question, one recommended</text>
+  <text class="t" x="152" y="456">answer; sorts every statement into goal,</text>
+  <text class="t" x="152" y="472">outcome, non-goal, assumption, decision,</text>
+  <text class="t" x="152" y="488">open question. Never invents, always drives.</text>
+
+  <text class="t-head t-head-teal" x="489" y="406">Extraction</text>
+  <text class="t" x="489" y="424">Reads the intent; six concept types;</text>
+  <text class="t" x="489" y="440">reconciles with the bundle: extend, alias,</text>
+  <text class="t" x="489" y="456">collision, deprecate, stub, new. One</text>
+  <text class="t" x="489" y="472">canonical title per concept. Never writes</text>
+  <text class="t" x="489" y="488">“verified”, never deletes.</text>
+
+  <text class="t-head t-head-teal" x="826" y="406">Specification</text>
+  <text class="t" x="826" y="424">Capability + Gherkin features with</text>
+  <text class="t" x="826" y="440">Rule:/EARS requirements; vocabulary from</text>
+  <text class="t" x="826" y="456">knowledge/. Existing specs first: covered,</text>
+  <text class="t" x="826" y="472">changed, new. Only what the intent states;</text>
+  <text class="t" x="826" y="488">anything unclear stays an open question.</text>
+
+  <text class="t-head t-head-teal" x="1163" y="406">Phase-1 build (UI-first)</text>
+  <text class="t" x="1163" y="424">Screen, View, ViewModel, use case inter-</text>
+  <text class="t" x="1163" y="440">faces and fakes with sample data per</text>
+  <text class="t" x="1163" y="456">Given; per design-system.md and mvvm.md.</text>
+  <text class="t" x="1163" y="472">Compiles; looks through Compose Hot Reload</text>
+  <text class="t" x="1163" y="488">when a window is running. Never launches.</text>
+
+  <!-- ===== Row: Workflow ===== -->
+  <rect class="band" x="20" y="510" width="1460" height="100" rx="6"/>
+  <text class="rowlabel" x="30" y="532">Workflow /</text>
+  <text class="rowlabel" x="30" y="548">evidence</text>
+  <text class="rowsub" x="30" y="566">Check, secure,</text>
+  <text class="rowsub" x="30" y="579">version</text>
+
+  <text class="t" x="152" y="534">File filled from intent-template.md;</text>
+  <text class="mono" x="152" y="552">validate-intent.js</text>
+  <text class="t" x="152" y="570">must print “ok”; commit</text>
+  <text class="mono" x="152" y="588">intent: &lt;title&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12px">; push.</tspan></text>
+
+  <text class="t" x="489" y="534">index.md regenerated, log.md prepended;</text>
+  <text class="mono" x="489" y="552">validate-knowledge.js knowledge</text>
+  <text class="t" x="489" y="570">must print “ok”; commit</text>
+  <text class="mono" x="489" y="588">knowledge: &lt;intent&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12px">; push.</tspan></text>
+
+  <text class="t" x="826" y="534">Source comments, features list;</text>
+  <text class="mono" x="826" y="552">validate-features.js features</text>
+  <text class="t" x="826" y="570">plus a Gherkin parser when available;</text>
+  <text class="mono" x="826" y="588">features: &lt;intent&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12px">; push.</tspan></text>
+
+  <text class="t" x="1163" y="534">Module in settings.gradle.kts, Koin, nav;</text>
+  <text class="mono" x="1163" y="552">./gradlew :feature-x:build</text>
+  <text class="t" x="1163" y="570">reload → get_ui_error → screenshot;</text>
+  <text class="mono" x="1163" y="588">views: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12px">; push.</tspan></text>
+
+  <!-- ===== Row: Artifacts ===== -->
+  <rect class="band" x="20" y="620" width="1460" height="150" rx="6"/>
+  <text class="rowlabel" x="30" y="642">Artifacts</text>
+  <text class="rowsub" x="30" y="660">Versioned results;</text>
+  <text class="rowsub" x="30" y="673">every structure</text>
+  <text class="rowsub" x="30" y="686">has a validator</text>
+
+  <!-- col 1 chips -->
+  <rect class="chip" x="152" y="632" width="300" height="20" rx="4"/><text class="chip-t" x="160" y="646">intents/&lt;date-time&gt;-&lt;slug&gt;.md</text>
+  <rect class="chip" x="152" y="658" width="300" height="20" rx="4"/><text class="chip-t" x="160" y="672">Goals · Outcomes · Non-goals · Constraints</text>
+  <rect class="chip" x="152" y="684" width="300" height="20" rx="4"/><text class="chip-t" x="160" y="698">Assumptions · Decisions (with reasons)</text>
+  <rect class="chip" x="152" y="710" width="300" height="20" rx="4"/><text class="chip-t" x="160" y="724">Open questions (who can answer) · Terms</text>
+  <rect class="chip" x="152" y="736" width="300" height="20" rx="4"/><text class="chip-t" x="160" y="750">Status draft | confirmed · related</text>
+
+  <!-- col 2 chips -->
+  <rect class="chip" x="489" y="632" width="300" height="20" rx="4"/><text class="chip-t" x="497" y="646">knowledge/ – OKF v0.2 bundle</text>
+  <rect class="chip" x="489" y="658" width="300" height="20" rx="4"/><text class="chip-t" x="497" y="672">concepts · actors · subjects</text>
+  <rect class="chip" x="489" y="684" width="300" height="20" rx="4"/><text class="chip-t" x="497" y="698">events · commands · policies</text>
+  <rect class="chip" x="489" y="710" width="300" height="20" rx="4"/><text class="chip-t" x="497" y="724">sources → intent · aliases_to_avoid · # Collision</text>
+  <rect class="chip" x="489" y="736" width="300" height="20" rx="4"/><text class="chip-t" x="497" y="750">index.md · log.md (newest first)</text>
+
+  <!-- col 3 chips -->
+  <rect class="chip" x="826" y="632" width="300" height="20" rx="4"/><text class="chip-t" x="834" y="646">features/&lt;capability&gt;/capability.md</text>
+  <rect class="chip" x="826" y="658" width="300" height="20" rx="4"/><text class="chip-t" x="834" y="672">Sources · Purpose · Scope · Open questions</text>
+  <rect class="chip" x="826" y="684" width="300" height="20" rx="4"/><text class="chip-t" x="834" y="698">&lt;feature&gt;.feature – Rule: + Requirement (EARS)</text>
+  <rect class="chip" x="826" y="710" width="300" height="20" rx="4"/><text class="chip-t" x="834" y="724">Scenarios: Given / When / Then</text>
+  <rect class="chip" x="826" y="736" width="300" height="20" rx="4"/><text class="chip-t" x="834" y="750"># Source intent · # Capability</text>
+
+  <!-- col 4 chips -->
+  <rect class="chip" x="1163" y="632" width="300" height="20" rx="4"/><text class="chip-t" x="1171" y="646">feature-&lt;capability&gt;/ – one Gradle module</text>
+  <rect class="chip" x="1163" y="658" width="300" height="20" rx="4"/><text class="chip-t" x="1171" y="672">State · Event · Effect · ViewModel</text>
+  <rect class="chip" x="1163" y="684" width="300" height="20" rx="4"/><text class="chip-t" x="1171" y="698">Screen · View · fake use cases · sample data</text>
+  <rect class="chip" x="1163" y="710" width="300" height="20" rx="4"/><text class="chip-t" x="1171" y="724">Koin module · route · nav entry · AppTheme</text>
+  <rect class="chip" x="1163" y="736" width="300" height="20" rx="4"/><text class="chip-t" x="1171" y="750">docs/design-system.md · docs/code-design/mvvm.md</text>
+
+  <!-- ===== Row: Proceed when ===== -->
+  <text class="rowlabel" x="30" y="800">Proceed when …</text>
+  <text class="rowsub" x="30" y="818">A check is not</text>
+  <text class="rowsub" x="30" y="831">a human meeting</text>
+
+  <rect class="card-blue" x="140" y="782" width="325" height="56" rx="6"/>
+  <text class="gate-label" x="152" y="800" fill="#1d4ed8">HUMAN · IN SESSION 1</text>
+  <text class="gate-text" x="152" y="822">Playback confirmed → file written</text>
+
+  <rect class="card-teal" x="477" y="782" width="325" height="56" rx="6"/>
+  <text class="gate-label" x="489" y="800" fill="#0f766e">AUTOMATIC</text>
+  <text class="gate-text" x="489" y="822">Validator ok, bundle pushed</text>
+
+  <rect class="card-teal" x="814" y="782" width="325" height="56" rx="6"/>
+  <text class="gate-label" x="826" y="800" fill="#0f766e">AUTOMATIC</text>
+  <text class="gate-text" x="826" y="822">Validator ok, features pushed</text>
+
+  <rect class="card-blue" x="1151" y="782" width="325" height="56" rx="6"/>
+  <text class="gate-label" x="1163" y="800" fill="#1d4ed8">HUMAN · AFTER THE RUN</text>
+  <text class="gate-text" x="1163" y="822">Flow and UX feel right</text>
+
+  <!-- ===== Row: Return paths ===== -->
+  <text class="rowlabel" x="30" y="868">Return paths</text>
+  <text class="rowsub" x="30" y="886">Always through a</text>
+  <text class="rowsub" x="30" y="899">new intent, never</text>
+  <text class="rowsub" x="30" y="912">by rewriting</text>
+
+  <!-- 2/3 -> 1 : stubs, collisions, open questions -->
+  <path class="back" d="M 976 838 L 976 868 L 290 868 L 290 838" stroke="#b45309"/>
+  <path class="back" d="M 639 838 L 639 868" stroke="#b45309"/>
+  <polygon points="285,842 290,834 295,842" fill="#b45309"/>
+  <text class="back-t" x="410" y="884" fill="#b45309">2 / 3 → 1 · Stubs, collisions and open questions are the agenda of the next session 1.</text>
+
+  <!-- 4 -> 1 : feedback becomes a new intent -->
+  <path class="back" d="M 1313 838 L 1313 912 L 314 912 L 314 838" stroke="#1d4ed8"/>
+  <polygon points="309,842 314,834 319,842" fill="#1d4ed8"/>
+  <text class="back-t" x="410" y="930" fill="#1d4ed8">4 → 1 · Feedback on the screens becomes a new intent (related: the old one); knowledge and behaviour run again.</text>
+
+  <!-- ===== Notes ===== -->
+  <rect x="20" y="950" width="720" height="98" rx="6" fill="#fff7e6" stroke="#f3d9a4"/>
+  <text class="s-head" x="34" y="972" fill="#b45309">NOT BUILT YET · PHASES 2 AND 3 OF mvvm.md</text>
+  <text class="note-t" x="34" y="992">Real use cases (fakes → impl, one ViewModel test per scenario) and repositories/data</text>
+  <text class="note-t" x="34" y="1010">sources have no skill yet. Neither do verify, accept, deliver and observe from the</text>
+  <text class="note-t" x="34" y="1028">nine-phase blueprint. Today the feedback loop ends in phase 4.</text>
+
+  <rect x="760" y="950" width="720" height="98" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <text class="s-head" x="774" y="972" fill="#0f766e">GUARDRAILS THAT HOLD IN EVERY PHASE</text>
+  <text class="note-t" x="774" y="992">Never invent: what was not said becomes an assumption, an open question or a stub. Every</text>
+  <text class="note-t" x="774" y="1010">phase writes and commits only its own directory. No “verified”, no “accepted” by the AI.</text>
+  <text class="note-t" x="774" y="1028">Vocabulary comes from knowledge/; a word listed in aliases_to_avoid appears nowhere.</text>
+
+  <!-- ===== Legend / footer ===== -->
+  <rect x="20" y="1066" width="10" height="10" fill="#1d4ed8"/><text class="foot" x="36" y="1075" fill="#1f2937">Human decides</text>
+  <rect x="150" y="1066" width="10" height="10" fill="#0f766e"/><text class="foot" x="166" y="1075" fill="#1f2937">Autonomous, rule-based</text>
+  <rect x="320" y="1066" width="10" height="10" fill="#b45309"/><text class="foot" x="336" y="1075" fill="#1f2937">Human only when a decision is needed, later</text>
+  <text class="foot" x="20" y="1100">End-to-end linkage: intent file → sources / # Source intent → capability.md → feature-&lt;capability&gt;/. Status: Kartograph v1.4.0, 2026-09-15.</text>
+  <text class="foot" x="20" y="1118">Skills: explore (interactive) · knowledge · features · views (fully automated) – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
+</svg>

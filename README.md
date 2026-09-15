@@ -20,6 +20,8 @@ Each run starts from a fresh context. What one skill knows, it knows from the fi
 previous one wrote, so everything worth keeping is in your repo, versioned, and readable
 by you, a colleague, or a later AI session.
 
+![The four phases: who does what, which files result, and when a phase hands over](docs/phases.svg)
+
 ## Why
 
 AI assistants write code faster than anyone can think. What they cannot do is know what you
