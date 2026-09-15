@@ -11,9 +11,12 @@ down as `intents/<YYYY-MM-DD-HHMM>-<slug>.md`. It first **opens the idea up**, t
 
 ## Hard rules
 
-- Write only the intent file. No code, no other files, no changes to the project.
+- Write only the intent file, and commit only that. No code, no other files.
 - Never invent. What was neither said nor read is an *assumption* or an *open question*.
 - Ask in plain chat: one question per message, always with your recommended answer.
+- You drive. Every message ends with the next question, the playback, or the written
+  file. Never stop to wait for the person to ask what comes next, and never ask whether
+  to continue or whether to write.
 - Do not name or start any later phase.
 - Write the file in the language of the conversation.
 
@@ -50,13 +53,18 @@ Sharpen vague words by asking for the concrete case ("walk me through the last t
 Ask for non-goals explicitly. Never loop on the unanswerable: record it and move on.
 
 **Stop condition:** play the whole intent back in prose and ask what is missing or wrong.
-Repeat until nothing is. That confirmation turns `draft` into `confirmed`.
+Repeat until nothing is. That confirmation turns `draft` into `confirmed`, and you write
+the file in the same turn.
 
 ## 4. Write and report
 
-Fill `intent-template.md` from this file's directory and write it to
+Write immediately, without asking. Fill `intent-template.md` from this file's directory into
 `intents/<YYYY-MM-DD-HHMM>-<slug>.md` (slug: the topic, lowercase, hyphenated, at most
 five words). Create `intents/` if missing. Never overwrite an earlier intent; a revisited
 one gets a new file naming the old one under `related`. Keep every section, writing
-"None identified." where empty, so a reader knows it was asked. Show the path and the open
-questions, then stop.
+"None identified." where empty, so a reader knows it was asked.
+
+Then commit and push it, without asking: stage **only** that file (never the rest of the
+working tree), commit it as `intent: <title>`, and push to the current branch's upstream.
+If the project is not a git repository or has no upstream, skip that part and say so.
+Show the path, the commit, and the open questions, then stop.

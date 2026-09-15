@@ -114,6 +114,10 @@ skills.
 ## Guardrails
 
 - The skill writes **only** the intent file. It never touches code or other files.
+- Once you confirm the playback, it writes the file, commits just that file as
+  `intent: <title>`, and pushes to the current branch's upstream. Without git or a remote it
+  says so and moves on.
+- It drives: every message ends with the next question, the playback, or the written file.
 - It never fills a gap with a guess. What you did not say is an assumption or an open
   question, labelled as such.
 - It never overwrites an earlier intent; revisiting one produces a new file that names the

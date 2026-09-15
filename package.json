@@ -1,6 +1,6 @@
 {
   "name": "opencode-kartograph",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenCode plugin: explore a person's intent in one conversation and write it down as intents/<date>-<slug>.md.",
   "type": "module",
   "main": "opencode/index.js",

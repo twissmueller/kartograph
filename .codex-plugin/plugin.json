@@ -1,6 +1,6 @@
 {
   "name": "kartograph",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Explore a person's intent in one conversation and write it down as intents/<date>-<slug>.md: goals, role, intended outcomes, non-goals, assumptions, decisions, open questions.",
   "author": {
     "name": "Tobias Wissmüller",
