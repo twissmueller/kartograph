@@ -67,7 +67,7 @@ thing, prefer alias over a second file.
 
 Write each concept from `concept-template.md` in this file's directory. Frontmatter:
 `type`, `title`, `description`, `status: draft` for new files, `aliases_to_avoid`,
-`generated: { by: kartograph-knowledge/1.1.0, at: <ISO 8601> }`, and `sources` with one
+`generated: { by: kartograph-knowledge/1.3.0, at: <ISO 8601> }`, and `sources` with one
 entry pointing at the intent (`resource: ../intents/<file>.md`, `id` used for footnotes).
 Links between concepts are bundle-relative (`/events/plant-watered.md`); a link to a
 concept not yet written is allowed. Slugs are lowercase hyphenated.
@@ -77,6 +77,11 @@ per directory listing `* [Title](dir/slug.md) - description _(Type, status)_`. P
 `knowledge/log.md` under today's `## YYYY-MM-DD`: `* **Intent**: processed
 [<title>](../intents/<file>.md) — <n> new, <n> extended, <n> aliased, <n> deprecated,
 <n> stubs, <n> collisions.`
+
+Then validate: run `node validate-knowledge.js knowledge` with the script from this
+file's directory, and fix every reported error until it prints `ok`. Warnings (stubs,
+links to concepts not yet written) are reported, not fixed. Never commit a bundle that
+does not pass.
 
 Stage only `knowledge/`, commit as `knowledge: <intent title>`, push to the branch's
 upstream. No git or no upstream: skip and say so. Report the paths, the commit, and the

@@ -4,8 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Kartograph is a plugin with **three skills** and no build or test suite. Each skill starts
-from a fresh context and knows only what the files in the target project tell it:
+Kartograph is a plugin with **three skills**, one structure validator per skill, and no
+build step. Each skill starts from a fresh context and knows only what the files in the
+target project tell it:
 
 - `kartograph-explore` runs one exploring conversation and writes
   `intents/<YYYY-MM-DD-HHMM>-<slug>.md`.
@@ -23,6 +24,8 @@ skills/kartograph-explore/intent-template.md   skeleton of the intent file
 skills/kartograph-knowledge/concept-template.md skeleton of one OKF concept file
 skills/kartograph-features/capability-template.md skeleton of capability.md
 skills/kartograph-features/example.md         worked example (fictional) for features
+skills/<name>/validate-*.js                 the skill's structure validator (see below)
+test/*.test.js                              node:test suite for the validators (`npm test`)
 .claude-plugin/plugin.json                  Claude Code manifest  (lists each skill directory)
 .claude-plugin/marketplace.json             Claude Code marketplace, source "./"
 .codex-plugin/plugin.json                   Codex manifest        (points at ./skills/)
@@ -59,6 +62,37 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   tool in `opencode/index.js` (list its supporting files in `files`), and a row in the
   README table.
 
+## The validators are the structure contract
+
+Every artifact a skill writes has a validator next to the skill, and the skill runs it
+before committing. They exist so files never drift from their templates:
+
+```bash
+node skills/kartograph-explore/validate-intent.js intents/<file>.md     # or no arg: all of ./intents
+node skills/kartograph-knowledge/validate-knowledge.js knowledge        # or one concept file
+node skills/kartograph-features/validate-features.js features           # or one capability dir
+npm test                                                                # the suite behind them
+```
+
+Rules for editing them:
+
+- **Self-contained.** Each validator is one file with no imports beyond Node built-ins,
+  because a skill directory must work when copied on its own (`~/.agents/skills/`, the
+  Codex cache, the npm package). The YAML-subset parser lives only in the knowledge
+  validator; the intent frontmatter is flat and needs no parser.
+- **Pure function + thin CLI.** `validateIntent`, `validateConcept`/`validateBundle`,
+  `validateCapability`/`validateFeature`/`validateTree` take text or a path and return
+  `{ errors, warnings }`; the CLI is guarded by `fileURLToPath(import.meta.url) ===
+  process.argv[1]`. Tests exercise the functions on fixtures in temp dirs.
+- **Template and validator change together.** A new section, key or rule in a template
+  means the same change in its validator and a test for it. Errors are for structure the
+  template prescribes; warnings are for things the spec tolerates (a stub description, a
+  link to a concept not written yet, a source intent that cannot be checked).
+- **Angle-bracket placeholders are errors** in every artifact, except single-token
+  `<param>` in `.feature` files, which are Scenario Outline parameters.
+- Bump the `generated.by` actor (`kartograph-knowledge/<version>`) in the knowledge
+  `SKILL.md` and `concept-template.md` with every release.
+
 ## Rules the knowledge skill must keep (OKF v0.2)
 
 - Only `type` is required by the spec; we always write `title`, `description`, `status`,
@@ -76,9 +110,6 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 - `index.md` carries only `okf_version: "0.2"` as frontmatter; `log.md` is date-grouped,
   newest first. Broken cross-links are tolerated by the spec, so a link to a not-yet-written
   concept is allowed.
-- The `generated.by` actor is `kartograph-knowledge/<plugin version>`; bump it with the
-  version in `SKILL.md` and `concept-template.md`.
-
 ## Rules the features skill must keep
 
 - One directory per **capability**, never per intent; `capability.md` plus one `Feature:`

@@ -167,6 +167,17 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
 - None writes a `verified` stamp or claims a feature is approved, implemented or tested.
 - All drive. Explore ends every message with the next question or the written file;
   knowledge and features ask nothing at all.
+- Every file has a fixed structure, and each skill ships a validator it runs before
+  committing, so an intent, a concept, or a capability written today looks like one
+  written next year:
+
+  ```
+  node skills/kartograph-explore/validate-intent.js intents/<file>.md
+  node skills/kartograph-knowledge/validate-knowledge.js knowledge
+  node skills/kartograph-features/validate-features.js features
+  ```
+
+  They need only Node, no dependencies. `npm test` runs the suite behind them.
 
 ## History
 

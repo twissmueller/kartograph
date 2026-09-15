@@ -23,7 +23,11 @@ function skillTool({ skill, files, description, args, opening }) {
       const extras = await Promise.all(
         files.map(async (f) => `\n\n---\n\nThe ${f} the instructions refer to:\n\n${await readSkillFile(skill, f)}`),
       );
-      return `${opening(a)}Follow these instructions for the rest of this conversation.\n\n${body}${extras.join("")}`;
+      const dir = fileURLToPath(new URL(`${skill}/`, skillsDir));
+      return (
+        `${opening(a)}Follow these instructions for the rest of this conversation. ` +
+        `"This file's directory" in them is: ${dir}\n\n${body}${extras.join("")}`
+      );
     },
   });
 }

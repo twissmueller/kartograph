@@ -10,6 +10,9 @@ related: <earlier intents/… files this one revisits or builds on — or none>
 
 # <title>
 
+<!-- Section headings stay exactly as written here, in this order, whatever the language of
+     the content. validate-intent.js checks that, so no intent drifts from this shape. -->
+
 ## Summary
 
 <One paragraph. What the person wants, why, and for whom. A reader with two minutes should

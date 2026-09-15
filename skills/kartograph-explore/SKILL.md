@@ -62,7 +62,12 @@ Write immediately, without asking. Fill `intent-template.md` from this file's di
 `intents/<YYYY-MM-DD-HHMM>-<slug>.md` (slug: the topic, lowercase, hyphenated, at most
 five words). Create `intents/` if missing. Never overwrite an earlier intent; a revisited
 one gets a new file naming the old one under `related`. Keep every section, writing
-"None identified." where empty, so a reader knows it was asked.
+"None identified." where empty, so a reader knows it was asked. Section headings stay
+exactly as in the template, whatever the language of the content.
+
+Then validate it: run `node validate-intent.js <path>` with the script from this file's
+directory, and fix every reported error until it prints `ok`. Never commit a file that
+does not pass.
 
 Then commit and push it, without asking: stage **only** that file (never the rest of the
 working tree), commit it as `intent: <title>`, and push to the current branch's upstream.

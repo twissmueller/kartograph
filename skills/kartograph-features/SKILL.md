@@ -86,9 +86,11 @@ See `example.md` in this file's directory for a complete worked example.
 
 Check that every in-scope statement is a scenario, a link to an existing one, or an open
 question; that source references, feature links and terminology are consistent; that no
-scenario is duplicated and nothing exceeds the intent's scope. If a Gherkin parser is
-already available in the project, run a syntax check; never install one. Inspect the
-diff: only `features/` changed.
+scenario is duplicated and nothing exceeds the intent's scope. Then run
+`node validate-features.js features` with the script from this file's directory and fix
+every reported error until it prints `ok`; never commit a tree that does not pass. If a
+Gherkin parser is already available in the project, run a syntax check too; never install
+one. Inspect the diff: only `features/` changed.
 
 Stage only `features/`, commit as `features: <intent title>`, push to the branch's
 upstream. No git or no upstream: skip and say so. Report created, updated and reused

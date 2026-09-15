@@ -1,6 +1,6 @@
 {
   "name": "opencode-kartograph",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "OpenCode plugin: Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, and derive capabilities and Gherkin features under features/.",
   "type": "module",
   "main": "opencode/index.js",
@@ -28,5 +28,8 @@
   "homepage": "https://github.com/twissmueller/kartograph",
   "peerDependencies": {
     "@opencode-ai/plugin": ">=1.0.0"
+  },
+  "scripts": {
+    "test": "node --test"
   }
 }

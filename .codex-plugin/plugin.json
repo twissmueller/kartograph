@@ -1,6 +1,6 @@
 {
   "name": "kartograph",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, and derive capabilities and Gherkin features under features/.",
   "author": {
     "name": "Tobias Wissmüller",
