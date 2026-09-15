@@ -80,6 +80,22 @@ export const KartographPlugin = async () => ({
       args: intentArg,
       opening: intentOpening,
     }),
+    kartograph_views: skillTool({
+      skill: "kartograph-views",
+      files: ["design-system.md", "mvvm.md"],
+      description:
+        "Use when a capability or feature under features/ is specified and the person wants to see " +
+        "and use its screens in the Kotlin Multiplatform app before any real behaviour exists — the " +
+        "UI-first phase with mocked data. Also use to update those screens after the specification " +
+        "changed. Requires the capability or feature to be named. Returns the instructions to follow " +
+        "for the rest of the conversation.",
+      args: {
+        target: tool.schema
+          .string()
+          .describe("The capability directory (features/<capability>) or feature file to build screens for."),
+      },
+      opening: (a) => `The capability or feature to build: ${a.target}\n\n`,
+    }),
   },
 });
 

@@ -1,7 +1,7 @@
 {
   "name": "kartograph",
-  "version": "1.3.0",
-  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, and derive capabilities and Gherkin features under features/.",
+  "version": "1.4.0",
+  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, and build their screens UI-first on mocked data in a Kotlin Multiplatform app.",
   "author": {
     "name": "Tobias Wissmüller",
     "email": "tobias@wissmueller.net",
@@ -20,13 +20,16 @@
     "okf",
     "glossary",
     "gherkin",
-    "features"
+    "features",
+    "kmp",
+    "compose",
+    "mvvm"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Kartograph",
     "shortDescription": "Draw out what a person really wants before anything gets built",
-    "longDescription": "Kartograph has three skills that build on each other through plain files. kartograph-explore runs one exploring conversation with you and writes intents/<date>-<slug>.md. kartograph-knowledge reads an intent and records every concept it introduces in an Open Knowledge Format bundle at knowledge/. kartograph-features reads an intent and derives capabilities and Gherkin features under features/, updating what already exists.",
+    "longDescription": "Kartograph has four skills that build on each other through plain files. kartograph-explore runs one exploring conversation with you and writes intents/<date>-<slug>.md. kartograph-knowledge reads an intent and records every concept it introduces in an Open Knowledge Format bundle at knowledge/. kartograph-features reads an intent and derives capabilities and Gherkin features under features/. kartograph-views builds a capability's screens and view models on fake use cases with sample data in a Kotlin Multiplatform app, following the project's design system and MVVM code design, so you can judge the flow before real behaviour exists.",
     "developerName": "Tobias Wissmüller",
     "category": "Engineering",
     "capabilities": [
@@ -38,7 +41,8 @@
       "Explore my intent for a new feature with kartograph-explore",
       "I have a rough idea for a product change — help me write down what I actually want",
       "Extract the concepts of my newest intent into the knowledge base with kartograph-knowledge",
-      "Derive the capabilities and features of my newest intent with kartograph-features"
+      "Derive the capabilities and features of my newest intent with kartograph-features",
+      "Build the screens for the project-archiving capability with kartograph-views"
     ]
   }
 }

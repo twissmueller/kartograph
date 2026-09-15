@@ -1,7 +1,7 @@
 {
   "name": "opencode-kartograph",
-  "version": "1.3.0",
-  "description": "OpenCode plugin: Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, and derive capabilities and Gherkin features under features/.",
+  "version": "1.4.0",
+  "description": "OpenCode plugin: Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, and build their screens UI-first on mocked data in a Kotlin Multiplatform app.",
   "type": "module",
   "main": "opencode/index.js",
   "exports": "./opencode/index.js",
@@ -20,7 +20,9 @@
     "interview",
     "knowledge",
     "okf",
-    "gherkin"
+    "gherkin",
+    "kmp",
+    "compose"
   ],
   "author": "Tobias Wissmüller <tobias@wissmueller.net>",
   "license": "MIT",

@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Kartograph is a plugin with **three skills**, one structure validator per skill, and no
-build step. Each skill starts from a fresh context and knows only what the files in the
-target project tell it:
+Kartograph is a plugin with **four skills**, a structure validator for each of the three
+file-writing ones, and no build step. Each skill starts from a fresh context and knows
+only what the files in the target project tell it:
 
 - `kartograph-explore` runs one exploring conversation and writes
   `intents/<YYYY-MM-DD-HHMM>-<slug>.md`.
@@ -15,6 +15,11 @@ target project tell it:
 - `kartograph-features` reads one intent file and derives capabilities
   (`features/<capability>/capability.md`) and Gherkin features
   (`features/<capability>/<feature>.feature`), updating what already exists.
+- `kartograph-views` takes one named capability or feature and builds phase 1 of it in
+  the target's Kotlin Multiplatform app: screens, view models and fake use cases with
+  sample data, following the project's `docs/design-system.md` and
+  `docs/code-design/mvvm.md`. It ships the defaults for both and copies them in when the
+  project has none.
 
 The same skills are served to three runtimes from one place:
 
@@ -24,6 +29,8 @@ skills/kartograph-explore/intent-template.md   skeleton of the intent file
 skills/kartograph-knowledge/concept-template.md skeleton of one OKF concept file
 skills/kartograph-features/capability-template.md skeleton of capability.md
 skills/kartograph-features/example.md         worked example (fictional) for features
+skills/kartograph-views/design-system.md      default design system (tokens, AppTheme, components)
+skills/kartograph-views/mvvm.md               default MVVM code design with the three phases
 skills/<name>/validate-*.js                 the skill's structure validator (see below)
 test/*.test.js                              node:test suite for the validators (`npm test`)
 .claude-plugin/plugin.json                  Claude Code manifest  (lists each skill directory)
@@ -47,13 +54,14 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   runtime-specific tool, variable (`${CLAUDE_PLUGIN_ROOT}`), or slash command in `SKILL.md`.
   Templates are addressed as "`<file>` in this file's directory".
 - **Each skill writes only its own output** and commits only that: explore the intent
-  file, knowledge the `knowledge/` directory, features the `features/` directory. None
-  names or starts a phase beyond itself; the next phase is a separate skill that *reads*
-  the previous one's files.
+  file, knowledge the `knowledge/` directory, features the `features/` directory, views
+  one `feature-<capability>` module plus its wiring. None names or starts a phase beyond
+  itself; the next phase is a separate skill that *reads* the previous one's files.
 - **The AI drives.** Explore ends every message with the next question or the written
-  file and never waits to be asked what comes next. Knowledge and features are fully
-  automated: no question, no review, no confirmation; each runs to the end, commits,
-  pushes, reports. Anything undecided becomes an open question in the written file.
+  file and never waits to be asked what comes next. Knowledge, features and views are
+  fully automated: no question, no review, no confirmation; each runs to the end,
+  commits, pushes, reports. Anything undecided becomes an open question in the written
+  file. Views is the one skill that needs an argument: the capability or feature.
 - **Frontmatter is the contract.** `name` is the slash name and the Codex skill folder.
   `description` states *when* to use the skill, never *how* it works — a description that
   summarises the process makes agents skip the body.
@@ -110,6 +118,7 @@ Rules for editing them:
 - `index.md` carries only `okf_version: "0.2"` as frontmatter; `log.md` is date-grouped,
   newest first. Broken cross-links are tolerated by the spec, so a link to a not-yet-written
   concept is allowed.
+
 ## Rules the features skill must keep
 
 - One directory per **capability**, never per intent; `capability.md` plus one `Feature:`
@@ -126,6 +135,24 @@ Rules for editing them:
   `# Source intent:` / `# Capability:` comments and the capability's *Sources* list; no
   UUIDs, hashes, or extra logs.
 
+## Rules the views skill must keep
+
+- **Phase 1 only**, as `mvvm.md` §6 defines it: use case *interfaces* plus `Fake…UseCase`
+  and `…SampleData` in `presentation/fake/`, bound in the feature's Koin module. No real
+  use cases, repositories, data sources or unit tests; those are phases 2 and 3.
+- **The two documents are the contract.** The skill follows the project's copies of
+  `docs/design-system.md` and `docs/code-design/mvvm.md`; the files in the skill directory
+  are only the defaults it copies in when a project has none. Change a default here only
+  to change what *new* projects start with. The defaults derive from the user's KMP
+  knowledge repo (`~/projects/knowledge/references/`, atoms C11, A0–A6, P3, P8); one
+  deliberate departure: the theme lives in `shared/`, not `core/presentation/`, because
+  `core` has no Compose.
+- **Never scaffold, never launch.** No Gradle build means stop; the app is started by the
+  person, and the skill only `reload`s and looks through the Compose Hot Reload server
+  when one is connected.
+- **Vocabulary comes from `knowledge/`**, screens and controls from the scenarios' own
+  words, sample data from every `Given`. Nothing a scenario does not state is built.
+
 ## Releasing
 
 Bump `version` in **all three** of `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`
@@ -135,8 +162,8 @@ repo is its own marketplace and resolves against `main`. OpenCode users get the 
 after `npm publish`:
 
 ```bash
-git tag -a v1.3.0 -m "v1.3.0 — <the one-line headline>"
-git push origin main && git push origin v1.3.0
+git tag -a v1.5.0 -m "v1.5.0 — <the one-line headline>"
+git push origin main && git push origin v1.5.0
 ```
 
 Tags `v0.19.0` … `v0.21.2` mark the earlier, much larger Kartograph (a living map with a
