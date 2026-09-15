@@ -1,19 +1,22 @@
 {
-  "name": "kartograph",
-  "version": "0.21.2",
-  "description": "A living map of a software system, maintained jointly by human and AI.",
+  "name": "opencode-kartograph",
+  "version": "1.0.0",
+  "description": "OpenCode plugin: explore a person's intent in one conversation and write it down as intents/<date>-<slug>.md.",
   "type": "module",
+  "main": "opencode/index.js",
+  "exports": "./opencode/index.js",
+  "files": [
+    "opencode/",
+    "skills/",
+    "README.md",
+    "NOTICE"
+  ],
+  "keywords": ["opencode", "opencode-plugin", "intent", "discovery", "brainstorming", "interview"],
+  "author": "Tobias Wissmüller <tobias@wissmueller.net>",
   "license": "MIT",
-  "bin": {
-    "kartograph-validate": "scripts/validate-kartograph.js",
-    "kartograph-reconcile": "scripts/reconcile.js"
-  },
-  "scripts": {
-    "test": "node --test",
-    "validate": "node scripts/validate-kartograph.js examples/kartograph.seed.json --bundle examples/seed-knowledge"
-  },
-  "dependencies": {
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1"
+  "repository": "github:twissmueller/kartograph",
+  "homepage": "https://github.com/twissmueller/kartograph",
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.0.0"
   }
 }

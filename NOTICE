@@ -1,11 +1,7 @@
 Kartograph
 
-Skill ideas are adapted (not copied 1:1) from mattpocock/skills
+The kartograph-explore skill is adapted (not copied 1:1) from two skills of the
+Superpowers project (https://github.com/obra/superpowers): its brainstorming skill
+(opening an idea up before any solution is discussed) and the converging, one-question-
+at-a-time interview style. It also borrows the "grill me" idea from mattpocock/skills
 (https://github.com/mattpocock/skills) under its license.
-
-Kartograph uses and honors the Superpowers project: /karto-explore invokes
-superpowers:brainstorming and /karto-build invokes
-superpowers:test-driven-development.
-
-Dynamic workflows follow the Claude Code docs:
-https://code.claude.com/docs/en/workflows

@@ -5,13 +5,13 @@
     "email": "tobias@wissmueller.net"
   },
   "metadata": {
-    "description": "Kartograph — a living map of your software system, drawn together by you and AI."
+    "description": "Kartograph — draw out what a person really wants before anything gets built."
   },
   "plugins": [
     {
       "name": "kartograph",
       "source": "./",
-      "description": "A living map of your software system: explore, chart, and build through schema-gated workflows, rendered in a live static viewer."
+      "description": "One exploring conversation that ends in a written intent: goals, role, outcomes, non-goals, assumptions, decisions, open questions."
     }
   ]
 }
