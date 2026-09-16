@@ -24,7 +24,8 @@ only what the files in the target project tell it:
   `plans/<YYYY-MM-DD-HHMM>-<capability>.md`: layer map, ports and adapters with exact
   signatures, files, and one double-loop task per scenario with real code in every step.
   Modelled on superpowers' writing-plans; no placeholders.
-- `kartograph-build` executes the newest `planned` plan for a capability task by task
+- `kartograph-build` executes a `planned` plan task by task, the named capability's or
+  else the newest,
   (phases 2 and 3 of `mvvm.md`): use cases, repositories, Room, the Ktor client, Pattern B
   platform capabilities and the Ktor server. Its `build-design.md` is the layer-by-layer
   reference both skills follow. Without a plan it stops.
@@ -78,8 +79,10 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   file and never waits to be asked what comes next. Knowledge, features and views are
   fully automated: no question, no review, no confirmation; each runs to the end,
   commits, pushes, reports. Anything undecided becomes an open question in the written
-  file. Views, plan, build and walk need an argument: the capability or feature. Walk is
-  interactive by design, but asks exactly once per scenario, never after trivial steps.
+  file. Views, plan and walk need an argument: the capability or feature; build falls
+  back to the newest planned plan, the way knowledge and features fall back to the
+  newest intent. Walk is interactive by design, but asks exactly once per scenario,
+  never after trivial steps.
 - **Frontmatter is the contract.** `name` is the slash name and the Codex skill folder.
   `description` states *when* to use the skill, never *how* it works — a description that
   summarises the process makes agents skip the body.
@@ -190,8 +193,9 @@ Rules for editing them:
 
 - **Build executes the plan**, task by task, steps as written; the plan's content is
   never edited, only its checkboxes ticked. A step the code contradicts gets the smallest
-  correction that keeps its intent, and the deviation is reported. No `planned` plan means
-  stop and say so.
+  correction that keeps its intent, and the deviation is reported. The plan sets the
+  scope: the named capability's newest `planned` plan, else the newest `planned` plan
+  overall; none means stop and say so.
 
 - **Double loop, red first.** One `kotlin.test` function per scenario at the ViewModel
   level (the outer loop; Gherkin is never executed, per the user's knowledge repo), then a

@@ -119,14 +119,15 @@ export const KartographPlugin = async () => ({
         "Use when a capability or feature under features/ has its screens (phase 1, on fakes) and " +
         "the person wants the real behaviour built underneath — use cases, repositories, database, " +
         "API client, platform capabilities and the server — or when scenarios that failed a walk " +
-        "need implementing. Requires the capability or feature to be named. Returns the " +
-        "instructions to follow for the rest of the conversation.",
+        "need implementing. Takes the capability named, else the newest planned plan. Returns " +
+        "the instructions to follow for the rest of the conversation.",
       args: {
         target: tool.schema
           .string()
-          .describe("The capability directory (features/<capability>) or feature file to build."),
+          .optional()
+          .describe("The capability directory (features/<capability>) to build; omit for the newest planned plan."),
       },
-      opening: (a) => `The capability or feature to build: ${a.target}\n\n`,
+      opening: (a) => (a.target ? `The capability to build: ${a.target}\n\n` : ""),
     }),
     kartograph_walk: skillTool({
       skill: "kartograph-walk",

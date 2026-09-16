@@ -1,6 +1,6 @@
 ---
 name: kartograph-build
-description: Use when a capability or feature under features/ has its screens (phase 1, on fakes) and the person wants the real behaviour built underneath — use cases, repositories, database, API client, platform capabilities and the server — or when scenarios that failed a walk need implementing. Requires the capability or feature to be named.
+description: Use when a capability or feature under features/ has its screens (phase 1, on fakes) and a plan under plans/, and the person wants the real behaviour built underneath — use cases, repositories, database, API client, platform capabilities and the server — or when scenarios that failed a walk need implementing. Takes the capability named, else the newest planned plan.
 ---
 
 # Kartograph Build
@@ -9,8 +9,9 @@ Make a capability real by executing its plan: replace its fakes with use cases,
 repositories, data sources, a database, an API client, platform capabilities and the
 server endpoints they need, task by task as `kartograph-plan` laid them out, test first.
 Read, execute, verify, commit, push, report. **Fully automated: ask nothing, wait for
-nothing.** If no capability or feature was named, stop and say so. If the capability has
-no `planned` plan under `plans/`, stop and say that `kartograph-plan` runs first.
+nothing.** The plan decides the scope: the newest `planned` file under `plans/` for the
+capability named, or, when none was named, the newest `planned` file overall. No such
+plan means stop and say that `kartograph-plan` runs first.
 
 ## Hard rules
 
@@ -42,8 +43,10 @@ no `planned` plan under `plans/`, stop and say that `kartograph-plan` runs first
 
 ## 1. Read
 
-Take the named capability or feature and the newest `planned` file under `plans/` for it.
-Read the plan in full, then what it cites: the `.feature` files, the `knowledge/` bundle,
+Take the plan: the newest `planned` file under `plans/` for the capability named, or
+the newest `planned` file when none was named; its frontmatter says which capability and
+features it covers. Say in one line which plan you are executing. Read it in full, then
+what it cites: the `.feature` files, the `knowledge/` bundle,
 `docs/code-design/mvvm.md`, `build-design.md` in this file's directory, and the current
 state of the feature module, `core/`, `shared/` and `server/`. Review the plan critically
 against the code as it is now: a file it says to create that exists, a signature that

@@ -1,7 +1,7 @@
 {
   "name": "kartograph",
   "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, build their screens UI-first on mocked data in a Kotlin Multiplatform app, plan and then make them real with double-loop TDD down to database, API and server, and walk the person through what was built.",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "author": {
     "name": "Tobias Wissmüller",
     "email": "tobias@wissmueller.net"

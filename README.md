@@ -16,7 +16,7 @@ skills that build on each other through plain files in your repository:
 | **`kartograph-features`** | one intent file | `features/`, capabilities and Gherkin features |
 | **`kartograph-views`** | one capability or feature | screens and view models on fake data in your KMP app |
 | **`kartograph-plan`** | one capability or feature | `plans/<date>-<capability>.md`, one double-loop task per scenario |
-| **`kartograph-build`** | the newest plan for a capability | the real behaviour underneath: use cases, repositories, database, API, server |
+| **`kartograph-build`** | a plan: the named capability's, else the newest | the real behaviour underneath: use cases, repositories, database, API, server |
 | **`kartograph-walk`** | one capability, feature or scenario, and you watching | `walks/<date>-<capability>.md`, your verdicts |
 
 Each run starts from a fresh context. What one skill knows, it knows from the files the
@@ -152,7 +152,8 @@ as `plan: <capability>`, pushed. A re-plan supersedes the earlier plan.
 
 ## `kartograph-build` — the real thing, task by task
 
-Executes the newest plan for a capability; without one it stops and says to plan first.
+Executes a plan: the newest for the capability you name, or the newest planned plan
+overall when you name none. Without one it stops and says to plan first.
 It reviews the plan against the code as it is now, then works through the tasks in
 order, each a scenario in double-loop shape:
 
@@ -226,12 +227,12 @@ Then, in any project:
 /kartograph:kartograph-features
 /kartograph:kartograph-views project-archiving
 /kartograph:kartograph-plan project-archiving
-/kartograph:kartograph-build project-archiving
+/kartograph:kartograph-build
 /kartograph:kartograph-walk project-archiving
 ```
 
-The first three also trigger on their own when the situation fits; views, plan, build
-and walk need the capability or feature named.
+The first three also trigger on their own when the situation fits. Views, plan and walk
+need the capability or feature named; build takes the newest plan when you name none.
 
 ### Codex and the ChatGPT app
 
