@@ -96,6 +96,54 @@ export const KartographPlugin = async () => ({
       },
       opening: (a) => `The capability or feature to build: ${a.target}\n\n`,
     }),
+    kartograph_plan: skillTool({
+      skill: "kartograph-plan",
+      files: ["plan-template.md"],
+      description:
+        "Use when a capability or feature under features/ has its screens (phase 1, on fakes) and " +
+        "the real behaviour is about to be built, before any production code below the view is " +
+        "written; or when scenarios failed a walk and need re-planning. Produces the plan " +
+        "kartograph-build executes. Requires the capability or feature to be named. Returns the " +
+        "instructions to follow for the rest of the conversation.",
+      args: {
+        target: tool.schema
+          .string()
+          .describe("The capability directory (features/<capability>) or feature file to plan."),
+      },
+      opening: (a) => `The capability or feature to plan: ${a.target}\n\n`,
+    }),
+    kartograph_build: skillTool({
+      skill: "kartograph-build",
+      files: ["build-design.md"],
+      description:
+        "Use when a capability or feature under features/ has its screens (phase 1, on fakes) and " +
+        "the person wants the real behaviour built underneath — use cases, repositories, database, " +
+        "API client, platform capabilities and the server — or when scenarios that failed a walk " +
+        "need implementing. Requires the capability or feature to be named. Returns the " +
+        "instructions to follow for the rest of the conversation.",
+      args: {
+        target: tool.schema
+          .string()
+          .describe("The capability directory (features/<capability>) or feature file to build."),
+      },
+      opening: (a) => `The capability or feature to build: ${a.target}\n\n`,
+    }),
+    kartograph_walk: skillTool({
+      skill: "kartograph-walk",
+      files: ["walk-template.md"],
+      description:
+        "Use when something has been built for a capability or feature under features/ — screens on " +
+        "sample data, or the whole feature — and a person wants to be shown it working in the running " +
+        "app, scenario by scenario, and to say whether each one is right. Also use to re-walk a " +
+        "capability after changes. Requires the capability, feature or scenario to be named. Returns " +
+        "the instructions to follow for the rest of the conversation.",
+      args: {
+        target: tool.schema
+          .string()
+          .describe("The capability directory, feature file, or scenario name to walk."),
+      },
+      opening: (a) => `The capability, feature or scenario to walk: ${a.target}\n\n`,
+    }),
   },
 });
 

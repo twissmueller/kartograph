@@ -150,14 +150,20 @@ screens and the real `State`/`Event`/`Effect` contract, but no real behaviour un
 Replace each `Fake…UseCase` with `…UseCaseImpl` in `domain/`, add repository interfaces
 in `domain/`, and move the fakes to `commonTest` as `Fake…Repository`. Business-rule
 validation lives in the use cases. Write one ViewModel test per scenario (kotlin.test +
-Turbine, fakes over mocks, injected dispatcher). The presentation layer does not change.
+Turbine, fakes over mocks, injected dispatcher), red before the implementation. The
+presentation layer does not change. The phase-1 sample data survives as an in-memory
+repository behind a build-time demo flag, so the walk still works before a backend exists.
 
 ### Phase 3: repositories and data
 
-Add `…RepositoryImpl` and data sources in `data/` (Room, Ktor, multiplatform-settings per
-the project's picks), the DB↔domain mappers, and exception-to-`AppError` translation at
-the repository boundary. Swap the Koin `single` binding. Nothing above the repository
-changes.
+Add `…RepositoryImpl` and data sources in `data/` (Room in `core/data/db/`, a Ktor client in
+`core/data/network/`, `multiplatform-settings` for small key-value, Pattern B interfaces
+with per-target implementations for platform capabilities), the DB↔domain and DTO↔domain
+mappers, and exception-to-`AppError` translation at the repository boundary. Where a
+scenario needs a server, add the Ktor route under `server/` with request and response types
+shared through `core/`. Swap the Koin `single` binding. Nothing above the repository
+changes. `kartograph-build` runs phases 2 and 3 scenario by scenario; its `build-design.md`
+holds the layer-by-layer detail.
 
 ## 7. Rules that hold in every phase
 

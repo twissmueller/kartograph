@@ -1,7 +1,7 @@
 {
   "name": "kartograph",
-  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, and build their screens UI-first on mocked data in a Kotlin Multiplatform app.",
-  "version": "1.4.0",
+  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, build their screens UI-first on mocked data in a Kotlin Multiplatform app, plan and then make them real with double-loop TDD down to database, API and server, and walk the person through what was built.",
+  "version": "1.6.0",
   "author": {
     "name": "Tobias Wissmüller",
     "email": "tobias@wissmueller.net"
@@ -19,12 +19,20 @@
     "features",
     "kmp",
     "compose",
-    "mvvm"
+    "mvvm",
+    "walkthrough",
+    "acceptance",
+    "tdd",
+    "clean-architecture",
+    "planning"
   ],
   "skills": [
     "./skills/kartograph-explore",
     "./skills/kartograph-knowledge",
     "./skills/kartograph-features",
-    "./skills/kartograph-views"
+    "./skills/kartograph-views",
+    "./skills/kartograph-plan",
+    "./skills/kartograph-build",
+    "./skills/kartograph-walk"
   ]
 }

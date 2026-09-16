@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Kartograph is a plugin with **four skills**, a structure validator for each of the three
-file-writing ones, and no build step. Each skill starts from a fresh context and knows
+Kartograph is a plugin with **seven skills**, a structure validator for each of the five
+that write a fixed-shape file, and no build step. Each skill starts from a fresh context and knows
 only what the files in the target project tell it:
 
 - `kartograph-explore` runs one exploring conversation and writes
@@ -20,6 +20,18 @@ only what the files in the target project tell it:
   sample data, following the project's `docs/design-system.md` and
   `docs/code-design/mvvm.md`. It ships the defaults for both and copies them in when the
   project has none.
+- `kartograph-plan` takes one named capability or feature and writes
+  `plans/<YYYY-MM-DD-HHMM>-<capability>.md`: layer map, ports and adapters with exact
+  signatures, files, and one double-loop task per scenario with real code in every step.
+  Modelled on superpowers' writing-plans; no placeholders.
+- `kartograph-build` executes the newest `planned` plan for a capability task by task
+  (phases 2 and 3 of `mvvm.md`): use cases, repositories, Room, the Ktor client, Pattern B
+  platform capabilities and the Ktor server. Its `build-design.md` is the layer-by-layer
+  reference both skills follow. Without a plan it stops.
+- `kartograph-walk` takes one named capability, feature or scenario, drives the running
+  app in front of the person scenario by scenario (Compose Hot Reload, a browser, a
+  screen-control tool, or the person drives), asks after each one, and records the
+  verdicts in `walks/<YYYY-MM-DD-HHMM>-<capability>.md`.
 
 The same skills are served to three runtimes from one place:
 
@@ -31,6 +43,9 @@ skills/kartograph-features/capability-template.md skeleton of capability.md
 skills/kartograph-features/example.md         worked example (fictional) for features
 skills/kartograph-views/design-system.md      default design system (tokens, AppTheme, components)
 skills/kartograph-views/mvvm.md               default MVVM code design with the three phases
+skills/kartograph-plan/plan-template.md       skeleton of one implementation plan
+skills/kartograph-build/build-design.md       layer-by-layer rules for phases 2 and 3 (ports/adapters, Room, Ktor, server, tests, DoD)
+skills/kartograph-walk/walk-template.md       skeleton of one walk record
 skills/<name>/validate-*.js                 the skill's structure validator (see below)
 test/*.test.js                              node:test suite for the validators (`npm test`)
 .claude-plugin/plugin.json                  Claude Code manifest  (lists each skill directory)
@@ -55,13 +70,16 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   Templates are addressed as "`<file>` in this file's directory".
 - **Each skill writes only its own output** and commits only that: explore the intent
   file, knowledge the `knowledge/` directory, features the `features/` directory, views
-  one `feature-<capability>` module plus its wiring. None names or starts a phase beyond
+  one `feature-<capability>` module plus its wiring, plan one file under `plans/`, build
+  that module plus `core/`, `server/`, wiring and the plan's checkboxes, walk one file
+  under `walks/`. None names or starts a phase beyond
   itself; the next phase is a separate skill that *reads* the previous one's files.
 - **The AI drives.** Explore ends every message with the next question or the written
   file and never waits to be asked what comes next. Knowledge, features and views are
   fully automated: no question, no review, no confirmation; each runs to the end,
   commits, pushes, reports. Anything undecided becomes an open question in the written
-  file. Views is the one skill that needs an argument: the capability or feature.
+  file. Views, plan, build and walk need an argument: the capability or feature. Walk is
+  interactive by design, but asks exactly once per scenario, never after trivial steps.
 - **Frontmatter is the contract.** `name` is the slash name and the Codex skill folder.
   `description` states *when* to use the skill, never *how* it works — a description that
   summarises the process makes agents skip the body.
@@ -79,6 +97,8 @@ before committing. They exist so files never drift from their templates:
 node skills/kartograph-explore/validate-intent.js intents/<file>.md     # or no arg: all of ./intents
 node skills/kartograph-knowledge/validate-knowledge.js knowledge        # or one concept file
 node skills/kartograph-features/validate-features.js features           # or one capability dir
+node skills/kartograph-plan/validate-plan.js plans/<file>.md            # or no arg: all of ./plans
+node skills/kartograph-walk/validate-walk.js walks/<file>.md            # or no arg: all of ./walks
 npm test                                                                # the suite behind them
 ```
 
@@ -89,7 +109,7 @@ Rules for editing them:
   Codex cache, the npm package). The YAML-subset parser lives only in the knowledge
   validator; the intent frontmatter is flat and needs no parser.
 - **Pure function + thin CLI.** `validateIntent`, `validateConcept`/`validateBundle`,
-  `validateCapability`/`validateFeature`/`validateTree` take text or a path and return
+  `validateCapability`/`validateFeature`/`validateTree`, `validatePlan`, `validateWalk` take text or a path and return
   `{ errors, warnings }`; the CLI is guarded by `fileURLToPath(import.meta.url) ===
   process.argv[1]`. Tests exercise the functions on fixtures in temp dirs.
 - **Template and validator change together.** A new section, key or rule in a template
@@ -153,6 +173,66 @@ Rules for editing them:
 - **Vocabulary comes from `knowledge/`**, screens and controls from the scenarios' own
   words, sample data from every `Given`. Nothing a scenario does not state is built.
 
+## Rules the plan skill must keep
+
+- **The plan is executable by a stranger.** Modelled on superpowers' `writing-plans`:
+  exact paths, exact signatures in an *Interfaces* block per task, real test code and
+  real minimal code in every step, a `Run:` and `Expected:` line per test run, the outer
+  test expected to FAIL first. The validator rejects every placeholder pattern
+  (`TBD`, `TODO`, "add error handling", "similar to task N", template angle brackets).
+- **One task per scenario, in walk order** (walk failures first), or a friction entry;
+  the layer map, the tasks and the feature files must agree, and the validator checks
+  all three against each other inside a project.
+- **It plans, it never builds**: no production code, no `.feature` edit, no plan
+  rewrite. A re-plan writes a new file and marks the earlier one `superseded`.
+
+## Rules the build skill must keep
+
+- **Build executes the plan**, task by task, steps as written; the plan's content is
+  never edited, only its checkboxes ticked. A step the code contradicts gets the smallest
+  correction that keeps its intent, and the deviation is reported. No `planned` plan means
+  stop and say so.
+
+- **Double loop, red first.** One `kotlin.test` function per scenario at the ViewModel
+  level (the outer loop; Gherkin is never executed, per the user's knowledge repo), then a
+  failing test per layer (the inner loop). Never production code before a failing test,
+  never a weakened assertion, never a mocking library: fakes implement the interface.
+- **Whole vertical slice.** A scenario is done only when its `Then` is reachable through
+  the UI; the Hot Reload window confirms it when connected, else the report says
+  compiled-only. Never edit a `.feature`; an unbuildable scenario stays open with friction.
+- **Vocabulary is the user's, not hexagonal's.** The skill teaches ports and adapters but
+  the code says `…UseCase`, `…Repository`/`…Impl`, `…Api`, `…Dao`, Pattern A/B, seam;
+  never "port" or "adapter" in identifiers. Domain types come from `knowledge/`.
+- **Derived from the knowledge repo** (`~/projects/knowledge/references/`, atoms A1, A2,
+  A5, A8, C1, C2, C9, C10, C12, P3, P4, P8, I3, I4). **The server section is Kartograph's
+  own default**: the repo's server and shared-core atoms are deferred stubs, so
+  `build-design.md` §6 is minimal Ktor practice, marked as such, to be replaced when an
+  atom lands. One known tension the reference resolves: Room schemas and DAOs live in
+  `core/data/db/` (C12), with KSP and `schemaDirectory` in the module that owns the database.
+- **Demo mode is a build flag**, not a fake: phase-1 sample data becomes an in-memory
+  repository bound when `AppConfig.demo` is true; test fakes live in `commonTest` only.
+
+## Rules the walk skill must keep
+
+- **Present, drive, ask, in that order, every scenario.** The feature title and the
+  scenario text verbatim go on screen before anything is driven; the person's answer is
+  the only thing that becomes a verdict. The AI's observation never is.
+- **Stop rather than improvise**; never edit the app, its data or a `.feature` file to make
+  a scenario walkable; never `reload`, `restart` or `reset_ui`; never start the app.
+- **Drivers in this order:** Compose Hot Reload (desktop window), Claude in Chrome then
+  Playwright (web), a screen-control tool (simulator, native macOS, mirrored iPhone/iPad),
+  else the person drives. The skill names runtime tools by their generic role only; the
+  actual tool names differ per runtime.
+- **The walk record is the only output**, one file per walk, never a change to
+  `features/`. Its validator cross-checks the walked scenarios against the `.feature`
+  files when run inside a project. A failure needs the person's words; a not-drivable
+  scenario needs where it stuck.
+- **Pace like a person:** narrate briefly, ask once per scenario, one "with me so far?" on a
+  long one, no question after trivial steps.
+- **Voice first.** The walk is designed for ChatGPT/Codex voice mode: the written blocks
+  stay as the record, but what matters is spoken in short sentences, actions are announced
+  before they happen, questions are one-word answerable, nothing technical is said aloud.
+
 ## Releasing
 
 Bump `version` in **all three** of `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`
@@ -162,8 +242,8 @@ repo is its own marketplace and resolves against `main`. OpenCode users get the 
 after `npm publish`:
 
 ```bash
-git tag -a v1.5.0 -m "v1.5.0 — <the one-line headline>"
-git push origin main && git push origin v1.5.0
+git tag -a v1.7.0 -m "v1.7.0 — <the one-line headline>"
+git push origin main && git push origin v1.7.0
 ```
 
 Tags `v0.19.0` … `v0.21.2` mark the earlier, much larger Kartograph (a living map with a
