@@ -92,15 +92,18 @@ someone achieve and how that behaves, under `features/`:
 ```
 features/
   <capability>/
-    capability.md        the lasting ability: sources, purpose, scope, constraints, open questions
-    <feature>.feature    one Feature, scenarios grouped under Rule: headings
+    capability.md          the lasting ability: sources, purpose, scope, constraints, open questions
+    <feature>.feature      one Feature, plain Gherkin, scenarios optionally grouped under Rule:
+    <sub-capability>/      the same shape, as deep as the product needs
+      capability.md
+      <feature>.feature
 ```
 
-Each rule states its requirement in [EARS](https://alistairmavin.com/ears/) form
-("When <trigger>, the system shall <response>"), and each scenario is a concrete example
-in the domain's own words, using the canonical titles from `knowledge/` and never a word
-listed there as an alias to avoid. Every feature file names the intent and capability it
-came from.
+Feature files are plain Gherkin. Each scenario is a concrete example in the domain's own
+words, using the canonical titles from `knowledge/` and never a word listed there as an
+alias to avoid. Every feature file names the intent and capability it came from. Older
+trees written by Kartograph v0 are moved onto this shape by
+`node scripts/migrate-features.js <project>`, which never touches a scenario.
 
 It reconciles before it writes. A behaviour already covered by an existing scenario is
 linked, not duplicated. A behaviour an intent changes updates only the steps that
@@ -339,7 +342,8 @@ with a desktop app, validators, nine commands, and a build-and-walk pipeline. `v
 restarted from the one step that mattered most; `v1.1.0` to `v1.6.1` added the knowledge
 base, the features, the screens, the walk, the plan and the build. `v2.0.0` reordered
 the middle: plan first, then three separately triggered rings, with the stack knowledge
-pulled in from `stacks/`.
+pulled in from `stacks/`. `v2.1.0` let capabilities nest, made feature files plain
+Gherkin, and added `scripts/migrate-features.js` for v0 trees.
 
 ## License
 

@@ -35,7 +35,9 @@ capability, feature or scenario was named, stop and say so.
 ## 1. Read and set up
 
 Read the named scope from `features/` (a capability directory, one `.feature`, or one
-scenario by name), `knowledge/` for the canonical words, and earlier files under `walks/`
+scenario by name; a capability may sit inside another one, so resolve its name as the
+single directory of that slug anywhere under `features/` and write the slash-joined path
+in the walk's frontmatter when the slug occurs twice), `knowledge/` for the canonical words, and earlier files under `walks/`
 for that capability so you can say what changed since the last walk. Then ask the person
 to start the app on the surface they want to see it on and to tell you when it is running.
 Detect the driver, in this order, and say in one line which you are using and why:

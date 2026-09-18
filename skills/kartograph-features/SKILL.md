@@ -31,7 +31,8 @@ nothing, wait for nothing.**
 
 Take the intent the person named; otherwise the newest file in `intents/`. Read it in
 full: problem, actors, outcomes, rules, scope, exclusions, constraints, open questions.
-Read the project's instruction file, every `features/*/capability.md` and `.feature`, and
+Read the project's instruction file, every `capability.md` and `.feature` under `features/`
+at any depth, and
 the `knowledge/` bundle if present. Use the bundle's canonical titles for every term; a
 word listed in any concept's `aliases_to_avoid` never appears in a feature or scenario.
 If the intent is already listed under *Sources* of every capability it touches and nothing
@@ -56,29 +57,39 @@ open question naming the behaviour it blocks, never a scenario with a guessed re
 |---|---|
 | capability description | `features/<capability>/capability.md` |
 | feature and its scenarios | `features/<capability>/<feature>.feature` |
+| sub-capability | `features/<capability>/<sub-capability>/…`, the same shape one level down |
 
 One directory per capability, never per intent. A capability is a lasting product
 ability; a feature a coherent part of it; a scenario a concrete example of its behaviour.
+A capability may hold sub-capabilities as directories of the same shape, as deep as the
+product needs (rarely more than three levels); the parent's `capability.md` lists them
+under `## Capabilities` and its own features under `## Features`. Every directory under
+`features/` is a capability with its own `capability.md`.
 
 **`capability.md`** follows `capability-template.md` in this file's directory: Capability,
-Sources, Purpose and outcome, Scope and exclusions, Constraints, Features, Open questions.
-Short. Preserve existing content and sources when another intent extends the capability.
-"Not specified" is not "out of scope".
+Sources, Purpose and outcome, Scope and exclusions, Constraints, Features, Capabilities,
+Open questions. Short. Preserve existing content and sources when another intent extends
+the capability. "Not specified" is not "out of scope".
 
-**`.feature`** files: one `Feature:` per file with a brief outcome-oriented description,
-scenarios grouped under `Rule:` headings. State each rule's requirement in EARS form on a
-line prefixed `Requirement:` (a bare `When …` line would parse as a step):
-`When <trigger>, the system shall <response>.` / `While <state>, the system shall …` /
-`If <unwanted situation>, then the system shall …`. Scenarios: initial conditions, one
-action or event, observable results, no implementation detail, independent of each other.
+**`.feature`** files are plain Gherkin: one `Feature:` per file with a brief
+outcome-oriented description, then scenarios. Group scenarios under `Rule:` headings only
+where the intent states a business rule; put the rule's statement, in the intent's words,
+as description text under the `Rule:` line. Scenarios: initial conditions, one action or
+event, observable results, no implementation detail, independent of each other. Prefer
+explicit Given steps over `Background:` in new scenarios; existing backgrounds stay.
 `Scenario Outline` only for genuine value variants. Cover success, rejection and boundary
 behaviour where the sources say what happens; never pad to a count. English Gherkin
-keywords, the intent's language for prose, never mixed dialects. Start every new file with
+keywords for new files, the intent's language for prose, never mixed dialects; a file
+that already starts with `# language: <code>` keeps that dialect. Start every new file
+with
 
 ```gherkin
 # Source intent: intents/<file>.md
 # Capability: features/<capability>/capability.md
 ```
+
+where the capability path is the full path from the project root, for example
+`features/admin-console/individual-accounts/capability.md`.
 
 See `example.md` in this file's directory for a complete worked example.
 

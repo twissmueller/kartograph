@@ -155,9 +155,16 @@ Rules for editing them:
 
 ## Rules the features skill must keep
 
-- One directory per **capability**, never per intent; `capability.md` plus one `Feature:`
-  per `.feature` file, scenarios under `Rule:` headings, each rule's requirement in EARS
-  form on a `Requirement:` line.
+- One directory per **capability**, never per intent; capabilities may nest as
+  sub-capability directories of the same shape. Every directory under `features/` holds a
+  `capability.md`; `## Features` lists its own `.feature` files, `## Capabilities` its
+  sub-capabilities. Feature files are plain Gherkin: `Rule:` optional, no requirement
+  line, `Background:` allowed, tags anywhere Gherkin allows them, `# language: de` on
+  line 1 for German files. The validator checks only Kartograph's additions: the two
+  header comments, one `Feature:`, unique scenario names, a When and a Then per scenario.
+- `scripts/migrate-features.js <project>` moves a v0 tree (`features/<context>/<capability>/`,
+  no `capability.md`, no headers) onto this contract without touching a scenario; it
+  writes one migration intent per project as the provenance of every legacy file.
 - **Never invent requirements.** Undecided behaviour is an open question in
   `capability.md`, never a scenario with a guessed outcome or a `TODO` step.
 - **Steps are bound downstream.** Existing scenario steps change only when the behaviour

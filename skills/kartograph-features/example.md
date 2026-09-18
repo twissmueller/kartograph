@@ -51,7 +51,7 @@ Feature: Archive a project
   Project owners can remove an active project from the active overview.
 
   Rule: Owners can archive their active projects
-    Requirement: When an owner archives an active project, the system shall remove that project from the active overview.
+    When an owner archives an active project, the system shall remove that project from the active overview.
 
     Scenario: An owner archives an active project
       Given Alice owns the active project "Atlas"
@@ -59,7 +59,7 @@ Feature: Archive a project
       Then "Atlas" is absent from the active project overview
 
   Rule: Non-owners cannot archive a project
-    Requirement: If a non-owner attempts to archive an active project, then the system shall reject the request and leave the project unchanged.
+    If a non-owner attempts to archive an active project, then the system shall reject the request and leave the project unchanged.
 
     Scenario: A non-owner tries to archive an active project
       Given Alice owns the active project "Atlas"

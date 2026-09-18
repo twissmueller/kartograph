@@ -42,7 +42,10 @@ nothing. The copies are the project's from then on; later runs never touch `stac
 
 ## 2. Read
 
-The named capability's `capability.md` and `.feature` files, the `knowledge/` bundle, the
+The named capability's `capability.md` and `.feature` files (a capability may sit inside
+another one, `features/<parent>/<capability>/`: resolve the name as the single directory of
+that slug anywhere under `features/`, and write the slash-joined path in the plan's
+frontmatter when the slug occurs twice), the `knowledge/` bundle, the
 three documents in `docs/code-design/`, the existing `feature-<capability>` module if any,
 `core/`, `shared/`, `server/`, `settings.gradle.kts` and the version catalog, the newest
 `walks/` file for the capability, and the newest `planned` plan for it. If that plan
