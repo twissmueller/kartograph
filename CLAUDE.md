@@ -103,6 +103,17 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   server atom is a deferred stub. The vocabulary is the user's, not hexagonal's: the code
   says `…UseCase`, `…Repository`/`…Impl`, `…Api`, `…Dao`, Pattern A/B, seam; never "port"
   or "adapter" in identifiers, even though the documents teach the rings as a hexagon.
+- **The apple-swift stack** derives from the owner's two shipped Swift apps, Beatrep
+  (`~/projects/beatrep`) and Mokuso (`~/projects/mokuso`), plus the knowledge repo's
+  native-lane atoms (MON13, MAS8–MAS12, HRD7, RED10, CI4). Where the two apps differ the
+  documents take the newer convention and mark the line *project dial* (Swift 6 over mode
+  5, `@Observable` over `ObservableObject`, SwiftData over plain files, Swift Testing over
+  XCTest, English over German identifiers, XcodeGen over a checked-in project); a project's
+  copy may switch a dial. One deliberate departure from KMP, marked: doubles stay beside
+  their port in the app target and are chosen only in `AppEnvironment` under `isUITest`,
+  because they are the UI-test and walk substrate. Apple's guidance is cited only where it
+  confirms a convention. The plan template, its validator (it requires a Koin step) and the
+  ring skills still speak KMP; a Swift plan cannot pass them yet.
 - Bump the `generated.by` actor (`kartograph-knowledge/<version>`) in the knowledge
   `SKILL.md` and `concept-template.md` with every release.
 

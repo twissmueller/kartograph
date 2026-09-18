@@ -168,7 +168,7 @@ The plugin ships the stacks under `stacks/`, one directory each:
 |---|---|---|
 | `kmp` | ready | `settings.gradle.kts` plus a `kotlin("multiplatform")` module |
 | `android-compose` | scaffold | an Android application module without multiplatform |
-| `apple-swift` | scaffold | `Package.swift` or an `.xcodeproj`, no Gradle |
+| `apple-swift` | ready | `Package.swift`, an `.xcodeproj` or a `project.yml`, no Gradle |
 | `angular-kotlin` | scaffold | `angular.json` beside a Kotlin server build |
 
 A scaffold carries every section a stack must answer and an unfilled marker in each; plan
