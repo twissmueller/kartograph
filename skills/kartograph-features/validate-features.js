@@ -6,18 +6,19 @@
 // one Feature:, unique scenario names, a When and a Then per scenario. Enforced so no
 // capability or feature drifts.
 //
-//   node validate-features.js [features]              validate the whole tree
-//   node validate-features.js features/<capability>   validate one capability directory
+//   node validate-features.js [features]                  validate the whole tree
+//   node validate-features.js features/<path/to/capability>   validate one capability directory
 //
 // Exit code 1 when there are errors. Pure functions are exported for tests.
 // Self-contained on purpose: a skill directory must work when copied on its own.
 import { readFileSync, readdirSync, existsSync, statSync, realpathSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-export const CAPABILITY_SECTIONS = ["Sources", "Purpose and outcome", "Scope and exclusions", "Constraints", "Features", "Open questions"];
-export const OPTIONAL_SECTIONS = new Set(["Constraints"]);
+export const CAPABILITY_SECTIONS = ["Sources", "Purpose and outcome", "Scope and exclusions", "Constraints", "Features", "Capabilities", "Open questions"];
+// Features is required when the directory holds .feature files, Capabilities when it holds sub-capabilities.
+export const OPTIONAL_SECTIONS = new Set(["Constraints", "Features", "Capabilities"]);
 export const INTENT_PATH = /^intents\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
 const PLACEHOLDER = /<[A-Za-z][^>\n]*>/;
 
@@ -67,7 +68,7 @@ const bullets = (lines) => content(lines).filter((l) => /^- /.test(l));
 // ---------------------------------------------------------------------------
 // capability.md
 // ---------------------------------------------------------------------------
-export function validateCapability(text, { path = "capability.md", featureFiles = [] } = {}) {
+export function validateCapability(text, { path = "capability.md", featureFiles = null, subCapabilities = null } = {}) {
   const errors = []; const err = (m) => errors.push(`${path}: ${m}`);
   const { h1, lead, sections } = h2Sections(text);
 
@@ -81,6 +82,8 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
   const known = names.filter((n) => CAPABILITY_SECTIONS.includes(n));
   if (known.join() !== CAPABILITY_SECTIONS.filter((s) => known.includes(s)).join()) err(`sections must be in the order ${CAPABILITY_SECTIONS.join(", ")}`);
   for (const s of sections) if (!content(s.lines).length) err(`'## ${s.name}' is empty`);
+  if (featureFiles && featureFiles.length && !names.includes("Features")) err("missing section '## Features'");
+  if (subCapabilities && subCapabilities.length && !names.includes("Capabilities")) err("missing section '## Capabilities'");
 
   const intents = [];
   const sources = sections.find((s) => s.name === "Sources");
@@ -104,10 +107,25 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*\.feature$/.test(m[2])) err(`feature link '${m[2]}' must be a slug ending in .feature in this directory`);
       listed.push(m[2]);
     }
-    for (const f of listed) if (featureFiles.length && !featureFiles.includes(f)) err(`'## Features' links to '${f}', which does not exist`);
-    for (const f of featureFiles) if (!listed.includes(f)) err(`'## Features' does not list ${f}`);
+    for (const f of listed) if (featureFiles !== null && !featureFiles.includes(f)) err(`'## Features' links to '${f}', which does not exist`);
+    for (const f of featureFiles || []) if (!listed.includes(f)) err(`'## Features' does not list ${f}`);
     const dup = listed.filter((f, i) => listed.indexOf(f) !== i);
     if (dup.length) err(`'## Features' lists ${dup[0]} more than once`);
+  }
+
+  const listedCapabilities = [];
+  const caps = sections.find((s) => s.name === "Capabilities");
+  if (caps) {
+    for (const l of content(caps.lines)) {
+      const m = /^- \[([^\]]+)\]\(([^)]+)\/capability\.md\): \S/.exec(l);
+      if (!m) { if (!/^\s{2,}\S/.test(l)) err(`'## Capabilities' lines must be '- [Title](<sub>/capability.md): text'; got: ${l.trim()}`); continue; }
+      if (!SLUG.test(m[2])) err(`sub-capability link '${m[2]}' must be a slug directory in this directory`);
+      listedCapabilities.push(m[2]);
+    }
+    for (const c of listedCapabilities) if (subCapabilities !== null && !subCapabilities.includes(c)) err(`'## Capabilities' links to '${c}', which does not exist`);
+    for (const c of subCapabilities || []) if (!listedCapabilities.includes(c)) err(`'## Capabilities' does not list ${c}`);
+    const dup = listedCapabilities.filter((c, i) => listedCapabilities.indexOf(c) !== i);
+    if (dup.length) err(`'## Capabilities' lists ${dup[0]} more than once`);
   }
 
   const open = sections.find((s) => s.name === "Open questions");
@@ -119,7 +137,7 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
   }
   const ph = PLACEHOLDER.exec(text);
   if (ph) err(`still holds a template placeholder: ${ph[0]}`);
-  return { errors, intents, listed };
+  return { errors, intents, listed, listedCapabilities };
 }
 
 // ---------------------------------------------------------------------------
@@ -217,28 +235,30 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
 // ---------------------------------------------------------------------------
 // The tree
 // ---------------------------------------------------------------------------
-export function validateCapabilityDir(dir, { projectRoot } = {}) {
+export function validateCapabilityDir(dir, { projectRoot, relPath } = {}) {
   const errors = []; const warnings = [];
   const name = basename(dir);
-  const rel = (f) => `features/${name}/${f}`;
+  const relPathOrName = relPath ?? name;
+  const rel = (f) => `features/${relPathOrName}/${f}`;
   if (!SLUG.test(name)) errors.push(`${dir}: capability directory must be a lowercase hyphenated slug`);
-  const entries = readdirSync(dir);
-  const featureFiles = entries.filter((f) => f.endsWith(".feature")).sort();
+  const entries = readdirSync(dir).sort();
+  const featureFiles = entries.filter((f) => f.endsWith(".feature"));
+  const subCapabilities = entries.filter((e) => statSync(join(dir, e)).isDirectory());
   for (const e of entries) {
-    if (statSync(join(dir, e)).isDirectory()) errors.push(`${rel(e)}: no subdirectories inside a capability`);
-    else if (e !== "capability.md" && !e.endsWith(".feature")) errors.push(`${rel(e)}: only capability.md and .feature files belong here`);
+    if (subCapabilities.includes(e) || e === "capability.md" || e.endsWith(".feature")) continue;
+    errors.push(`${rel(e)}: only capability.md, .feature files and sub-capability directories belong here`);
   }
-  if (!featureFiles.length) errors.push(`${dir}: needs at least one .feature file`);
+  if (!featureFiles.length && !subCapabilities.length) errors.push(`${dir}: needs at least one .feature file or one sub-capability`);
   let capIntents = [];
   if (!entries.includes("capability.md")) errors.push(`${rel("capability.md")}: missing`);
   else {
-    const r = validateCapability(readFileSync(join(dir, "capability.md"), "utf8"), { path: rel("capability.md"), featureFiles });
+    const r = validateCapability(readFileSync(join(dir, "capability.md"), "utf8"), { path: rel("capability.md"), featureFiles, subCapabilities });
     errors.push(...r.errors); capIntents = r.intents;
   }
   const allIntents = new Set(capIntents);
   for (const f of featureFiles) {
     if (!SLUG.test(f.replace(/\.feature$/, ""))) errors.push(`${rel(f)}: feature filename must be a lowercase hyphenated slug`);
-    const r = validateFeature(readFileSync(join(dir, f), "utf8"), { path: rel(f), capabilityDir: name });
+    const r = validateFeature(readFileSync(join(dir, f), "utf8"), { path: rel(f), capabilityDir: relPathOrName });
     errors.push(...r.errors);
     for (const p of r.intents) { allIntents.add(p); if (!capIntents.includes(p)) errors.push(`${rel(f)}: source intent '${p}' is not listed under '## Sources' in capability.md`); }
   }
@@ -249,6 +269,10 @@ export function validateCapabilityDir(dir, { projectRoot } = {}) {
         (existsSync(intentsDir) ? errors : warnings).push(`${rel("capability.md")}: source intent '${p}' does not exist`);
       }
     }
+  }
+  for (const s of subCapabilities) {
+    const r = validateCapabilityDir(join(dir, s), { projectRoot, relPath: `${relPathOrName}/${s}` });
+    errors.push(...r.errors); warnings.push(...r.warnings);
   }
   return { errors, warnings };
 }
@@ -262,19 +286,44 @@ export function validateTree(dir) {
   for (const e of entries) {
     const p = join(dir, e);
     if (!statSync(p).isDirectory()) { errors.push(`${p}: only capability directories belong under features/`); continue; }
-    const r = validateCapabilityDir(p, { projectRoot });
+    const r = validateCapabilityDir(p, { projectRoot, relPath: e });
     errors.push(...r.errors); warnings.push(...r.warnings);
   }
   return { errors, warnings };
 }
 
+// Finds a capability directory by leaf slug (anywhere under features/) or by slash-joined path.
+// Returns { dir, rel } | { missing: true } | { ambiguous: [rel, ...] }.
+export function resolveCapabilityDir(featuresDir, name) {
+  if (name.includes("/")) {
+    const p = join(featuresDir, name);
+    return existsSync(p) && statSync(p).isDirectory() ? { dir: p, rel: name } : { missing: true };
+  }
+  const hits = [];
+  const walk = (d, rel) => {
+    if (!existsSync(d)) return;
+    for (const e of readdirSync(d).sort()) {
+      const p = join(d, e); if (!statSync(p).isDirectory()) continue;
+      const r = rel ? `${rel}/${e}` : e;
+      if (e === name) hits.push(r);
+      walk(p, r);
+    }
+  };
+  walk(featuresDir, "");
+  if (!hits.length) return { missing: true };
+  if (hits.length > 1) return { ambiguous: hits };
+  return { dir: join(featuresDir, hits[0]), rel: hits[0] };
+}
+
 function main(argv) {
   const target = argv[0] || "features";
   if (!existsSync(target) || !statSync(target).isDirectory()) { console.error(`error: ${target}: no such directory`); return 2; }
-  const isCapability = existsSync(join(target, "capability.md")) || readdirSync(target).some((f) => f.endsWith(".feature"));
-  const res = isCapability
-    ? validateCapabilityDir(resolve(target), { projectRoot: dirname(dirname(resolve(target))) })
-    : validateTree(target);
+  // A directory below a `features` segment is one capability (at any depth); anything else is a tree.
+  const parts = resolve(target).split(sep);
+  const idx = parts.lastIndexOf("features");
+  const res = idx === -1 || idx === parts.length - 1
+    ? validateTree(target)
+    : validateCapabilityDir(resolve(target), { projectRoot: parts.slice(0, idx).join(sep), relPath: parts.slice(idx + 1).join("/") });
   for (const w of res.warnings) console.log(`warning: ${w}`);
   for (const e of res.errors) console.log(`error: ${e}`);
   if (res.errors.length) return 1;

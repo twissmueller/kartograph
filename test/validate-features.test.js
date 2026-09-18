@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { validateCapability, validateFeature, validateCapabilityDir, validateTree } from "../skills/kartograph-features/validate-features.js";
+import { validateCapability, validateFeature, validateCapabilityDir, validateTree, resolveCapabilityDir } from "../skills/kartograph-features/validate-features.js";
 
 const INTENT = "intents/2026-09-15-1042-archive-projects.md";
 
@@ -188,7 +188,7 @@ test("stray files, missing capability.md and bad directory names are rejected", 
   writeFileSync(join(root, "features", "README.md"), "x");
   const { errors } = validateTree(join(root, "features"));
   assert.ok(errors.some((e) => /capability.md: missing/.test(e)));
-  assert.ok(errors.some((e) => /only capability.md and .feature files belong here/.test(e)));
+  assert.ok(errors.some((e) => /only capability.md, .feature files and sub-capability directories belong here/.test(e)));
   assert.ok(errors.some((e) => /must be a lowercase hyphenated slug/.test(e)));
   assert.ok(errors.some((e) => /only capability directories belong under features\//.test(e)));
 });
@@ -220,4 +220,67 @@ Funktionalität: Projekt archivieren
   // The language line must be line 1, before the header comments.
   const late = de.replace("# language: de\n", "").replace("# Capability: features/project-archiving/capability.md", "# Capability: features/project-archiving/capability.md\n# language: de");
   assert.ok(validateFeature(late, FOPTS).errors.some((e) => /must be 'Feature: <title>'/.test(e)));
+});
+
+// --- nested capabilities ------------------------------------------------------
+
+const parentCapability = `# Capability: Admin console
+
+Everything a site admin does at /admin.
+
+## Sources
+- Intent: \`${INTENT}\`
+
+## Purpose and outcome
+Site admins run the platform from one place.
+
+## Scope and exclusions
+Included: the sub-capabilities below. Excluded: tenant-facing screens.
+
+## Capabilities
+- [Individual accounts](individual-accounts/capability.md): lock, unlock, delete accounts.
+
+## Open questions
+None
+`;
+
+test("a parent capability lists its sub-capabilities and may have no features of its own", () => {
+  const r = validateCapability(parentCapability, { path: "features/admin-console/capability.md", featureFiles: [], subCapabilities: ["individual-accounts"] });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.listedCapabilities, ["individual-accounts"]);
+  const missing = validateCapability(parentCapability, { path: "features/admin-console/capability.md", featureFiles: [], subCapabilities: ["individual-accounts", "system-health"] });
+  assert.ok(missing.errors.some((e) => /does not list system-health/.test(e)));
+  const gone = validateCapability(parentCapability.replace("individual-accounts/capability.md", "ghost/capability.md"), { path: "features/admin-console/capability.md", featureFiles: [], subCapabilities: ["individual-accounts"] });
+  assert.ok(gone.errors.some((e) => /links to 'ghost', which does not exist/.test(e)));
+  // With feature files on disk, '## Features' is required; with sub-capabilities, '## Capabilities' is required.
+  assert.ok(validateCapability(parentCapability, { path: "x", featureFiles: ["a.feature"], subCapabilities: [] }).errors.some((e) => /missing section '## Features'/.test(e)));
+  assert.ok(validateCapability(capability, { ...OPTS, subCapabilities: ["sub"] }).errors.some((e) => /missing section '## Capabilities'/.test(e)));
+  // Order: Features before Capabilities.
+  const swapped = parentCapability.replace("## Capabilities\n- [Individual accounts](individual-accounts/capability.md): lock, unlock, delete accounts.\n", "## Capabilities\n- [Individual accounts](individual-accounts/capability.md): lock, unlock, delete accounts.\n\n## Features\n- [X](x.feature): y\n");
+  assert.ok(validateCapability(swapped, { path: "x", featureFiles: ["x.feature"], subCapabilities: ["individual-accounts"] }).errors.some((e) => /order/.test(e)));
+});
+
+test("a nested tree validates, with full paths in the feature headers", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "karto-nested-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, "intents"), { recursive: true }); writeFileSync(join(root, INTENT), "# intent\n");
+  const sub = join(root, "features", "admin-console", "individual-accounts"); mkdirSync(sub, { recursive: true });
+  writeFileSync(join(root, "features", "admin-console", "capability.md"), parentCapability);
+  writeFileSync(join(sub, "capability.md"), capability.replace("# Capability: Project archiving", "# Capability: Individual accounts"));
+  writeFileSync(join(sub, "archive-project.feature"), feature.replace("# Capability: features/project-archiving/capability.md", "# Capability: features/admin-console/individual-accounts/capability.md"));
+  const r = validateTree(join(root, "features"));
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(validateCapabilityDir(sub, { projectRoot: root, relPath: "admin-console/individual-accounts" }).errors, []);
+  // The leaf's header must carry the full path.
+  writeFileSync(join(sub, "archive-project.feature"), feature);
+  assert.ok(validateTree(join(root, "features")).errors.some((e) => /must point at features\/admin-console\/individual-accounts\/capability.md/.test(e)));
+  // A capability with neither features nor sub-capabilities is an error.
+  mkdirSync(join(root, "features", "empty")); writeFileSync(join(root, "features", "empty", "capability.md"), capability);
+  assert.ok(validateTree(join(root, "features")).errors.some((e) => /needs at least one .feature file or one sub-capability/.test(e)));
+  // Resolution by leaf slug, by path, and ambiguity.
+  assert.equal(resolveCapabilityDir(join(root, "features"), "individual-accounts").rel, "admin-console/individual-accounts");
+  assert.equal(resolveCapabilityDir(join(root, "features"), "admin-console/individual-accounts").rel, "admin-console/individual-accounts");
+  assert.ok(resolveCapabilityDir(join(root, "features"), "nope").missing);
+  mkdirSync(join(root, "features", "other", "individual-accounts"), { recursive: true });
+  assert.deepEqual(resolveCapabilityDir(join(root, "features"), "individual-accounts").ambiguous, ["admin-console/individual-accounts", "other/individual-accounts"]);
 });

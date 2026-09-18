@@ -20,6 +20,11 @@ by the sources, or links to where they are already defined. Omit the section if 
 
 ## Features
 - [<Feature title>](<feature-name>.feature): <one line on what it covers>
+<!-- only when this directory holds .feature files; list each exactly once. -->
+
+## Capabilities
+- [<Sub-capability title>](<sub-capability>/capability.md): <one line on what it covers>
+<!-- only when this directory holds sub-capability directories; list each exactly once. -->
 
 ## Open questions
 <One bullet per unresolved decision, each naming the behaviour that cannot be specified
