@@ -366,3 +366,22 @@ test("against a project, the stack must match and every scenario must be covered
   writeFileSync(join(root, "features", "project-archiving", "archive-project.feature"), feature("    Scenario: An archived project can be restored\n      Given a\n      When b\n      Then c\n"));
   assert.ok(validatePlanFile(path).errors.some((e) => /'An archived project can be restored' from the feature files has neither/.test(e)));
 });
+
+test("a nested capability is found by leaf slug or by path; ambiguity is an error", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "karto-plan-nested-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const cap = join(root, "features", "admin-console", "project-archiving"); mkdirSync(cap, { recursive: true });
+  mkdirSync(join(root, "docs", "code-design"), { recursive: true }); mkdirSync(join(root, "plans"));
+  writeFileSync(join(root, "docs", "code-design", "stack.md"), "---\nstack: kmp\n---\n");
+  writeFileSync(join(cap, "archive-project.feature"), `Feature: Archive a project\n  Scenario: ${S1}\n    Given a\n    When b\n    Then c\n  Scenario: ${S2}\n    Given a\n    When b\n    Then c\n`);
+  const path = join(root, "plans", "2026-09-18-1100-project-archiving.md");
+  writeFileSync(path, valid);
+  assert.deepEqual(validatePlanFile(path).errors, []);
+  writeFileSync(path, valid.replace("capability: project-archiving", "capability: admin-console/project-archiving"));
+  assert.deepEqual(validatePlanFile(path).errors, []);
+  mkdirSync(join(root, "features", "other", "project-archiving"), { recursive: true });
+  writeFileSync(path, valid);
+  assert.ok(validatePlanFile(path).errors.some((e) => /ambiguous/.test(e)));
+  assert.ok(validatePlan(valid.replace("capability: project-archiving", "capability: Admin/Console"), { filename: FILE }).errors.some((e) => /capability must be/.test(e)));
+  assert.ok(validatePlan(valid.replace("capability: project-archiving", "capability: other/archiving"), { filename: FILE }).errors.some((e) => /does not match the filename/.test(e)));
+});

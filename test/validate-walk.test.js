@@ -104,3 +104,21 @@ test("against a project, features and scenario names must exist", (t) => {
   writeFileSync(path, valid.replace(/archive-project\.feature/g, "gone.feature"));
   assert.ok(validateWalkFile(path).errors.some((e) => /gone.feature does not exist/.test(e)));
 });
+
+test("a nested capability is found by leaf slug or by path; ambiguity is an error", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "karto-walk-nested-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const cap = join(root, "features", "admin-console", "project-archiving"); mkdirSync(cap, { recursive: true });
+  mkdirSync(join(root, "walks"));
+  writeFileSync(join(cap, "archive-project.feature"),
+    "Feature: Archive a project\n  Scenario: An owner archives an active project\n    Given a\n    When b\n    Then c\n  Scenario: A non-owner tries to archive an active project\n    Given a\n    When b\n    Then c\n");
+  const path = join(root, "walks", "2026-09-16-0930-project-archiving.md");
+  writeFileSync(path, valid);
+  assert.deepEqual(validateWalkFile(path).errors, []);
+  writeFileSync(path, valid.replace("capability: project-archiving", "capability: admin-console/project-archiving"));
+  assert.deepEqual(validateWalkFile(path).errors, []);
+  mkdirSync(join(root, "features", "other", "project-archiving"), { recursive: true });
+  writeFileSync(path, valid);
+  assert.ok(validateWalkFile(path).errors.some((e) => /ambiguous/.test(e)));
+  assert.ok(validateWalk(valid.replace("capability: project-archiving", "capability: Admin/Console"), { filename: FILE }).errors.some((e) => /capability must be/.test(e)));
+});

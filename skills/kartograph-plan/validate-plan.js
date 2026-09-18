@@ -13,6 +13,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const FILENAME = /^(\d{4}-\d{2}-\d{2})-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
+// A capability name: its leaf slug, or the slash-joined path when the slug occurs twice under features/.
+const CAP_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 export const FRONTMATTER_KEYS = ["capability", "features", "stack", "status", "date", "supersedes"];
 export const STATUSES = ["planned", "superseded"];
 export const SECTIONS = ["Screens", "Layer map", "Reuse and new", "Ports and adapters", "Files", "Global constraints", "Ring 1: Screens", "Ring 2: Domain", "Ring 3: Adapters", "Friction", "Gaps"];
@@ -102,6 +104,30 @@ function checkTask(t, ring, err) {
   return { name, fields, done: steps.length > 0 && steps.every((s) => /^- \[x\]/.test(s[0])), steps: steps.length };
 }
 
+// Finds a capability directory by leaf slug (anywhere under features/) or by slash-joined path.
+// Returns { dir, rel } | { missing: true } | { ambiguous: [rel, ...] }. Copied from
+// validate-features.js on purpose: each skill directory works on its own.
+function resolveCapabilityDir(featuresDir, name) {
+  if (name.includes("/")) {
+    const p = join(featuresDir, name);
+    return existsSync(p) && statSync(p).isDirectory() ? { dir: p, rel: name } : { missing: true };
+  }
+  const hits = [];
+  const walk = (d, rel) => {
+    if (!existsSync(d)) return;
+    for (const e of readdirSync(d).sort()) {
+      const p = join(d, e); if (!statSync(p).isDirectory()) continue;
+      const r = rel ? `${rel}/${e}` : e;
+      if (e === name) hits.push(r);
+      walk(p, r);
+    }
+  };
+  walk(featuresDir, "");
+  if (!hits.length) return { missing: true };
+  if (hits.length > 1) return { ambiguous: hits };
+  return { dir: join(featuresDir, hits[0]), rel: hits[0] };
+}
+
 export function validatePlan(text, { filename, projectRoot } = {}) {
   const errors = []; const warnings = [];
   const err = (m) => errors.push(m);
@@ -130,8 +156,8 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
     if (v === "") err(`frontmatter '${k}' is empty`);
     if (TEMPLATE_PLACEHOLDER.test(v)) err(`frontmatter '${k}' still holds a template placeholder: ${v}`);
   }
-  if (fm.capability !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fm.capability)) err(`capability must be a lowercase hyphenated slug, got '${fm.capability}'`);
-  if (fileCap && fm.capability && fm.capability !== fileCap) err(`capability '${fm.capability}' does not match the filename's '${fileCap}'`);
+  if (fm.capability !== undefined && !CAP_NAME.test(fm.capability)) err(`capability must be a lowercase hyphenated slug or a slash-joined path of slugs, got '${fm.capability}'`);
+  if (fileCap && fm.capability && fm.capability.split("/").pop() !== fileCap) err(`capability '${fm.capability}' does not match the filename's '${fileCap}'`);
   const features = fm.features !== undefined ? parseList(fm.features) : null;
   if (fm.features !== undefined) {
     if (!features || !features.length) err("features must be a non-empty list like [a.feature, b.feature]");
@@ -216,13 +242,15 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
     if (!existsSync(stackFile)) warnings.push("docs/code-design/stack.md does not exist in the project");
     else if (fm.stack) { const declared = /^stack:\s*(\S+)/m.exec(readFileSync(stackFile, "utf8"))?.[1]; if (declared && declared !== fm.stack) err(`plan stack '${fm.stack}' differs from docs/code-design/stack.md ('${declared}')`); }
     if (fm.capability) {
-      const capDir = join(projectRoot, "features", fm.capability);
-      if (!existsSync(capDir)) warnings.push(`features/${fm.capability}/ does not exist in the project`);
+      const found = resolveCapabilityDir(join(projectRoot, "features"), fm.capability);
+      if (found.ambiguous) err(`capability '${fm.capability}' is ambiguous (${found.ambiguous.join(", ")}); use the slash-joined path`);
+      else if (found.missing) warnings.push(`features/${fm.capability}/ does not exist in the project`);
       else {
+        const capDir = found.dir; const capRel = found.rel;
         const knownScen = new Set();
         for (const f of features || []) {
           const fp = join(capDir, f);
-          if (!existsSync(fp)) { err(`features/${fm.capability}/${f} does not exist`); continue; }
+          if (!existsSync(fp)) { err(`features/${capRel}/${f} does not exist`); continue; }
           for (const m of readFileSync(fp, "utf8").matchAll(/^\s*(?:Scenario Outline|Scenario): (.*)$/gm)) knownScen.add(m[1].trim());
         }
         if (knownScen.size) {

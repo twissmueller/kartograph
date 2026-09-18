@@ -13,6 +13,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const FILENAME = /^(\d{4}-\d{2}-\d{2})-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
+// A capability name: its leaf slug, or the slash-joined path when the slug occurs twice under features/.
+const CAP_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 export const FRONTMATTER_KEYS = ["capability", "features", "driver", "surface", "date", "walker"];
 export const DRIVERS = ["compose-hot-reload", "chrome", "playwright", "screen-control", "person"];
 export const SURFACES = ["desktop", "web", "ios-simulator", "macos", "iphone", "ipad", "android"];
@@ -69,6 +71,30 @@ function outline(body) {
   return { h1, summary, features, pre };
 }
 
+// Finds a capability directory by leaf slug (anywhere under features/) or by slash-joined path.
+// Returns { dir, rel } | { missing: true } | { ambiguous: [rel, ...] }. Copied from
+// validate-features.js on purpose: each skill directory works on its own.
+function resolveCapabilityDir(featuresDir, name) {
+  if (name.includes("/")) {
+    const p = join(featuresDir, name);
+    return existsSync(p) && statSync(p).isDirectory() ? { dir: p, rel: name } : { missing: true };
+  }
+  const hits = [];
+  const walk = (d, rel) => {
+    if (!existsSync(d)) return;
+    for (const e of readdirSync(d).sort()) {
+      const p = join(d, e); if (!statSync(p).isDirectory()) continue;
+      const r = rel ? `${rel}/${e}` : e;
+      if (e === name) hits.push(r);
+      walk(p, r);
+    }
+  };
+  walk(featuresDir, "");
+  if (!hits.length) return { missing: true };
+  if (hits.length > 1) return { ambiguous: hits };
+  return { dir: join(featuresDir, hits[0]), rel: hits[0] };
+}
+
 export function validateWalk(text, { filename, projectRoot } = {}) {
   const errors = []; const warnings = [];
   const err = (m) => errors.push(m);
@@ -97,8 +123,8 @@ export function validateWalk(text, { filename, projectRoot } = {}) {
     if (v === "") err(`frontmatter '${k}' is empty`);
     if (PLACEHOLDER.test(v)) err(`frontmatter '${k}' still holds a template placeholder: ${v}`);
   }
-  if (fm.capability !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fm.capability)) err(`capability must be a lowercase hyphenated slug, got '${fm.capability}'`);
-  if (fileCap && fm.capability && fm.capability !== fileCap) err(`capability '${fm.capability}' does not match the filename's '${fileCap}'`);
+  if (fm.capability !== undefined && !CAP_NAME.test(fm.capability)) err(`capability must be a lowercase hyphenated slug or a slash-joined path of slugs, got '${fm.capability}'`);
+  if (fileCap && fm.capability && fm.capability.split("/").pop() !== fileCap) err(`capability '${fm.capability}' does not match the filename's '${fileCap}'`);
   const features = fm.features !== undefined ? parseList(fm.features) : null;
   if (fm.features !== undefined) {
     if (!features || !features.length) err("features must be a non-empty list like [a.feature, b.feature]");
@@ -168,13 +194,14 @@ export function validateWalk(text, { filename, projectRoot } = {}) {
 
   // Optional: check against the project's features/ tree.
   if (projectRoot && fm.capability) {
-    const capDir = join(projectRoot, "features", fm.capability);
-    if (!existsSync(capDir)) warnings.push(`features/${fm.capability}/ does not exist in the project`);
+    const found = resolveCapabilityDir(join(projectRoot, "features"), fm.capability);
+    if (found.ambiguous) err(`capability '${fm.capability}' is ambiguous (${found.ambiguous.join(", ")}); use the slash-joined path`);
+    else if (found.missing) warnings.push(`features/${fm.capability}/ does not exist in the project`);
     else for (const f of o.features) {
-      const fp = join(capDir, f.name);
-      if (!existsSync(fp)) { err(`features/${fm.capability}/${f.name} does not exist`); continue; }
+      const fp = join(found.dir, f.name);
+      if (!existsSync(fp)) { err(`features/${found.rel}/${f.name} does not exist`); continue; }
       const names = new Set([...readFileSync(fp, "utf8").matchAll(/^\s*(?:Scenario Outline|Scenario): (.*)$/gm)].map((m) => m[1].trim()));
-      for (const s of f.scenarios) if (!names.has(s.name)) err(`'### ${s.name}' is not a scenario in features/${fm.capability}/${f.name}`);
+      for (const s of f.scenarios) if (!names.has(s.name)) err(`'### ${s.name}' is not a scenario in features/${found.rel}/${f.name}`);
     }
   }
   return { errors, warnings };

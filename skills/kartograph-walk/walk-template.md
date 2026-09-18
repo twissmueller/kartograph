@@ -1,5 +1,5 @@
 ---
-capability: <capability directory name under features/>
+capability: <capability directory name under features/; a nested one as its leaf slug, or the slash-joined path when that slug occurs twice>
 features: [<feature-name>.feature, <another>.feature]
 driver: compose-hot-reload | chrome | playwright | screen-control | person
 surface: desktop | web | ios-simulator | macos | iphone | ipad | android

@@ -1,5 +1,5 @@
 ---
-capability: <capability directory name under features/>
+capability: <capability directory name under features/; a nested one as its leaf slug, or the slash-joined path when that slug occurs twice>
 features: [<feature-name>.feature]
 stack: <stack name from docs/code-design/stack.md>
 status: planned
