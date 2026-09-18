@@ -10,7 +10,7 @@
 //   node scripts/migrate-features.js <project-root> [--date YYYY-MM-DD] [--time HHMM]
 //
 // Node built-ins only. Pure functions are exported for tests; the CLI is at the bottom.
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, renameSync, realpathSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, renameSync, rmdirSync, realpathSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateTree } from "../skills/kartograph-features/validate-features.js";
@@ -198,10 +198,21 @@ export function migrateProject(root, { date, time } = {}) {
   const readme = join(featuresDir, "README.md");
   if (existsSync(readme)) { mkdirSync(join(root, "docs"), { recursive: true }); renameSync(readme, join(root, "docs", "features-README.md")); written.push("docs/features-README.md"); }
 
+  // A directory with no .feature file anywhere below it is not a capability: no capability.md,
+  // not listed by its parent. An entirely empty one (a leftover of the old map that git never
+  // tracked) is removed and reported; one holding other files is left for the person.
+  const hasFeatures = (dir) => readdirSync(dir).filter((e) => !e.startsWith(".")).some((e) => {
+    const p = join(dir, e); return statSync(p).isDirectory() ? hasFeatures(p) : e.endsWith(".feature");
+  });
+  const removed = [];
+  const pruneEmpty = (dir, rel) => {
+    for (const e of readdirSync(dir)) { const p = join(dir, e); if (!e.startsWith(".") && statSync(p).isDirectory()) pruneEmpty(p, `${rel}/${e}`); }
+    if (rel && !readdirSync(dir).length) { rmdirSync(dir); removed.push(rel); }
+  };
   const visit = (dir, rel) => {
     const entries = readdirSync(dir).filter((e) => !e.startsWith(".")).sort();
     const featureFiles = entries.filter((f) => f.endsWith(".feature"));
-    const subs = entries.filter((e) => statSync(join(dir, e)).isDirectory());
+    const subs = entries.filter((e) => statSync(join(dir, e)).isDirectory() && hasFeatures(join(dir, e)));
     const features = [];
     for (const f of featureFiles) {
       const p = join(dir, f); let text = readFileSync(p, "utf8");
@@ -225,7 +236,8 @@ export function migrateProject(root, { date, time } = {}) {
     }
     return { slug, name, lead };
   };
-  for (const c of contexts) visit(join(featuresDir, c), c);
+  for (const c of contexts) if (hasFeatures(join(featuresDir, c))) visit(join(featuresDir, c), c);
+  pruneEmpty(featuresDir, "");
 
   if (!existsSync(join(root, intent))) {
     mkdirSync(intentsDir, { recursive: true });
@@ -233,7 +245,7 @@ export function migrateProject(root, { date, time } = {}) {
     written.push(intent);
   }
   const { errors } = validateTree(featuresDir);
-  return { written, intent, errors };
+  return { written, removed, intent, errors };
 }
 
 function main(argv) {
@@ -242,6 +254,7 @@ function main(argv) {
   const opt = (k) => { const i = argv.indexOf(k); return i === -1 ? undefined : argv[i + 1]; };
   const r = migrateProject(root, { date: opt("--date"), time: opt("--time") });
   for (const w of r.written) console.log(`wrote ${w}`);
+  for (const d of r.removed) console.log(`removed empty directory features${d}`);
   for (const e of r.errors) console.log(`error: ${e}`);
   console.log(r.errors.length ? `${r.errors.length} error(s) left for hand fixing` : `ok ${root}`);
   return r.errors.length ? 1 : 0;
