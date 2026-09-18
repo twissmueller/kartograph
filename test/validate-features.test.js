@@ -103,18 +103,48 @@ test("header comments are required and the capability path must match the direct
   assert.equal(validateFeature(two, FOPTS).intents.length, 2);
 });
 
-test("one Feature, rules with an EARS requirement before the first scenario, scenarios with Then", () => {
+test("one Feature, optional rules, scenarios with When and Then", () => {
   assert.ok(validateFeature(feature + "\nFeature: Another\n", FOPTS).errors.some((e) => /exactly one 'Feature:'/.test(e)));
-  const noReq = feature.replace("    Requirement: When an owner archives an active project, the system shall remove that project from the active overview.\n", "");
-  assert.ok(validateFeature(noReq, FOPTS).errors.some((e) => /has no 'Requirement:' line/.test(e)));
-  const notEars = feature.replace("Requirement: When an owner archives an active project, the system shall remove that project from the active overview.", "Requirement: Owners archive projects.");
-  assert.ok(validateFeature(notEars, FOPTS).errors.some((e) => /EARS form/.test(e)));
   const noThen = feature.replace(`      Then "Atlas" is absent from the active project overview\n`, "");
   assert.ok(validateFeature(noThen, FOPTS).errors.some((e) => /has no Then step/.test(e)));
-  const noRule = feature.replace(/  Rule: Owners can archive their active projects\n    Requirement: [^\n]*\n/, "");
-  assert.ok(validateFeature(noRule, FOPTS).errors.some((e) => /is not under a 'Rule:'/.test(e)));
+  // A Requirement: line is ordinary description text now — with or without it, with or without EARS wording.
+  const noReq = feature.replace("    Requirement: When an owner archives an active project, the system shall remove that project from the active overview.\n", "");
+  assert.deepEqual(validateFeature(noReq, FOPTS).errors, []);
+  const plain = feature.replace("Requirement: When an owner archives an active project, the system shall remove that project from the active overview.", "Owners archive projects.");
+  assert.deepEqual(validateFeature(plain, FOPTS).errors, []);
+  // Scenarios directly under Feature: are fine.
+  const noRules = feature.replace(/  Rule: [^\n]*\n    Requirement: [^\n]*\n/g, "");
+  assert.deepEqual(validateFeature(noRules, FOPTS).errors, []);
+  // A rule without a scenario is still an error.
+  const emptyRule = feature.replace("  Rule: Non-owners cannot archive a project", "  Rule: Empty\n\n  Rule: Non-owners cannot archive a project");
+  assert.ok(validateFeature(emptyRule, FOPTS).errors.some((e) => /rule 'Empty' has no scenario/.test(e)));
   const dup = feature.replace("Scenario: A non-owner tries to archive an active project", "Scenario: An owner archives an active project");
   assert.ok(validateFeature(dup, FOPTS).errors.some((e) => /used twice/.test(e)));
+});
+
+test("tags before Feature:, backgrounds, docstrings and rule descriptions are accepted", () => {
+  const tagged = feature.replace("Feature: Archive a project", "@role:owner\nFeature: Archive a project");
+  assert.deepEqual(validateFeature(tagged, FOPTS).errors, []);
+  const background = feature.replace("  Rule: Owners can archive their active projects", "  Background:\n    Given the workspace \"Acme\" exists\n\n  Rule: Owners can archive their active projects");
+  assert.deepEqual(validateFeature(background, FOPTS).errors, []);
+  const ruleBackground = feature.replace("    Scenario: An owner archives an active project", "    Background:\n      Given nothing else\n\n    Scenario: An owner archives an active project");
+  assert.deepEqual(validateFeature(ruleBackground, FOPTS).errors, []);
+  const docstring = feature.replace("      When Alice archives \"Atlas\"", "      When Alice archives \"Atlas\" with the note\n        \"\"\"\n        Not a step: line\n        \"\"\"");
+  assert.deepEqual(validateFeature(docstring, FOPTS).errors, []);
+  // Prose after a step inside a scenario is still not Gherkin.
+  const prose = feature.replace("      When Alice archives \"Atlas\"", "      When Alice archives \"Atlas\"\n      Because she wants to");
+  assert.ok(validateFeature(prose, FOPTS).errors.some((e) => /unexpected line: Because she wants to/.test(e)));
+  // A step in a background does not count towards a scenario's When/Then.
+  const onlyBackgroundWhen = feature.replace("  Rule: Owners can archive their active projects", "  Background:\n    When something happens\n\n  Rule: Owners can archive their active projects").replace("      When Alice archives \"Atlas\"\n", "");
+  assert.ok(validateFeature(onlyBackgroundWhen, FOPTS).errors.some((e) => /needs at least a When and a Then/.test(e)));
+});
+
+test("outline parameters with spaces are not placeholders when an Examples header declares them", () => {
+  const outline = feature.replace("    Scenario: An owner archives an active project\n      Given Alice owns the active project \"Atlas\"\n      When Alice archives \"Atlas\"\n      Then \"Atlas\" is absent from the active project overview",
+    "    Scenario Outline: An owner archives an <artefact type>\n      Given Alice owns the active <artefact type> \"Atlas\"\n      When Alice archives \"Atlas\"\n      Then \"Atlas\" is absent from the active overview\n\n      Examples:\n        | artefact type |\n        | project       |");
+  assert.deepEqual(validateFeature(outline, FOPTS).errors, []);
+  const undeclared = outline.replace("| artefact type |", "| kind |").replace("| project       |", "| project |");
+  assert.ok(validateFeature(undeclared, FOPTS).errors.some((e) => /placeholder: <artefact type>/.test(e)));
 });
 
 test("scenario outlines need Examples and tables are tolerated", () => {

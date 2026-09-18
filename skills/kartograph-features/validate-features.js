@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // Validates the features/ tree written by kartograph-features: one directory per
-// capability holding `capability.md` (the structure of `capability-template.md`) and
-// `.feature` files with the header comments, Rule:/Requirement: layout and scenario
-// shape the skill writes. Enforced so no capability or feature drifts.
+// capability, at any depth, holding `capability.md` (the structure of
+// `capability-template.md`), `.feature` files and sub-capability directories. Feature
+// files are plain Gherkin; checked are only Kartograph's additions: the header comments,
+// one Feature:, unique scenario names, a When and a Then per scenario. Enforced so no
+// capability or feature drifts.
 //
 //   node validate-features.js [features]              validate the whole tree
 //   node validate-features.js features/<capability>   validate one capability directory
@@ -17,9 +19,35 @@ export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CAPABILITY_SECTIONS = ["Sources", "Purpose and outcome", "Scope and exclusions", "Constraints", "Features", "Open questions"];
 export const OPTIONAL_SECTIONS = new Set(["Constraints"]);
 export const INTENT_PATH = /^intents\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
-export const EARS = /^(?:When|While|If|Where|The system)\b.*\bshall\b/;
 const PLACEHOLDER = /<[A-Za-z][^>\n]*>/;
-const STEP = /^(Given|When|Then|And|But|\*)\s/;
+
+// Gherkin keywords per dialect. A file starts with `# language: <code>` on line 1 to use
+// anything but English; the validator knows the dialects the projects actually use.
+export const DIALECTS = {
+  en: {
+    feature: ["Feature", "Business Need", "Ability"], rule: ["Rule"], background: ["Background"],
+    scenario: ["Scenario", "Example"], outline: ["Scenario Outline", "Scenario Template"], examples: ["Examples", "Scenarios"],
+    given: ["Given"], when: ["When"], then: ["Then"], and: ["And"], but: ["But"],
+  },
+  de: {
+    feature: ["Funktionalität", "Funktion"], rule: ["Regel"], background: ["Grundlage", "Hintergrund", "Voraussetzungen", "Vorbedingungen"],
+    scenario: ["Szenario", "Beispiel"], outline: ["Szenariogrundriss", "Szenariogrundrisse"], examples: ["Beispiele"],
+    given: ["Angenommen", "Gegeben sei", "Gegeben seien"], when: ["Wenn"], then: ["Dann"], and: ["Und"], but: ["Aber"],
+  },
+};
+const LANGUAGE = /^#\s*language\s*:\s*([\w-]+)\s*$/;
+
+// "Rule: x" → "x"; null when the line does not start with one of the keywords followed by a colon.
+function block(line, words) {
+  for (const w of words) if (line.startsWith(w + ":")) return line.slice(w.length + 1).trim();
+  return null;
+}
+// The kind of step a line is: given | when | then | and | but | any (for "* "), or null.
+function stepKind(line, d) {
+  if (line.startsWith("* ")) return "any";
+  for (const k of ["given", "when", "then", "and", "but"]) for (const w of d[k]) if (line.startsWith(w + " ")) return k;
+  return null;
+}
 
 function h2Sections(text) {
   const lines = text.split(/\r?\n/);
@@ -101,14 +129,21 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
   const errors = []; const err = (m) => errors.push(`${path}: ${m}`);
   const lines = text.split(/\r?\n/);
   const intents = [];
-
+  let d = DIALECTS.en;
   let i = 0;
+  const lang = LANGUAGE.exec(lines[0] || "");
+  if (lang) {
+    if (!DIALECTS[lang[1]]) err(`line 1: unknown language '${lang[1]}'; known: ${Object.keys(DIALECTS).join(", ")}`);
+    else d = DIALECTS[lang[1]];
+    i = 1;
+  }
+
   while (i < lines.length && /^# Source intent: /.test(lines[i])) {
     const p = lines[i].slice("# Source intent: ".length).trim();
     if (!INTENT_PATH.test(p)) err(`line ${i + 1}: source intent path must look like intents/YYYY-MM-DD-HHMM-<slug>.md, got '${p}'`);
     intents.push(p); i++;
   }
-  if (!intents.length) err("line 1 must be '# Source intent: intents/<file>.md'");
+  if (!intents.length) err(`line ${i + 1} must be '# Source intent: intents/<file>.md'`);
   const cap = /^# Capability: (.*)$/.exec(lines[i] || "");
   if (!cap) err(`line ${i + 1} must be '# Capability: features/<capability>/capability.md'`);
   else {
@@ -118,63 +153,64 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
   }
 
   const rest = lines.slice(i);
-  const firstCode = rest.find((l) => l.trim() !== "" && !/^\s*#/.test(l));
-  if (!firstCode || !/^Feature: \S/.test(firstCode)) err("the first line after the header comments must be 'Feature: <title>'");
-  const featureCount = rest.filter((l) => /^\s*Feature:/.test(l)).length;
-  if (featureCount > 1) err(`exactly one 'Feature:' per file, found ${featureCount}`);
+  // Comments and tag lines may precede the Feature: line; the first real line must be it.
+  const firstCode = rest.map((l) => l.trim()).find((t) => t !== "" && !t.startsWith("#") && !t.startsWith("@"));
+  if (!firstCode || !block(firstCode, d.feature)) err(`the first line after the header comments must be '${d.feature[0]}: <title>'`);
+  const featureCount = rest.filter((l) => block(l.trim(), d.feature) !== null).length;
+  if (featureCount > 1) err(`exactly one '${d.feature[0]}:' per file, found ${featureCount}`);
 
-  let rules = 0; let scenarios = 0;
-  let rule = null; let scenario = null; const names = new Set();
-  const closeScenario = () => {
-    if (!scenario) return;
-    if (!scenario.steps.some((s) => /^(When|Then)/.test(s))) err(`scenario '${scenario.name}' needs at least a When and a Then step`);
-    if (!scenario.steps.some((s) => /^Then/.test(s))) err(`scenario '${scenario.name}' has no Then step`);
-    if (scenario.outline && !scenario.examples) err(`scenario outline '${scenario.name}' has no 'Examples:'`);
-    scenario = null;
+  // Plain Gherkin from here: Rule: optional, free text allowed under Feature:, Rule:, and before a
+  // block's first step; Background: at feature and rule level; tags wherever Gherkin allows them.
+  let scenarios = 0;
+  let rule = null; let cur = null; const names = new Set();
+  let inDocString = null; let expectHeader = false; const headerCells = new Set();
+  const closeBlock = () => {
+    if (!cur) return;
+    if (cur.type === "scenario") {
+      if (!cur.steps.includes("when") || !cur.steps.includes("then")) err(`scenario '${cur.name}' needs at least a When and a Then step`);
+      if (!cur.steps.includes("then")) err(`scenario '${cur.name}' has no Then step`);
+      if (cur.outline && !cur.examples) err(`scenario outline '${cur.name}' has no 'Examples:'`);
+    }
+    cur = null;
   };
   const closeRule = () => {
     if (!rule) return;
-    closeScenario();
-    if (!rule.requirement) err(`rule '${rule.name}' has no 'Requirement:' line before its first scenario`);
+    closeBlock();
     if (!rule.scenarios) err(`rule '${rule.name}' has no scenario`);
     rule = null;
   };
   for (const line of rest) {
     const t = line.trim();
-    if (t === "" || t.startsWith("#") || /^Feature:/.test(t) || t.startsWith("@")) continue;
+    if (inDocString !== null) { if (t.startsWith(inDocString)) inDocString = null; continue; }
+    if (t === "" || t.startsWith("#") || t.startsWith("@")) continue;
+    if (block(t, d.feature) !== null) continue;
     let m;
-    if ((m = /^Rule: (.*)$/.exec(t))) { closeRule(); rules++; rule = { name: m[1], requirement: null, scenarios: 0 }; continue; }
-    if ((m = /^Requirement: (.*)$/.exec(t))) {
-      if (!rule) { err(`'Requirement:' outside any Rule: ${m[1]}`); continue; }
-      if (scenario) { err(`rule '${rule.name}': 'Requirement:' must come before the first scenario`); continue; }
-      if (rule.requirement) err(`rule '${rule.name}' has more than one 'Requirement:' line`);
-      rule.requirement = m[1];
-      if (!EARS.test(m[1])) err(`rule '${rule.name}': requirement must be in EARS form (When/While/If/Where …, the system shall …), got: ${m[1]}`);
+    if ((m = block(t, d.rule)) !== null) { closeRule(); closeBlock(); rule = { name: m, scenarios: 0 }; continue; }
+    if (block(t, d.background) !== null) { closeBlock(); cur = { type: "background", steps: [] }; continue; }
+    const outline = block(t, d.outline); const scenario = outline === null ? block(t, d.scenario) : null;
+    if (outline !== null || scenario !== null) {
+      closeBlock();
+      const name = outline ?? scenario;
+      if (rule) rule.scenarios++;
+      if (names.has(name)) err(`scenario name '${name}' is used twice`); names.add(name);
+      scenarios++; cur = { type: "scenario", name, outline: outline !== null, steps: [], examples: false };
       continue;
     }
-    if ((m = /^(Scenario Outline|Scenario): (.*)$/.exec(t))) {
-      closeScenario();
-      if (!rule) err(`scenario '${m[2]}' is not under a 'Rule:'`); else rule.scenarios++;
-      if (names.has(m[2])) err(`scenario name '${m[2]}' is used twice`); names.add(m[2]);
-      scenarios++; scenario = { name: m[2], outline: m[1] === "Scenario Outline", steps: [], examples: false };
-      continue;
-    }
-    if (/^Examples:/.test(t)) { if (scenario) scenario.examples = true; continue; }
-    if (/^Background:/.test(t)) { err("'Background:' is not used; put shared conditions in each scenario's Given steps"); continue; }
-    if (STEP.test(t)) { if (!scenario) err(`step outside any scenario: ${t}`); else scenario.steps.push(t); continue; }
-    if (/^\|/.test(t) || /^"""/.test(t)) continue; // table rows / doc strings
-    if (rule && !scenario && !rule.requirement) continue; // rule description before Requirement:
-    if (rule && !scenario && rule.requirement) continue; // rule description after Requirement:
-    if (!rule && !scenario) continue; // feature description
-    if (scenario && scenario.steps.length === 0) continue; // scenario description
+    if (block(t, d.examples) !== null) { if (cur && cur.type === "scenario") cur.examples = true; expectHeader = true; continue; }
+    if (t.startsWith("|")) { if (expectHeader) { for (const c of t.split("|").slice(1, -1)) headerCells.add(c.trim()); expectHeader = false; } continue; }
+    if (t.startsWith('"""') || t.startsWith("```")) { inDocString = t.slice(0, 3); continue; }
+    const kind = stepKind(t, d);
+    if (kind) { if (!cur) err(`step outside any scenario: ${t}`); else cur.steps.push(kind); continue; }
+    if (!cur || cur.steps.length === 0) continue; // feature, rule, background or scenario description
     err(`unexpected line: ${t}`);
   }
-  closeRule();
-  if (!rules) err("at least one 'Rule:' is required");
+  closeRule(); closeBlock();
   if (!scenarios) err("at least one scenario is required");
-  // `<name>` is a legitimate Scenario Outline parameter; template placeholders are multi-word.
-  const ph = /<[A-Za-z][^>\n]* [^>\n]*>/.exec(text);
-  if (ph) err(`still holds a template placeholder: ${ph[0]}`);
+  // `<name>` is a legitimate Scenario Outline parameter; template placeholders are multi-word,
+  // unless an Examples header declares that multi-word parameter.
+  for (const ph of text.matchAll(/<([A-Za-z][^>\n]* [^>\n]*)>/g)) {
+    if (!headerCells.has(ph[1])) { err(`still holds a template placeholder: ${ph[0]}`); break; }
+  }
   return { errors, intents };
 }
 
