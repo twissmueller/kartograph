@@ -236,12 +236,18 @@ export function migrateProject(root, { date, time } = {}) {
     const lead = knowledge.get(name)
       || (featureFiles.length === 1 && features[0].text !== features[0].title ? firstSentence(features[0].text) : "Migrated from the Kartograph v0 feature tree; not yet described.");
     const capFile = join(dir, "capability.md");
-    if (!existsSync(capFile)) {
+    if (existsSync(capFile)) {
+      // An existing description wins: its heading is the name, its first paragraph the lead.
+      const own = readFileSync(capFile, "utf8");
+      const ownName = /^# Capability: (.+)$/m.exec(own)?.[1]?.trim();
+      const ownLead = own.split(/\r?\n/).slice(1).map((l) => l.trim()).find((l) => l && !l.startsWith("#"));
+      const next = featureFiles.some((f) => readFileSync(join(dir, f), "utf8").includes(`# Source intent: ${intent}`)) ? ensureIntentListed(own, intent) : own;
+      if (next !== own) { writeFileSync(capFile, next); written.push(`features/${rel}/capability.md`); }
+      return { slug, name: ownName || name, lead: ownLead || lead };
+    }
+    {
       writeFileSync(capFile, capabilityMarkdown({ name, lead, intent, features, capabilities: children.map((c) => ({ slug: c.slug, name: c.name, text: c.lead })) }));
       written.push(`features/${rel}/capability.md`);
-    } else if (featureFiles.some((f) => readFileSync(join(dir, f), "utf8").includes(`# Source intent: ${intent}`))) {
-      const cur = readFileSync(capFile, "utf8"); const next = ensureIntentListed(cur, intent);
-      if (next !== cur) { writeFileSync(capFile, next); written.push(`features/${rel}/capability.md`); }
     }
     return { slug, name, lead };
   };

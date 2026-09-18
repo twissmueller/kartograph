@@ -144,4 +144,6 @@ test("an existing capability.md is never overwritten and gets the migration inte
   assert.ok(kept.startsWith("# Capability: Kept\n"));
   assert.ok(kept.includes("- Intent: `intents/2026-09-01-0900-earlier.md`\n- Intent: `intents/2026-09-18-1200-migrated-feature-tree.md`"));
   assert.deepEqual(r.errors, []);
+  // The parent lists the existing description by its own name and lead sentence.
+  assert.ok(readFileSync(join(root, "features", "scheduling", "capability.md"), "utf8").includes("- [Kept](move-session/capability.md): Kept lead."));
 });
