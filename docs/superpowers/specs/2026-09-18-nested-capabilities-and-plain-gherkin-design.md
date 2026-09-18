@@ -103,9 +103,14 @@ only), pure functions exported and tested on fixtures in `test/migrate-features.
 Per project it:
 1. Walks `features/`; every directory is a capability.
 2. For each `.feature` without the header comments: prepends `# language: de` when
-   German keywords are detected and no language line exists, then
+   German step keywords are detected and no language line exists, then
    `# Source intent: <migration intent>` and `# Capability: <path>/capability.md`.
-   Body untouched: not a scenario, step, tag, background or comment changes.
+   A German file also gets its block keywords made German (`Feature:` →
+   `Funktionalität:`, `Scenario:` → `Szenario:`, `Scenario Outline:` →
+   `Szenariogrundriss:`, `Examples:` → `Beispiele:`, `Background:` → `Grundlage:`,
+   `Rule:` → `Regel:`), because mokuso's files mix English block keywords with German
+   steps and are valid in no single dialect. Nothing else in the body changes: not a
+   step, a tag, a background, a table or a comment.
 3. Generates missing `capability.md` files per section 4.
 4. Writes the migration intent per section 3.
 5. Moves a root `features/README.md` to `docs/features-README.md`.
