@@ -72,13 +72,13 @@ function checkTask(t, ring, err) {
   const fences = (txt.match(/^```/gm) || []).length / 2;
   const runs = (txt.match(/^Run: /gm) || []).length; const expects = (txt.match(/^Expected: /gm) || []).length;
   if (runs !== expects) err(`${label}: every 'Run:' needs an 'Expected:' line and vice versa`);
-  if (!/koin/i.test(txt)) err(`${label}: no Koin binding step`);
+  if (!/\b(bind|binds|binding|rebind|wire|wires|wiring|wired)\b/i.test(txt)) err(`${label}: no composition-root binding or wiring step`);
   const fields = {};
   for (const mm of txt.matchAll(/^\*\*([A-Za-z]+):\*\* (.+)$/gm)) fields[mm[1]] = mm[2].trim();
   if (ring === 1) {
     if (!fields.Screen) err(`${label}: missing '**Screen:**' line`);
     if (!fields.Scenarios) err(`${label}: missing '**Scenarios:**' line`);
-    if (steps.length < 6) err(`${label}: a screen task needs at least six steps (types, use case interfaces, ViewModel, fakes, Screen/View, Koin+nav, compile, commit); found ${steps.length}`);
+    if (steps.length < 6) err(`${label}: a screen task needs at least six steps (state contract, ports, presentation model, fakes, screen, wiring and navigation, compile, commit); found ${steps.length}`);
     if (!steps.some((s) => /fake|sample data/i.test(s[2]))) err(`${label}: no fakes-and-sample-data step`);
     if (!steps.some((s) => /compile|build|see/i.test(s[2]))) err(`${label}: no compile-and-see step`);
     if (fences < 4) err(`${label}: every code step shows its code; found only ${fences} fenced blocks`);
@@ -87,7 +87,7 @@ function checkTask(t, ring, err) {
   if (ring === 2) {
     if (!fields.Scenario) err(`${label}: missing '**Scenario:**' line`);
     if (!fields.Layers) err(`${label}: missing '**Layers:**' line`);
-    if (steps.length < 6) err(`${label}: a domain task needs at least six steps (outer test, its failure, a layer's red/green, Koin rebind, on-screen check, commit); found ${steps.length}`);
+    if (steps.length < 6) err(`${label}: a domain task needs at least six steps (outer test, its failure, a layer's red/green, the rebind, on-screen check, commit); found ${steps.length}`);
     if (steps.length && !/outer test/i.test(steps[0][2])) err(`${label}: Step 1 must be the outer test`);
     if (!/^Expected: FAIL/m.test(txt)) err(`${label}: the outer test must be expected to FAIL first`);
     if (!/^Expected: PASS/m.test(txt)) err(`${label}: at least one run must be expected to PASS`);
@@ -96,7 +96,7 @@ function checkTask(t, ring, err) {
   if (ring === 3) {
     if (!fields.Adapter) err(`${label}: missing '**Adapter:**' line`);
     if (!fields.Port) err(`${label}: missing '**Port:**' line`);
-    if (steps.length < 5) err(`${label}: an adapter task needs at least five steps (failing test, its failure, implementation, passing run, Koin rebind, commit); found ${steps.length}`);
+    if (steps.length < 5) err(`${label}: an adapter task needs at least five steps (failing test, its failure, implementation, passing run, the rebind, commit); found ${steps.length}`);
     if (!/^Expected: FAIL/m.test(txt)) err(`${label}: the adapter test must be expected to FAIL first`);
     if (!/^Expected: PASS/m.test(txt)) err(`${label}: at least one run must be expected to PASS`);
     if (fences < 3) err(`${label}: every code step shows its code; found only ${fences} fenced blocks`);

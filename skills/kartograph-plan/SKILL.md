@@ -46,9 +46,9 @@ The named capability's `capability.md` and `.feature` files (a capability may si
 another one, `features/<parent>/<capability>/`: resolve the name as the single directory of
 that slug anywhere under `features/`, and write the slash-joined path in the plan's
 frontmatter when the slug occurs twice), the `knowledge/` bundle, the
-three documents in `docs/code-design/`, the existing `feature-<capability>` module if any,
-`core/`, `shared/`, `server/`, `settings.gradle.kts` and the version catalog, the newest
-`walks/` file for the capability, and the newest `planned` plan for it. If that plan
+three documents in `docs/code-design/`, the code that exists for the capability and the
+shared code, laid out as `code-design.md` § 2 describes, the build files and the dependency
+manifest, the newest `walks/` file for the capability, and the newest `planned` plan for it. If that plan
 covers every scenario and nothing changed since, report so and stop.
 
 ## 3. Map
@@ -56,27 +56,35 @@ covers every scenario and nothing changed since, report so and stop.
 Before any task, decide and write down: the **screens** (one per `.feature` unless its
 scenarios clearly describe more than one place, each listing the scenarios it serves and
 the controls their steps name); per scenario the **layers** it crosses and its entry
-point; **reuse versus new**, and what moves to `core/`; the **ports and adapters** with
-exact Kotlin signatures; the **files** to create or modify; **friction and gaps**.
+point; **reuse versus new**, and what moves to the shared core; the **ports and adapters** with
+exact signatures in the stack's language; the **files** to create or modify; **friction and
+gaps**.
 
 ## 4. Write the three rings
 
 Fill `plan-template.md` from this file's directory into
 `plans/<YYYY-MM-DD-HHMM>-<capability>.md`. Section headings stay exactly as in the
-template.
+template. The template is stack-neutral: every step names its unit in the words the
+project's `code-design.md` uses for it (the KMP stack says ViewModel, use case interface
+and Koin module; the Swift stack says Model, port protocol and `AppEnvironment`), code
+fences carry the stack's language, and every `Run:` line is a command from
+`build-design.md` § 8.
 
-- **Ring 1, one task per screen:** State, Event, Effect, ViewModel, use case interfaces and
-  bundle, Screen, View, fakes and sample data covering every listed scenario's `Given`,
-  the Koin binding of the fakes, route and nav entry, the compile-and-see step, commit.
-  Real code in every step; no tests in this ring.
+- **Ring 1, one task per screen:** the state contract, the ports the screen needs, the
+  presentation model, the screen and its views, fakes and sample data covering every
+  listed scenario's `Given`, the composition-root binding of the fakes, route and
+  navigation entry, the compile-and-see step, commit. Real code in every step; no tests in
+  this ring.
 - **Ring 2, one task per scenario** in walk order (walk failures first): the outer test
-  at the ViewModel against fake repositories, red first; then per layer the failing test,
-  the minimal code, the passing run: use case implementation, rules, repository
-  interface, in-memory repository behind the demo flag; the Koin rebind from fake use case
-  to implementation; the on-screen check; commit.
-- **Ring 3, one task per port or endpoint:** the adapter and its data source and mapper,
-  the failing adapter test (in-memory driver, `MockEngine`, `testApplication`), the
-  implementation, the passing run, the Koin rebind from in-memory to real, commit.
+  at the presentation model against fakes behind the ports, red first; then per layer the
+  failing test, the minimal code, the passing run, through the ring-2 layers
+  `code-design.md` § 6 lists (implementations, rules, the ports the core adds, the demo
+  data behind the demo flag); the composition-root rebind from fake to implementation;
+  the on-screen check; commit.
+- **Ring 3, one task per port or endpoint:** the adapter and its data source and mapping,
+  the failing adapter test over the double `build-design.md` § 8 names for that layer,
+  the implementation, the passing run, the composition-root rebind from demo to real,
+  commit.
 
 Each task's *Interfaces* block names exactly what it consumes from earlier tasks and
 produces for later ones. If an earlier `planned` plan exists, set its `status` to

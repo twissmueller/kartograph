@@ -112,8 +112,7 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   copy may switch a dial. One deliberate departure from KMP, marked: doubles stay beside
   their port in the app target and are chosen only in `AppEnvironment` under `isUITest`,
   because they are the UI-test and walk substrate. Apple's guidance is cited only where it
-  confirms a convention. The plan template, its validator (it requires a Koin step) and the
-  ring skills still speak KMP; a Swift plan cannot pass them yet.
+  confirms a convention.
 - Bump the `generated.by` actor (`kartograph-knowledge/<version>`) in the knowledge
   `SKILL.md` and `concept-template.md` with every release.
 
@@ -190,20 +189,28 @@ Rules for editing them:
   step, a `Run:` and `Expected:` line per test run, ring-2 and ring-3 tests expected to
   FAIL first, ring 1 with no tests at all. The validator rejects every placeholder pattern
   and cross-checks the screens table, the layer map, the tasks and the feature files.
-- **Rings execute in order and only their own ring.** Screens: presentation, use case
-  interfaces, fakes, wiring, theme if missing. Domain: use case implementations, rules,
-  repository interfaces, one ViewModel test per scenario, in-memory repository behind the
-  demo flag, fakes deleted from production and reborn in `commonTest`. Adapters: the
-  data layer, `core/data/`, `server/`, per-target platform modules, the version catalog.
-  Nothing above the ring's boundary changes; a needed change there is a reported
-  deviation, never a silent one.
+- **The plan, its template, its validator and the ring skills are stack-neutral.** They
+  speak of the state contract, the ports, the presentation model, the fakes, the
+  composition root and its binding, the demo flag, the adapter and its double; every
+  concrete name (ViewModel or Model, Koin module or `AppEnvironment`, Room or SwiftData,
+  `./gradlew` or `xcodebuild`) comes from the project's `docs/code-design/` copies. The
+  validator's wiring check accepts any binding or wiring word, never a framework name.
+  A stack-specific word in a skill or the template is a bug.
+- **Rings execute in order and only their own ring.** Screens: presentation, ports,
+  fakes, wiring, theme if missing. Domain: implementations, rules, the ports the core
+  adds, one presentation-model test per scenario, demo data behind the demo flag, ring-1
+  doubles deleted once nothing binds them unless the stack keeps them as its demo
+  substrate. Adapters: persistence, HTTP, platform capabilities per target, the server,
+  the dependency manifest. Nothing above the ring's boundary changes; a needed change
+  there is a reported deviation, never a silent one.
 - **The plan is the contract, the code is the truth.** A step the code contradicts gets
   the smallest correction that keeps its intent, reported. The plan's only edit is its
   checkboxes; a re-plan writes a new file and marks the earlier one `superseded`.
 - **Test first, fakes over mocks, never a weakened test, never an edited `.feature`.**
-  Gherkin is never executed: one scenario is one `kotlin.test` function, per the user's
-  knowledge repo; the visual outer loop goes through Compose Hot Reload when a window is
-  connected, and never launches, reloads or resets an app the person is looking at.
+  Gherkin is never executed: one scenario is one test function in the stack's framework
+  (`kotlin.test`, Swift Testing), per the user's knowledge repo; the visual outer loop
+  goes through whatever live window is connected (Compose Hot Reload, a simulator, a
+  browser), and never launches, reloads or resets an app the person is looking at.
 
 ## Rules the walk skill must keep
 

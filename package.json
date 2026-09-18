@@ -1,6 +1,6 @@
 {
   "name": "opencode-kartograph",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "OpenCode plugin: Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, plan the implementation in three hexagonal rings for the project's technology stack, build the screens on sample data, then the domain, then the adapters, and walk the person through what was built.",
   "type": "module",
   "main": "opencode/index.js",

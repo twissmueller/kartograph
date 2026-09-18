@@ -385,3 +385,17 @@ test("a nested capability is found by leaf slug or by path; ambiguity is an erro
   assert.ok(validatePlan(valid.replace("capability: project-archiving", "capability: Admin/Console"), { filename: FILE }).errors.some((e) => /capability must be/.test(e)));
   assert.ok(validatePlan(valid.replace("capability: project-archiving", "capability: other/archiving"), { filename: FILE }).errors.some((e) => /does not match the filename/.test(e)));
 });
+
+test("the wiring step is stack-neutral: any binding or wiring word counts, Koin is not required", () => {
+  const swift = valid
+    .replace("**Step 6: Koin binding, route, nav entry**", "**Step 6: Binding in AppEnvironment, route, navigation entry**")
+    .replace(/\*\*Step 7: Koin rebind \(fake use case → implementation; in-memory repository behind the demo flag\)\*\*/g, "**Step 7: Rebind in AppEnvironment (fake → implementation; the demo binding stays behind isUITest)**")
+    .replace(/\*\*Step 5: Koin rebind \(in-memory → real; in-memory stays behind the demo flag\)\*\*/g, "**Step 5: Wire the real adapter in AppEnvironment (demo stays behind isUITest)**")
+    .replace(/koinViewModel\(\)/g, "AppEnvironment.shared.projects")
+    .replace(/val projectsModule = module \{[^\n]*\n/, "let projects: any ProjectArchiving = FakeProjectArchiving(ProjectsSampleData.all)\n");
+  assert.ok(!/koin/i.test(swift), "fixture still mentions Koin");
+  assert.deepEqual(validatePlan(swift, { filename: FILE }).errors, []);
+  const unwired = valid.replace("**Step 6: Koin binding, route, nav entry**", "**Step 6: Route and nav entry**").replace(/val projectsModule = module \{[^\n]*\n/, "val projectsRoute = ProjectsRoute\n").replace("koinViewModel()", "viewModel()");
+  const errs = validatePlan(unwired, { filename: FILE }).errors;
+  assert.ok(errs.some((e) => /Task 1\.1.*no composition-root binding or wiring step/.test(e)), errs.join("\n"));
+});

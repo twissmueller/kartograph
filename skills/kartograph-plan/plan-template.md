@@ -12,7 +12,9 @@ supersedes: <plans/<earlier file>.md, or none>
 **Goal:** <One sentence: what is real when every ring is done.>
 
 **Follows:** `docs/code-design/code-design.md`, `docs/code-design/design-system.md` and
-`docs/code-design/build-design.md`. This plan cites them; it does not restate them.
+`docs/code-design/build-design.md`. This plan cites them; it does not restate them. Every
+name below (the presentation model, the ports, the doubles, the composition root, the test
+targets, the build commands) is the one those documents give it.
 
 ## Screens
 
@@ -24,33 +26,28 @@ supersedes: <plans/<earlier file>.md, or none>
 
 | scenario | feature | layers crossed | entry point |
 |---|---|---|---|
-| <scenario name> | <feature-name>.feature | use case · repository · Room · Ktor · server | <screen and control> |
+| <scenario name> | <feature-name>.feature | <the layers as code-design.md names them, e.g. use case · repository · persistence · HTTP · server> | <screen and control> |
 
 ## Reuse and new
 
 - **Reused:** <existing types, modules, endpoints, with paths>
-- **New in the feature module:** <what>
-- **New in core/:** <what, and which second feature will use it>
-- **New in server/:** <routes>
+- **New in the capability's module or folder:** <what>
+- **New in the shared core:** <what, and which second capability will use it>
+- **New in the server:** <routes, or none>
 
 ## Ports and adapters
 
-```kotlin
-// domain/ — ports (exact signatures; later tasks compile against these)
-fun interface <Verb><Noun>UseCase { suspend operator fun invoke(…): Resource<…> }
-interface <Xxx>Repository {
-    fun observe…(): Flow<ImmutableList<…>>
-    suspend fun …(…): Resource<…>
-}
+```
+// the ports the core declares, in the stack's language, exact signatures; later tasks compile against these
+<port name> — <exact signature>
+<port name> — <exact signature>
 ```
 
 | port | adapter | where | ring |
 |---|---|---|---|
-| `<Verb><Noun>UseCase` | `Fake…UseCase` → `…UseCaseImpl` | `presentation/fake/` → `domain/` | 1 → 2 |
-| `<Xxx>Repository` | `InMemory<Xxx>Repository` → `<Xxx>RepositoryImpl(api, dao, errorReporter)` | `data/` | 2 → 3 |
-| `<Xxx>Api` | Ktor over `createHttpClient` | `data/` | 3 |
-| `<Xxx>Dao` | Room, in `AppDatabase` | `core/data/db/` | 3 |
-| `/api/v1/<capability>` | `routes/<Capability>Routes.kt` | `server/` | 3 |
+| `<port>` | `<ring-1 double>` → `<ring-2 implementation>` | `<path>` → `<path>` | 1 → 2 |
+| `<port>` | `<demo adapter>` → `<real adapter and its constructor>` | `<path>` | 2 → 3 |
+| `<data source or endpoint>` | `<the adapter that fulfils it>` | `<path>` | 3 |
 
 ## Files
 
@@ -60,7 +57,7 @@ interface <Xxx>Repository {
 
 ## Global constraints
 
-- <one line each, copied from the stack documents, e.g. "ImmutableList in state, never List">
+- <one line each, copied from the stack documents, e.g. a rule about state shape, error types or theme tokens>
 
 ## Ring 1: Screens
 
@@ -71,49 +68,49 @@ interface <Xxx>Repository {
 
 **Interfaces:**
 - Consumes: <exact signatures from earlier tasks, or "nothing">
-- Produces: <exact signatures later tasks rely on: State, Event, use case interfaces, bundle>
+- Produces: <exact signatures later tasks rely on: the state contract, the ports, the presentation model>
 
-- [ ] **Step 1: State, Event, Effect**
+- [ ] **Step 1: State contract**
 
-```kotlin
+```
 …
 ```
 
-- [ ] **Step 2: Use case interfaces and bundle**
+- [ ] **Step 2: Ports the screen needs**
 
-```kotlin
+```
 …
 ```
 
-- [ ] **Step 3: ViewModel**
+- [ ] **Step 3: Presentation model**
 
-```kotlin
+```
 …
 ```
 
 - [ ] **Step 4: Fakes and sample data (every Given of the listed scenarios)**
 
-```kotlin
+```
 …
 ```
 
-- [ ] **Step 5: Screen and View**
+- [ ] **Step 5: Screen and views**
 
-```kotlin
+```
 …
 ```
 
-- [ ] **Step 6: Koin binding, route, nav entry**
+- [ ] **Step 6: Binding in the composition root, route, navigation entry**
 
-```kotlin
+```
 …
 ```
 
 - [ ] **Step 7: Compile and see**
 
-Run: `./gradlew :feature-<capability>:build :desktopApp:build`
-Expected: BUILD SUCCESSFUL. If a Compose Hot Reload window is connected: `reload`,
-`get_ui_error`, `take_screenshot`; each listed scenario's `Then` is visible at <where>.
+Run: `<the stack's build command for the capability and its fast-loop target>`
+Expected: <the build's success line>. If a live window is connected (a hot-reload desktop
+window, a simulator, a browser): each listed scenario's `Then` is visible at <where>.
 
 - [ ] **Step 8: Commit**
 
@@ -127,34 +124,26 @@ git commit -m "screens(<capability>): <ScreenName>"
 ### Task 2.1: <Scenario name exactly as in the feature file>
 
 **Scenario:** `<feature-name>.feature` — <scenario name>
-**Layers:** <use case · rule · repository interface · in-memory repository>
+**Layers:** <the ring-2 layers this scenario crosses, as code-design.md names them>
 
 **Interfaces:**
 - Consumes: <from ring 1 and earlier ring-2 tasks>
-- Produces: <…UseCaseImpl signature, repository interface members>
+- Produces: <the implementation's signature, the port members it adds>
 
-- [ ] **Step 1: Outer test (ViewModel, Given/When/Then, fake repository)**
+- [ ] **Step 1: Outer test (presentation model, Given/When/Then, fakes behind the ports)**
 
-```kotlin
-@Test
-fun `<scenario name>`() = runTest {
-    // Given
-    …
-    // When
-    …
-    // Then
-    …
-}
+```
+<one test named after the scenario, in the stack's test framework>
 ```
 
 - [ ] **Step 2: Run it, expect failure**
 
-Run: `./gradlew :feature-<capability>:allTests --tests "*<TestClass>*"`
+Run: `<the stack's command for this test>`
 Expected: FAIL — <the reason>
 
 - [ ] **Step 3: <Layer> — failing test**
 
-```kotlin
+```
 …
 ```
 
@@ -165,7 +154,7 @@ Expected: FAIL — <reason>
 
 - [ ] **Step 5: <Layer> — minimal implementation**
 
-```kotlin
+```
 …
 ```
 
@@ -176,18 +165,16 @@ Expected: PASS
 
 <!-- repeat steps 3–6 for every further layer the scenario crosses -->
 
-- [ ] **Step N-2: Koin rebind (fake use case → implementation; in-memory repository behind the demo flag)**
+- [ ] **Step N-2: Rebind in the composition root (fake → implementation; the demo binding stays behind the demo flag)**
 
-```kotlin
-factory<…UseCase> { …UseCaseImpl(get()) }
-single<…Repository> { if (get<AppConfig>().demo) InMemory…Repository(…SampleData) else InMemory…Repository(…SampleData) } // ring 3 replaces the else branch
+```
+…
 ```
 
 - [ ] **Step N-1: Outer test passes; see it on screen**
 
-Run: `./gradlew :feature-<capability>:allTests`
-Expected: PASS. If a Compose Hot Reload window is connected: `reload`, `get_ui_error`,
-`take_screenshot`; the scenario's `Then` is visible at <where>.
+Run: `<the stack's command for the capability's tests>`
+Expected: PASS. If a live window is connected: the scenario's `Then` is visible at <where>.
 
 - [ ] **Step N: Commit**
 
@@ -198,18 +185,18 @@ git commit -m "domain(<capability>): <scenario name>"
 
 ## Ring 3: Adapters
 
-### Task 3.1: <Port or endpoint, e.g. WateringRepository over Room and Ktor>
+### Task 3.1: <Port or endpoint, e.g. the tasks port over the database and the API>
 
-**Adapter:** `<Xxx>RepositoryImpl` — `data/…`
-**Port:** `<Xxx>Repository` (ring 2, task 2.N)
+**Adapter:** `<adapter type>` — `<path>`
+**Port:** `<port>` (ring 2, task 2.N)
 
 **Interfaces:**
-- Consumes: <the port's signature; core/ helpers>
+- Consumes: <the port's signature; shared helpers>
 - Produces: <the adapter's constructor signature; new endpoints>
 
-- [ ] **Step 1: Adapter test — failing (in-memory driver / MockEngine / testApplication)**
+- [ ] **Step 1: Adapter test — failing (the double build-design.md names for this layer)**
 
-```kotlin
+```
 …
 ```
 
@@ -218,9 +205,9 @@ git commit -m "domain(<capability>): <scenario name>"
 Run: `…`
 Expected: FAIL — <reason>
 
-- [ ] **Step 3: Data source, mapper, adapter — minimal implementation**
+- [ ] **Step 3: Data source, mapping, adapter — minimal implementation**
 
-```kotlin
+```
 …
 ```
 
@@ -229,16 +216,16 @@ Expected: FAIL — <reason>
 Run: `…`
 Expected: PASS
 
-- [ ] **Step 5: Koin rebind (in-memory → real; in-memory stays behind the demo flag)**
+- [ ] **Step 5: Rebind in the composition root (demo → real; demo stays behind the demo flag)**
 
-```kotlin
-single<…Repository> { if (get<AppConfig>().demo) InMemory…Repository(…SampleData) else …RepositoryImpl(get(), get(), get()) }
+```
+…
 ```
 
 - [ ] **Step 6: Whole suite and every target**
 
-Run: `./gradlew allTests build`
-Expected: PASS; every enabled target and the server build.
+Run: `<the stack's full test and build command>`
+Expected: PASS; every enabled target (and the server, if any) builds.
 
 - [ ] **Step 7: Commit**
 

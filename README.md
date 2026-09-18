@@ -118,24 +118,27 @@ was created, updated, reused, and left open.
 ## `kartograph-plan` — three rings, for your stack
 
 Before anything is built, the plan. You name the capability; the skill reads its
-scenarios, `knowledge/`, the stack's design documents, the existing module, `core/`,
-`server/`, the build and the last walk, and writes `plans/<date>-<capability>.md`, a
-hexagon read through Clean Architecture:
+scenarios, `knowledge/`, the stack's design documents, the code that exists for the
+capability, the shared code, the build files and the last walk, and writes
+`plans/<date>-<capability>.md`, a hexagon read through Clean Architecture. The plan and
+its template are stack-neutral: every unit is named as the project's `code-design.md`
+names it, and every command comes from its `build-design.md`:
 
 - **Screens** table: one per feature file unless the scenarios clearly describe more than
   one place, each listing the scenarios it serves and the controls their steps name.
 - **Layer map**: which layers each scenario crosses and its entry point.
-- **Ports and adapters** with exact Kotlin signatures, **files** to create or modify,
-  **global constraints** copied from the stack's documents.
-- **Ring 1: Screens**, one task per screen: types, use case interfaces, ViewModel, fakes
-  with sample data covering every listed scenario's `Given`, Screen and View, Koin and
-  navigation, compile and see. No tests in this ring.
-- **Ring 2: Domain**, one task per scenario: the outer test at the ViewModel against fake
-  repositories, red first; then per layer a failing test and minimal code; the Koin
-  rebind from fake use case to implementation; the in-memory repository behind a demo
-  flag.
+- **Ports and adapters** with exact signatures in the stack's language, **files** to
+  create or modify, **global constraints** copied from the stack's documents.
+- **Ring 1: Screens**, one task per screen: the state contract, the ports the screen
+  needs, the presentation model, fakes with sample data covering every listed scenario's
+  `Given`, the screen and its views, the composition-root binding and navigation, compile
+  and see. No tests in this ring.
+- **Ring 2: Domain**, one task per scenario: the outer test at the presentation model
+  against fakes behind the ports, red first; then per layer a failing test and minimal
+  code; the composition-root rebind from fake to implementation; the demo data behind a
+  demo flag.
 - **Ring 3: Adapters**, one task per port or endpoint: the failing adapter test, the
-  implementation, the Koin rebind from in-memory to real.
+  implementation, the composition-root rebind from demo to real.
 - **Friction** for scenarios that cannot be built as written, **gaps** for what the
   project cannot provide.
 
@@ -179,33 +182,34 @@ and ports the core, repositories, data sources and the Ktor server the driven ad
 
 ## `kartograph-screens` — ring 1, the flow before the behaviour
 
-Executes ring 1 of the plan: the screens, the view models, the use case interfaces and
-fake use cases holding deterministic sample data, so every scenario can be walked in the
+Executes ring 1 of the plan: the screens, their presentation models, the ports they need
+and fakes holding deterministic sample data, so every scenario can be walked in the
 running app and you can judge the flow before anything real is built. Every control a
 scenario names carries the scenario's own words, so a person and a semantic tree can find
-it. It compiles the module and the desktop target, reloads and screenshots each screen
-when a Compose Hot Reload window is connected, never launches the app, never scaffolds a
-project, builds nothing a scenario does not state, commits as `screens: <capability>`,
-pushes, and tells you which scenarios to walk. This is where you stop and look.
+it. It compiles the capability and the stack's fast-loop target, looks at each screen when
+a live window is connected (a Compose Hot Reload window, a simulator, a browser), never
+launches the app, never scaffolds a project, builds nothing a scenario does not state,
+commits as `screens: <capability>`, pushes, and tells you which scenarios to walk. This is
+where you stop and look.
 
 ## `kartograph-domain` — ring 2, the behaviour, data still local
 
 Executes ring 2 once every ring-1 checkbox is ticked. Per scenario: the outer test at the
-ViewModel against fake repositories, red first; then use case implementation, rules and
-repository interface, each behind a failing test; then the Koin rebind from the fake use
-case to the real one. The ring-1 sample data becomes an in-memory repository behind a
-demo flag, so the same screens now run on real rules and the walk still works before a
+presentation model against fakes behind the ports, red first; then the implementations,
+the rules and the ports the core adds, each behind a failing test; then the
+composition-root rebind from fake to implementation. The ring-1 sample data stays behind
+a demo flag, so the same screens now run on real rules and the walk still works before a
 backend exists. Fakes over mocks, no mocking library, no weakened assertion, never an
 edited feature file. Commits as `domain: <capability>`, pushes.
 
 ## `kartograph-adapters` — ring 3, real data, real platform, real server
 
 Executes ring 3 once every ring-2 checkbox is ticked. Per port or endpoint: the failing
-adapter test (Room over an in-memory driver, Ktor over `MockEngine`, the server over
-`testApplication`, a platform capability in its target's test source set), the data
-source, mapper and adapter, the Koin rebind from in-memory to real. Exceptions stop at the
-repository boundary as `AppError`. Nothing above the repository interface changes, and the
-ring-2 scenario tests must still pass unchanged. Commits as `adapters: <capability>`,
+adapter test over the double the stack's `build-design.md` names (an in-memory database,
+a stubbed HTTP engine, a test server, a platform capability in its target's test bundle),
+the data source, mapping and adapter, the composition-root rebind from demo to real.
+Exceptions stop at the adapter boundary as the stack's error type. Nothing above the
+ports changes, and the ring-2 scenario tests must still pass unchanged. Commits as `adapters: <capability>`,
 pushes, and says the capability is real end to end.
 
 Screens, domain and adapters all execute the plan as the contract and the code as the

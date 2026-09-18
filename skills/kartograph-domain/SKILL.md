@@ -21,9 +21,9 @@ otherwise stop and say that `kartograph-screens` runs first.
 - **Test first, always.** No production code before a failing test that you watched fail
   for the right reason; minimal code to green; refactor while green. Never weaken a test
   or an assertion to fit the implementation.
-- **Fakes over mocks.** No mocking library. `FakeXxxRepository` implements the port, is
-  seeded through its constructor, exposes side-effect counters and an outcome knob, and
-  lives in `commonTest`.
+- **Fakes over mocks.** No mocking library. A `Fake…` implements the port, is seeded
+  through its constructor, exposes side-effect counters and an outcome knob, and lives
+  where `build-design.md` § 8 puts test doubles.
 - **Never edit a `.feature` file.** A scenario that cannot be built as written is skipped
   and its friction recorded; never forced, never rewritten.
 - **The plan is the contract, the code is the truth.** Follow the ring-2 tasks' steps as
@@ -31,42 +31,45 @@ otherwise stop and say that `kartograph-screens` runs first.
   the plan's only edit is its checkboxes.
 - **Follow `docs/code-design/code-design.md` and `build-design.md`.** Domain types match
   `knowledge/`'s canonical titles; a word the bundle does not have is a gap you report.
-- **Stay in scope.** The feature module, `core/` (for `AppError`, `Resource`, `AppConfig`
-  when missing) and the plan's checkboxes. Never `intents/`, `knowledge/`, `features/`,
-  `walks/`, `server/`, other features' modules or the plan's content.
+- **Stay in scope.** The capability's module or folder, the shared core for the error,
+  result and configuration types `code-design.md` names when they are missing, and the
+  plan's checkboxes. Never `intents/`, `knowledge/`, `features/`, `walks/`, the server,
+  other capabilities' code or the plan's content.
 - Re-running on unchanged input changes nothing.
 
 ## 1. Read
 
 The plan in full; the `.feature` files, the `knowledge/` bundle, `docs/code-design/`, the
-feature module as ring 1 left it, `core/`, and the newest `walks/` file for the
+capability's code as ring 1 left it, the shared core, and the newest `walks/` file for the
 capability. Say which plan you are executing. Review the ring-2 tasks against the code as
 it is now; a plan that no longer matches its scenarios is reported and not executed.
 
 ## 2. Execute ring 2, task by task
 
 Each ring-2 task is one scenario. **Outer loop:** its Step 1 is the scenario's test at the
-ViewModel level against fake repositories; write it as given, run it, confirm it fails for
-the reason the plan expects. A scenario that describes a rejection or an error asserts the
-`AppError` and its recoverable/fatal classification. **Inner loop:** per layer step, the
-failing test as given, run and see it fail, the minimal code as given, run and see it
-pass, refactor while green: use case implementation, rule or validator, repository
-interface, in-memory repository seeded from the ring-1 sample data. Then the Koin rebind
-from the fake use case to the implementation, with the in-memory repository as the only
-binding and behind the demo flag for later. Delete `presentation/fake/` once nothing
-binds it. Tick each step's checkbox.
+presentation model against fakes behind the ports; write it as given, run it, confirm it
+fails for the reason the plan expects. A scenario that describes a rejection or an error
+asserts the error the stack's error type carries and its classification. **Inner loop:**
+per layer step, the failing test as given, run and see it fail, the minimal code as given,
+run and see it pass, refactor while green, through the ring-2 layers `code-design.md` § 6
+lists in the stack's own shapes (implementations, rules or validators, the ports the core
+adds, the demo data seeded from the ring-1 sample data). Then the composition-root rebind
+from fake to implementation as `code-design.md` § 6 describes for ring 2, with the demo
+binding behind the demo flag for later. A ring-1 double that nothing binds any more is
+deleted; one the stack keeps as its demo or UI-test substrate stays. Tick each step's
+checkbox.
 
-**See it.** When the outer test is green and a Compose Hot Reload window is connected:
-`reload`, `get_ui_error`, `take_screenshot`; the scenario's `Then` is visible where a
-person would look. No window: the green test and a compiling desktop target are the
-evidence, and the report says so.
+**See it.** When the outer test is green and a live window is connected (a hot-reload
+desktop window, a simulator through a screen-control tool, a browser), look: the
+scenario's `Then` is visible where a person would look. No window: the green test and a
+compiling target are the evidence, and the report says so.
 
 ## 3. Verify, commit, push, report
 
-Run the feature module's tests and the whole suite; build every enabled target. Check the
-diff: only in-scope paths changed, no `.feature` touched, no fake left in production code,
-no `Throwable` above the repository interface, no `List` in state, the scenario tests map
-one to one onto the scenarios. Stage what you wrote plus the plan, commit as
+Run the capability's tests and the whole suite; build every enabled target. Check the
+diff: only in-scope paths changed, no `.feature` touched, no double bound where the stack
+forbids it, no framework exception above the ports, nothing in the state the stack's
+contract forbids, the scenario tests map one to one onto the scenarios. Stage what you wrote plus the plan, commit as
 `domain: <capability>`, push; no git or no upstream, skip and say so. Report the scenarios
 proven and where each `Then` is reachable, the scenarios skipped with their friction,
 every deviation from the plan, the ports ring 3 has to fulfil, and one line that
