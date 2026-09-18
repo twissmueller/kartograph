@@ -1,11 +1,13 @@
 # Build design: the layers below the view
 
-What `kartograph-build` writes and how, one section per layer. Ports-and-adapters read
+What rings 2 and 3 write and how, one section per layer: `kartograph-domain` builds §1,
+the in-memory part of §2 and the wiring in §7; `kartograph-adapters` builds the rest of
+§2 and §3 to §6. Ring 1 is described in `code-design.md` §6. Ports-and-adapters read
 through Clean Architecture: the ports are the use case and repository **interfaces** in
 `domain/`; the adapters are everything in `data/`, the per-target implementations, and the
 server. The names in code are the project's (`…UseCase`, `…Repository`, `…Impl`, `…Api`,
 `…Dao`, Pattern A/B), never "port" or "adapter". Everything here follows
-`docs/code-design/mvvm.md`; where that document is silent, this one decides.
+`code-design.md`; where that document is silent, this one decides.
 
 ## 1. Domain: use cases and repository interfaces
 
@@ -20,7 +22,7 @@ server. The names in code are the project's (`…UseCase`, `…Repository`, `…
   `fun observeX(): Flow<ImmutableList<X>>`, `suspend fun save(x: X): Resource<Unit>`. A
   type used by a second feature moves to `core/domain/`.
 - `AppError` (sealed, `core/domain/error/`) and `Resource<T>` (`core/domain/util/`) are
-  created once in `core/` if missing, exactly as `mvvm.md` §3 and this file's examples
+  created once in `core/` if missing, exactly as `code-design.md` §3 and this file's examples
   show. `AppError` carries structured data, never user-facing strings.
 
 ```kotlin

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Validates an implementation plan written by kartograph-plan, so every plan has the
-// structure of `plan-template.md`, carries no placeholders, and — inside a project —
-// names only scenarios that exist in features/.
+// Validates a three-ring implementation plan written by kartograph-plan, so every plan has
+// the structure of `plan-template.md`, carries no placeholders, and — inside a project —
+// names only scenarios that exist in features/ and a stack declared in docs/code-design/.
 //
 //   node validate-plan.js <plans/file.md> [...]     validate the given files
 //   node validate-plan.js                           validate every file in ./plans
@@ -13,14 +13,14 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const FILENAME = /^(\d{4}-\d{2}-\d{2})-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
-export const FRONTMATTER_KEYS = ["capability", "features", "status", "date", "supersedes"];
+export const FRONTMATTER_KEYS = ["capability", "features", "stack", "status", "date", "supersedes"];
 export const STATUSES = ["planned", "superseded"];
-export const SECTIONS = ["Layer map", "Reuse and new", "Ports and adapters", "Files", "Global constraints", "Tasks", "Friction", "Gaps"];
-export const TASK_LINES = ["Scenario", "Layers"];
+export const SECTIONS = ["Screens", "Layer map", "Reuse and new", "Ports and adapters", "Files", "Global constraints", "Ring 1: Screens", "Ring 2: Domain", "Ring 3: Adapters", "Friction", "Gaps"];
+export const RINGS = { "Ring 1: Screens": 1, "Ring 2: Domain": 2, "Ring 3: Adapters": 3 };
 export const PLACEHOLDER_PATTERNS = [
   /\bTBD\b/, /\bTODO\b/, /implement later/i, /fill in (the )?details/i,
   /add (appropriate )?error handling/i, /add validation/i, /handle edge cases/i,
-  /write tests for the above/i, /similar to task \d+/i,
+  /write tests for the above/i, /similar to task [\d.]+/i,
 ];
 const TEMPLATE_PLACEHOLDER = /<[A-Za-z][^>\n]* [^>\n]*>|<…>|^…$/m;
 
@@ -54,6 +54,53 @@ function outline(body) {
   return { h1, lead, sections };
 }
 const content = (lines) => lines.filter((l) => l.trim() !== "");
+const tableRows = (lines) => content(lines).filter((l) => /^\|/.test(l) && !/^\|\s*-/.test(l)).slice(1).map((r) => r.split("|").map((c) => c.trim()).slice(1, -1));
+const bulletNames = (lines) => content(lines).map((l) => /^- \*\*([^*]+)\*\*/.exec(l)?.[1]?.trim()).filter(Boolean);
+
+function checkTask(t, ring, err) {
+  const m = /^Task (\d+)\.(\d+): (.+)$/.exec(t.title);
+  if (!m) { err(`task heading must be '### Task ${ring}.N: <name>', got '### ${t.title}'`); return null; }
+  if (Number(m[1]) !== ring) err(`'### ${t.title}' sits in ring ${ring} but is numbered ${m[1]}.x`);
+  const name = m[3].trim(); const txt = t.lines.join("\n"); const label = `'### ${t.title}'`;
+  if (!/^\*\*Interfaces:\*\*/m.test(txt)) err(`${label}: missing '**Interfaces:**' block`);
+  if (!/^- Consumes: \S/m.test(txt) || !/^- Produces: \S/m.test(txt)) err(`${label}: Interfaces needs '- Consumes:' and '- Produces:' lines`);
+  const steps = [...txt.matchAll(/^- \[[ x]\] \*\*Step (\d+): (.*)\*\*/gm)];
+  steps.forEach((s, j) => { if (Number(s[1]) !== j + 1) err(`${label}: step numbering breaks at Step ${s[1]}`); });
+  if (steps.length && !/commit/i.test(steps[steps.length - 1][2])) err(`${label}: the last step must be the commit`);
+  const fences = (txt.match(/^```/gm) || []).length / 2;
+  const runs = (txt.match(/^Run: /gm) || []).length; const expects = (txt.match(/^Expected: /gm) || []).length;
+  if (runs !== expects) err(`${label}: every 'Run:' needs an 'Expected:' line and vice versa`);
+  if (!/koin/i.test(txt)) err(`${label}: no Koin binding step`);
+  const fields = {};
+  for (const mm of txt.matchAll(/^\*\*([A-Za-z]+):\*\* (.+)$/gm)) fields[mm[1]] = mm[2].trim();
+  if (ring === 1) {
+    if (!fields.Screen) err(`${label}: missing '**Screen:**' line`);
+    if (!fields.Scenarios) err(`${label}: missing '**Scenarios:**' line`);
+    if (steps.length < 6) err(`${label}: a screen task needs at least six steps (types, use case interfaces, ViewModel, fakes, Screen/View, Koin+nav, compile, commit); found ${steps.length}`);
+    if (!steps.some((s) => /fake|sample data/i.test(s[2]))) err(`${label}: no fakes-and-sample-data step`);
+    if (!steps.some((s) => /compile|build|see/i.test(s[2]))) err(`${label}: no compile-and-see step`);
+    if (fences < 4) err(`${label}: every code step shows its code; found only ${fences} fenced blocks`);
+    if (/Expected: FAIL/.test(txt)) err(`${label}: ring 1 has no tests, so nothing is expected to FAIL`);
+  }
+  if (ring === 2) {
+    if (!fields.Scenario) err(`${label}: missing '**Scenario:**' line`);
+    if (!fields.Layers) err(`${label}: missing '**Layers:**' line`);
+    if (steps.length < 6) err(`${label}: a domain task needs at least six steps (outer test, its failure, a layer's red/green, Koin rebind, on-screen check, commit); found ${steps.length}`);
+    if (steps.length && !/outer test/i.test(steps[0][2])) err(`${label}: Step 1 must be the outer test`);
+    if (!/^Expected: FAIL/m.test(txt)) err(`${label}: the outer test must be expected to FAIL first`);
+    if (!/^Expected: PASS/m.test(txt)) err(`${label}: at least one run must be expected to PASS`);
+    if (fences < 4) err(`${label}: every code step shows its code; found only ${fences} fenced blocks`);
+  }
+  if (ring === 3) {
+    if (!fields.Adapter) err(`${label}: missing '**Adapter:**' line`);
+    if (!fields.Port) err(`${label}: missing '**Port:**' line`);
+    if (steps.length < 5) err(`${label}: an adapter task needs at least five steps (failing test, its failure, implementation, passing run, Koin rebind, commit); found ${steps.length}`);
+    if (!/^Expected: FAIL/m.test(txt)) err(`${label}: the adapter test must be expected to FAIL first`);
+    if (!/^Expected: PASS/m.test(txt)) err(`${label}: at least one run must be expected to PASS`);
+    if (fences < 3) err(`${label}: every code step shows its code; found only ${fences} fenced blocks`);
+  }
+  return { name, fields, done: steps.length > 0 && steps.every((s) => /^- \[x\]/.test(s[0])), steps: steps.length };
+}
 
 export function validatePlan(text, { filename, projectRoot } = {}) {
   const errors = []; const warnings = [];
@@ -90,6 +137,7 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
     if (!features || !features.length) err("features must be a non-empty list like [a.feature, b.feature]");
     else for (const f of features) if (!/^[a-z0-9]+(?:-[a-z0-9]+)*\.feature$/.test(f)) err(`features entry '${f}' must be a slug ending in .feature`);
   }
+  if (fm.stack !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fm.stack)) err(`stack must be a lowercase hyphenated name, got '${fm.stack}'`);
   if (fm.status !== undefined && !STATUSES.includes(fm.status)) err(`status must be ${STATUSES.join(" | ")}, got '${fm.status}'`);
   if (fm.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(fm.date)) err(`date must be YYYY-MM-DD, got '${fm.date}'`);
   if (fileDate && fm.date && fm.date !== fileDate) err(`date '${fm.date}' does not match the filename date '${fileDate}'`);
@@ -100,91 +148,91 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
   else if (!/^Plan: \S/.test(o.h1[0])) err(`first heading must be '# Plan: <capability title>', got '# ${o.h1[0]}'`);
   const lead = content(o.lead);
   if (!lead.some((l) => /^\*\*Goal:\*\* \S/.test(l))) err("a '**Goal:** <one sentence>' line is required before the first section");
-  if (!lead.some((l) => /^\*\*Follows:\*\*/.test(l))) err("a '**Follows:**' line naming mvvm.md and build-design.md is required before the first section");
+  if (!lead.some((l) => /^\*\*Follows:\*\*/.test(l))) err("a '**Follows:**' line naming the docs/code-design documents is required before the first section");
 
   const names = o.sections.map((s) => s.name);
   for (const s of SECTIONS) if (!names.includes(s)) err(`missing section '## ${s}'`);
   for (const n of names) if (!SECTIONS.includes(n)) err(`unknown section '## ${n}'`);
   const knownSecs = names.filter((n) => SECTIONS.includes(n));
   if (knownSecs.join() !== SECTIONS.filter((s) => knownSecs.includes(s)).join()) err(`sections must be in the order ${SECTIONS.join(", ")}`);
-  for (const s of o.sections) if (s.name !== "Tasks" && !content(s.lines).length && !s.tasks.length) err(`'## ${s.name}' is empty`);
+  for (const s of o.sections) if (!(s.name in RINGS) && !content(s.lines).length) err(`'## ${s.name}' is empty`);
+  const sec = (n) => o.sections.find((s) => s.name === n);
 
-  const layerMap = o.sections.find((s) => s.name === "Layer map");
-  const mapped = new Set();
-  if (layerMap) {
-    const rows = content(layerMap.lines).filter((l) => /^\|/.test(l) && !/^\|\s*-/.test(l) && !/^\|\s*scenario\s*\|/i.test(l));
-    if (!rows.length) err("'## Layer map' needs a table with one row per scenario");
-    for (const r of rows) { const cells = r.split("|").map((c) => c.trim()); if (cells[1]) mapped.add(cells[1]); }
-  }
-  const files = o.sections.find((s) => s.name === "Files");
-  if (files) {
-    const bad = content(files.lines).filter((l) => !/^- (Create|Modify|Test): `[^`]+`/.test(l) && !/^\s{2,}\S/.test(l));
-    if (bad.length) err(`'## Files' lines must be '- Create|Modify|Test: \`path\` — …'; got: ${bad[0].trim()}`);
-  }
+  const screenRows = sec("Screens") ? tableRows(sec("Screens").lines) : [];
+  if (sec("Screens") && !screenRows.length) err("'## Screens' needs a table with one row per screen");
+  const screens = new Map(); const screenScenarios = new Set();
+  for (const r of screenRows) { if (r[0]) { screens.set(r[0], r); for (const s of (r[2] || "").split(";").map((x) => x.trim()).filter(Boolean)) screenScenarios.add(s); } }
+
+  const mapRows = sec("Layer map") ? tableRows(sec("Layer map").lines) : [];
+  if (sec("Layer map") && !mapRows.length) err("'## Layer map' needs a table with one row per scenario");
+  const mapped = new Set(mapRows.map((r) => r[0]).filter(Boolean));
+
+  const portRows = sec("Ports and adapters") ? tableRows(sec("Ports and adapters").lines) : [];
+  const ring3Ports = portRows.filter((r) => /3/.test(r[3] || "")).map((r) => r[0].replace(/`/g, ""));
+
+  const files = sec("Files");
+  if (files) { const bad = content(files.lines).filter((l) => !/^- (Create|Modify|Test): `[^`]+`/.test(l) && !/^\s{2,}\S/.test(l)); if (bad.length) err(`'## Files' lines must be '- Create|Modify|Test: \`path\` — …'; got: ${bad[0].trim()}`); }
   for (const name of ["Friction", "Gaps"]) {
-    const s = o.sections.find((x) => x.name === name);
-    if (!s) continue;
-    const lines = content(s.lines);
-    const isNone = lines.length === 1 && lines[0].trim() === "None";
+    const s = sec(name); if (!s) continue;
+    const lines = content(s.lines); const isNone = lines.length === 1 && lines[0].trim() === "None";
     const bad = lines.filter((l) => !/^- /.test(l) && !/^\s{2,}\S/.test(l));
     if (!isNone && bad.length) err(`'## ${name}' must be a bullet list or exactly 'None'; offending line: ${bad[0].trim()}`);
   }
+  const frictionNames = sec("Friction") ? bulletNames(sec("Friction").lines) : [];
 
-  const tasks = o.sections.find((s) => s.name === "Tasks");
-  const friction = o.sections.find((s) => s.name === "Friction");
-  const frictionNames = friction ? content(friction.lines).map((l) => /^- \*\*([^*]+)\*\*/.exec(l)?.[1]?.trim()).filter(Boolean) : [];
-  const taskScenarios = [];
-  if (tasks) {
-    if (!tasks.tasks.length && !frictionNames.length) err("'## Tasks' has no '### Task N: <scenario>' and '## Friction' names nothing — a plan must plan something");
-    tasks.tasks.forEach((t, i) => {
-      const m = /^Task (\d+): (.+)$/.exec(t.title);
-      if (!m) { err(`task heading must be '### Task N: <scenario name>', got '### ${t.title}'`); return; }
-      if (Number(m[1]) !== i + 1) err(`'### ${t.title}' is out of order; expected Task ${i + 1}`);
-      const scenario = m[2].trim(); taskScenarios.push(scenario);
-      const txt = t.lines.join("\n");
-      for (const k of TASK_LINES) if (!new RegExp(`^\\*\\*${k}:\\*\\* \\S`, "m").test(txt)) err(`'### ${t.title}': missing '**${k}:**' line`);
-      if (!/^\*\*Interfaces:\*\*/m.test(txt)) err(`'### ${t.title}': missing '**Interfaces:**' block`);
-      if (!/^- Consumes: \S/m.test(txt) || !/^- Produces: \S/m.test(txt)) err(`'### ${t.title}': Interfaces needs '- Consumes:' and '- Produces:' lines`);
-      const steps = [...txt.matchAll(/^- \[ \] \*\*Step (\d+): (.*)\*\*/gm)];
-      if (steps.length < 6) err(`'### ${t.title}': needs at least six steps (outer test, its failure, a layer's red/green, Koin, on-screen check, commit); found ${steps.length}`);
-      steps.forEach((s, j) => { if (Number(s[1]) !== j + 1) err(`'### ${t.title}': step numbering breaks at Step ${s[1]}`); });
-      if (steps.length && !/outer test/i.test(steps[0][2])) err(`'### ${t.title}': Step 1 must be the outer test`);
-      if (steps.length && !/commit/i.test(steps[steps.length - 1][2])) err(`'### ${t.title}': the last step must be the commit`);
-      const fences = (txt.match(/^```/gm) || []).length;
-      if (fences < 6) err(`'### ${t.title}': every code step shows its code; found only ${fences / 2} fenced blocks`);
-      const runs = (txt.match(/^Run: /gm) || []).length; const expects = (txt.match(/^Expected: /gm) || []).length;
-      if (runs < 2 || expects < 2) err(`'### ${t.title}': each test run needs a 'Run:' and an 'Expected:' line`);
-      if (!/^Expected: FAIL/m.test(txt)) err(`'### ${t.title}': the outer test must be expected to FAIL first`);
-      if (!/^Expected: PASS/m.test(txt)) err(`'### ${t.title}': at least one run must be expected to PASS`);
-      if (!/koin/i.test(txt)) err(`'### ${t.title}': no Koin binding step`);
-      if (mapped.size && !mapped.has(scenario)) err(`'### ${t.title}': scenario is not in the layer map`);
+  const rings = { 1: [], 2: [], 3: [] };
+  for (const [secName, ring] of Object.entries(RINGS)) {
+    const s = sec(secName); if (!s) continue;
+    if (content(s.lines).length) err(`'## ${secName}' has text outside its task sections: ${content(s.lines)[0].trim()}`);
+    s.tasks.forEach((t, i) => {
+      const r = checkTask(t, ring, err); if (!r) return;
+      const n = /^Task \d+\.(\d+):/.exec(t.title); if (n && Number(n[1]) !== i + 1) err(`'### ${t.title}' is out of order; expected Task ${ring}.${i + 1}`);
+      rings[ring].push(r);
     });
   }
-  for (const s of mapped) if (!taskScenarios.includes(s) && !frictionNames.includes(s)) err(`layer map row '${s}' has neither a task nor a friction entry`);
-  const dup = taskScenarios.filter((s, i) => taskScenarios.indexOf(s) !== i);
-  if (dup.length) err(`scenario '${dup[0]}' has more than one task`);
+  if (!rings[1].length) err("'## Ring 1: Screens' has no task");
+  if (!rings[2].length && !frictionNames.length) err("'## Ring 2: Domain' has no task and '## Friction' names nothing — a plan must plan something");
+
+  // ring 1 ↔ screens table
+  const taskScreens = rings[1].map((r) => r.name);
+  for (const s of screens.keys()) if (!taskScreens.includes(s)) err(`screen '${s}' from '## Screens' has no ring-1 task`);
+  for (const s of taskScreens) if (!screens.has(s)) err(`ring-1 task '${s}' is not in '## Screens'`);
+  for (const r of rings[1]) for (const sc of (r.fields.Scenarios || "").split(";").map((x) => x.trim()).filter(Boolean)) if (mapped.size && !mapped.has(sc)) err(`ring-1 task '${r.name}' lists scenario '${sc}', which is not in the layer map`);
+  // ring 2 ↔ layer map ↔ screens
+  const domainScenarios = rings[2].map((r) => r.name);
+  for (const s of domainScenarios) { if (mapped.size && !mapped.has(s)) err(`ring-2 task '${s}' is not in the layer map`); if (screenScenarios.size && !screenScenarios.has(s)) err(`scenario '${s}' is served by no screen in '## Screens'`); }
+  for (const s of mapped) if (!domainScenarios.includes(s) && !frictionNames.includes(s)) err(`layer map row '${s}' has neither a ring-2 task nor a friction entry`);
+  const dup = domainScenarios.filter((s, i) => domainScenarios.indexOf(s) !== i); if (dup.length) err(`scenario '${dup[0]}' has more than one ring-2 task`);
+  // ring 3 ↔ ports table
+  const adapterPorts = rings[3].map((r) => (r.fields.Port || "").replace(/`/g, "").split(/\s/)[0]);
+  for (const p of ring3Ports) if (!adapterPorts.some((a) => a === p) && !frictionNames.some((f) => f.includes(p))) warnings.push(`port '${p}' is marked ring 3 in '## Ports and adapters' but has no ring-3 task`);
 
   for (const p of PLACEHOLDER_PATTERNS) { const m = p.exec(body); if (m) err(`placeholder found: '${m[0]}' — plans carry the actual content`); }
   const tp = TEMPLATE_PLACEHOLDER.exec(body.replace(/`[^`\n]*`/g, ""));
   if (tp) err(`template placeholder left in the body: ${tp[0].trim()}`);
 
-  if (projectRoot && fm.capability) {
-    const capDir = join(projectRoot, "features", fm.capability);
-    if (!existsSync(capDir)) warnings.push(`features/${fm.capability}/ does not exist in the project`);
-    else {
-      const known = new Set();
-      for (const f of features || []) {
-        const fp = join(capDir, f);
-        if (!existsSync(fp)) { err(`features/${fm.capability}/${f} does not exist`); continue; }
-        for (const m of readFileSync(fp, "utf8").matchAll(/^\s*(?:Scenario Outline|Scenario): (.*)$/gm)) known.add(m[1].trim());
-      }
-      if (known.size) {
-        for (const s of taskScenarios) if (!known.has(s)) err(`task scenario '${s}' is not in the listed feature files`);
-        for (const s of known) if (!taskScenarios.includes(s) && !frictionNames.includes(s)) err(`scenario '${s}' from the feature files has neither a task nor a friction entry`);
+  if (projectRoot) {
+    const stackFile = join(projectRoot, "docs", "code-design", "stack.md");
+    if (!existsSync(stackFile)) warnings.push("docs/code-design/stack.md does not exist in the project");
+    else if (fm.stack) { const declared = /^stack:\s*(\S+)/m.exec(readFileSync(stackFile, "utf8"))?.[1]; if (declared && declared !== fm.stack) err(`plan stack '${fm.stack}' differs from docs/code-design/stack.md ('${declared}')`); }
+    if (fm.capability) {
+      const capDir = join(projectRoot, "features", fm.capability);
+      if (!existsSync(capDir)) warnings.push(`features/${fm.capability}/ does not exist in the project`);
+      else {
+        const knownScen = new Set();
+        for (const f of features || []) {
+          const fp = join(capDir, f);
+          if (!existsSync(fp)) { err(`features/${fm.capability}/${f} does not exist`); continue; }
+          for (const m of readFileSync(fp, "utf8").matchAll(/^\s*(?:Scenario Outline|Scenario): (.*)$/gm)) knownScen.add(m[1].trim());
+        }
+        if (knownScen.size) {
+          for (const s of domainScenarios) if (!knownScen.has(s)) err(`ring-2 task scenario '${s}' is not in the listed feature files`);
+          for (const s of knownScen) if (!domainScenarios.includes(s) && !frictionNames.includes(s)) err(`scenario '${s}' from the feature files has neither a ring-2 task nor a friction entry`);
+        }
       }
     }
   }
-  return { errors, warnings };
+  return { errors, warnings, rings: { 1: rings[1].every((r) => r.done) && rings[1].length > 0, 2: rings[2].every((r) => r.done) && rings[2].length > 0, 3: rings[3].every((r) => r.done) && rings[3].length > 0 } };
 }
 
 export function validatePlanFile(path, { projectRoot } = {}) {
@@ -201,10 +249,10 @@ function main(argv) {
   let failed = 0;
   for (const f of files) {
     if (!existsSync(f) || !statSync(f).isFile()) { console.error(`error: ${f}: no such file`); failed++; continue; }
-    const { errors, warnings } = validatePlanFile(f);
+    const { errors, warnings, rings } = validatePlanFile(f);
     for (const w of warnings) console.log(`warning: ${f}: ${w}`);
     for (const e of errors) console.log(`error: ${f}: ${e}`);
-    if (errors.length) failed++; else console.log(`ok ${f}`);
+    if (errors.length) failed++; else console.log(`ok ${f} (rings done: 1=${rings[1]} 2=${rings[2]} 3=${rings[3]})`);
   }
   return failed ? 1 : 0;
 }

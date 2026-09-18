@@ -1,12 +1,12 @@
 # 🗺️ Kartograph
 
-**Draw out what a person really wants, write down the words it is made of, the behaviour it asks for, show it on screen, plan and build it for real, then walk them through it.**
+**Draw out what a person really wants, write down the words it is made of and the behaviour it asks for, plan it in three rings, show the screens first, build the rest, then walk them through it.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/twissmueller)
 
 Kartograph is a plugin for [Claude Code](https://code.claude.com),
-[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with seven
+[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with eight
 skills that build on each other through plain files in your repository:
 
 | skill | reads | writes |
@@ -14,23 +14,25 @@ skills that build on each other through plain files in your repository:
 | **`kartograph-explore`** | a conversation with you | `intents/<date>-<slug>.md` |
 | **`kartograph-knowledge`** | one intent file | `knowledge/`, an Open Knowledge Format bundle |
 | **`kartograph-features`** | one intent file | `features/`, capabilities and Gherkin features |
-| **`kartograph-views`** | one capability or feature | screens and view models on fake data in your KMP app |
-| **`kartograph-plan`** | one capability or feature | `plans/<date>-<capability>.md`, one double-loop task per scenario |
-| **`kartograph-build`** | a plan: the named capability's, else the newest | the real behaviour underneath: use cases, repositories, database, API, server |
-| **`kartograph-walk`** | one capability, feature or scenario, and you watching | `walks/<date>-<capability>.md`, your verdicts |
+| **`kartograph-plan`** | one capability, the stack's design docs | `plans/<date>-<capability>.md`, three rings; `docs/code-design/` on first use |
+| **`kartograph-screens`** | ring 1 of the plan | the screens and view models on fakes with sample data |
+| **`kartograph-domain`** | ring 2 of the plan | use case implementations, rules, ports, one test per scenario |
+| **`kartograph-adapters`** | ring 3 of the plan | repositories, database, API client, platform capabilities, server |
+| **`kartograph-walk`** | any ring's result, and you watching | `walks/<date>-<capability>.md`, your verdicts |
 
 Each run starts from a fresh context. What one skill knows, it knows from the files the
 previous one wrote, so everything worth keeping is in your repo, versioned, and readable
 by you, a colleague, or a later AI session.
 
-![The seven phases: who does what, which files result, and when a phase hands over](docs/phases.svg)
+![The eight phases: who does what, which files result, and when a phase hands over](docs/phases.svg)
 
 ## Why
 
 AI assistants write code faster than anyone can think. What they cannot do is know what you
 meant. Every drifting implementation, every "that's not what I asked for", starts with an
 intent that lived only in someone's head and was never pulled out and written down. And once
-written down, the words it uses drift too, unless they are defined once and reused.
+written down, the words it uses drift too, unless they are defined once and reused. And once
+the words hold, the screens should be seen before the behaviour behind them is committed to.
 
 ## `kartograph-explore` — one conversation, one intent file
 
@@ -110,83 +112,111 @@ statements, never resolved by the AI. Nothing is removed unless the intent says 
 Fully automated, like knowledge: no questions, then commit, push, and a report of what
 was created, updated, reused, and left open.
 
-## `kartograph-views` — one capability, its screens on fake data
+## `kartograph-plan` — three rings, for your stack
 
-Builds phase 1 of a capability in a Kotlin Multiplatform app: the screens, the view
-models, and fake use cases holding deterministic sample data, so every scenario can be
-walked in the running app and you can judge the flow before anything real is built. You
-name the capability or feature; the skill reads its scenarios, the `knowledge/` bundle for
-the words, and two documents in your project:
+Before anything is built, the plan. You name the capability; the skill reads its
+scenarios, `knowledge/`, the stack's design documents, the existing module, `core/`,
+`server/`, the build and the last walk, and writes `plans/<date>-<capability>.md`, a
+hexagon read through Clean Architecture:
 
-- `docs/design-system.md`: tokens, theme entry point, components and layout rules.
-- `docs/code-design/mvvm.md`: the five layers, State/Event/Effect, naming, DI, navigation,
-  and the three phases: view and view model on fakes, then real use cases, then
-  repositories.
+- **Screens** table: one per feature file unless the scenarios clearly describe more than
+  one place, each listing the scenarios it serves and the controls their steps name.
+- **Layer map**: which layers each scenario crosses and its entry point.
+- **Ports and adapters** with exact Kotlin signatures, **files** to create or modify,
+  **global constraints** copied from the stack's documents.
+- **Ring 1: Screens**, one task per screen: types, use case interfaces, ViewModel, fakes
+  with sample data covering every listed scenario's `Given`, Screen and View, Koin and
+  navigation, compile and see. No tests in this ring.
+- **Ring 2: Domain**, one task per scenario: the outer test at the ViewModel against fake
+  repositories, red first; then per layer a failing test and minimal code; the Koin
+  rebind from fake use case to implementation; the in-memory repository behind a demo
+  flag.
+- **Ring 3: Adapters**, one task per port or endpoint: the failing adapter test, the
+  implementation, the Koin rebind from in-memory to real.
+- **Friction** for scenarios that cannot be built as written, **gaps** for what the
+  project cannot provide.
 
-If your project has neither, the skill copies in the defaults it ships: a slate-and-blue
-Material 3 theme with light and dark modes on an 8 dp grid, and an MVVM design built on
-Koin, Jetpack Navigation 3 and `androidx.lifecycle.ViewModel` in `commonMain`. Edit them in
-your project; every later run follows your copy.
+Modelled on superpowers' writing-plans: written for an implementer who sees only their
+task, exact signatures in an interfaces block per task, and no placeholders anywhere, no
+"TBD", no "add error handling", no "similar to task 2.3". The validator rejects every
+such pattern and cross-checks screens, layer map, tasks and the feature files against each
+other. Fully automated, committed as `plan: <capability>`, pushed. A re-plan supersedes
+the earlier plan.
 
-It writes one Gradle feature module per capability, wires it into Koin, navigation and
-`settings.gradle.kts`, creates the theme in `shared/` if missing, compiles, and, when a
-Compose Hot Reload server is connected, reloads and screenshots each screen. It never
-launches the app, never scaffolds a project, and builds nothing a scenario does not state.
-Then it commits as `views: <capability>`, pushes, and tells you which screens to open and
-which scenarios to walk.
+### Technology stacks
 
-## `kartograph-plan` — the implementation plan, one task per scenario
+Plan is the one skill that knows about stacks. On a project's first plan it detects the
+stack from the build files, refuses if it sees none, more than one, or a scaffold, then
+writes `docs/code-design/stack.md` declaring the choice and copies the stack's three
+documents beside it:
 
-Before anything real is built, the plan. You name the capability; the skill reads its
-scenarios, `knowledge/`, both design documents, the module as views left it, `core/`,
-`server/`, the build and the last walk, and writes `plans/<date>-<capability>.md`: the
-layer map (which scenario crosses which layers, and its entry point), what is reused and
-what is new, the ports and adapters with exact Kotlin signatures, the files to create or
-modify, the global constraints, then one task per scenario in double-loop shape with the
-outer test as real code, each layer's failing test and minimal code, the Koin change, the
-on-screen check and the commit. Modelled on superpowers' writing-plans: written for an
-implementer who sees only their task, and with no placeholders anywhere, no "TBD", no
-"add error handling", no "similar to task 3". A scenario that cannot be planned as
-written gets a friction entry instead of a task. Fully automated, validated, committed
-as `plan: <capability>`, pushed. A re-plan supersedes the earlier plan.
+```
+docs/code-design/
+  stack.md            which stack, which version, when declared
+  design-system.md    tokens, theme entry point, components, layout, accessibility
+  code-design.md      the three rings, module layout, state contract, naming, DI, navigation
+  build-design.md     ports and adapters in detail: persistence, HTTP, platform, server, tests, done
+```
 
-## `kartograph-build` — the real thing, task by task
+From then on every skill reads the project's copies, so your edits steer every later run.
+The plugin ships the stacks under `stacks/`, one directory each:
 
-Executes a plan: the newest for the capability you name, or the newest planned plan
-overall when you name none. Without one it stops and says to plan first.
-It reviews the plan against the code as it is now, then works through the tasks in
-order, each a scenario in double-loop shape:
+| stack | status | detected by |
+|---|---|---|
+| `kmp` | ready | `settings.gradle.kts` plus a `kotlin("multiplatform")` module |
+| `android-compose` | scaffold | an Android application module without multiplatform |
+| `apple-swift` | scaffold | `Package.swift` or an `.xcodeproj`, no Gradle |
+| `angular-kotlin` | scaffold | `angular.json` beside a Kotlin server build |
 
-- **Outer loop:** one test named after the scenario, at the ViewModel level with Given,
-  When and Then inside, red first. Your knowledge repo's rule, one scenario is one test,
-  so no Gherkin runner is added.
-- **Inner loop:** for every layer the scenario crosses, a failing test, the minimal code,
-  green, refactor. Use cases and repository interfaces in `domain/` are the ports; the
-  adapters are `…RepositoryImpl` over Ktor and Room data sources, Pattern B platform
-  capabilities with per-target implementations, and the Ktor server under `server/`.
-  Exceptions become `AppError` at the repository boundary and travel as `Resource<T>`.
-- **Then it looks:** when a Compose Hot Reload window is connected it reloads and checks
-  the scenario's `Then` on screen; otherwise compiling every target is the evidence and
-  the report says so.
+A scaffold carries every section a stack must answer and an unfilled marker in each; plan
+refuses to run against it. Adding a stack is adding a directory with a `STACK.md` and the
+three documents. The KMP stack derives from its owner's knowledge repository and reads
+Clean Architecture plus MVVM as the hexagon: screens are the driving adapter, use cases
+and ports the core, repositories, data sources and the Ktor server the driven adapters.
 
-Phase-1 fakes move to `commonTest`; the sample data survives as an in-memory repository
-behind a demo flag so the walk still works before a backend exists. A step the code
-contradicts gets the smallest correction that keeps its intent, and the deviation is
-reported; a scenario that cannot be built as written is skipped with its friction
-recorded; feature files and the plan's content are never edited, only its checkboxes. `build-design.md` in the skill holds the layer-by-layer rules: Room with
-semver-collapsed versions and a migration test each, the Ktor client with retry, auth and
-timeouts, `safeApiCall` translation, the server's routes, status mapping and route tests,
-and the definition of done. Commits as `build: <capability>`, pushes, reports what moved
-and what stayed open.
+## `kartograph-screens` — ring 1, the flow before the behaviour
+
+Executes ring 1 of the plan: the screens, the view models, the use case interfaces and
+fake use cases holding deterministic sample data, so every scenario can be walked in the
+running app and you can judge the flow before anything real is built. Every control a
+scenario names carries the scenario's own words, so a person and a semantic tree can find
+it. It compiles the module and the desktop target, reloads and screenshots each screen
+when a Compose Hot Reload window is connected, never launches the app, never scaffolds a
+project, builds nothing a scenario does not state, commits as `screens: <capability>`,
+pushes, and tells you which scenarios to walk. This is where you stop and look.
+
+## `kartograph-domain` — ring 2, the behaviour, data still local
+
+Executes ring 2 once every ring-1 checkbox is ticked. Per scenario: the outer test at the
+ViewModel against fake repositories, red first; then use case implementation, rules and
+repository interface, each behind a failing test; then the Koin rebind from the fake use
+case to the real one. The ring-1 sample data becomes an in-memory repository behind a
+demo flag, so the same screens now run on real rules and the walk still works before a
+backend exists. Fakes over mocks, no mocking library, no weakened assertion, never an
+edited feature file. Commits as `domain: <capability>`, pushes.
+
+## `kartograph-adapters` — ring 3, real data, real platform, real server
+
+Executes ring 3 once every ring-2 checkbox is ticked. Per port or endpoint: the failing
+adapter test (Room over an in-memory driver, Ktor over `MockEngine`, the server over
+`testApplication`, a platform capability in its target's test source set), the data
+source, mapper and adapter, the Koin rebind from in-memory to real. Exceptions stop at the
+repository boundary as `AppError`. Nothing above the repository interface changes, and the
+ring-2 scenario tests must still pass unchanged. Commits as `adapters: <capability>`,
+pushes, and says the capability is real end to end.
+
+Screens, domain and adapters all execute the plan as the contract and the code as the
+truth: a step the code contradicts gets the smallest correction that keeps its intent,
+reported, never silent; the plan's only edit is its checkboxes.
 
 ## `kartograph-walk` — you watch, it drives, you judge
 
-Presents what was built, scenario by scenario, in the running app, whether that is the
-phase-1 screens on sample data or the finished feature. You start the app on the surface
-you want to see it on; the skill picks the driver that can reach it: Compose Hot Reload
-for a desktop window, Claude in Chrome or Playwright for a web UI, a screen-control tool
-for the iOS simulator, a native macOS app or an iPhone or iPad mirrored to the Mac, and
-if none can, you drive while it narrates.
+Presents what was built, scenario by scenario, in the running app, after any ring: the
+screens on sample data, the domain on in-memory data, or the finished feature. You start
+the app on the surface you want to see it on; the skill picks the driver that can reach
+it: Compose Hot Reload for a desktop window, Claude in Chrome or Playwright for a web UI,
+a screen-control tool for the iOS simulator, a native macOS app or an iPhone or iPad
+mirrored to the Mac, and if none can, you drive while it narrates.
 
 For every scenario, in this order: it shows the feature title and the scenario text
 verbatim from the file, then drives it, bringing the app into the `Given` through the UI,
@@ -225,14 +255,17 @@ Then, in any project:
 /kartograph:kartograph-explore I want the app to work without a network connection
 /kartograph:kartograph-knowledge
 /kartograph:kartograph-features
-/kartograph:kartograph-views project-archiving
 /kartograph:kartograph-plan project-archiving
-/kartograph:kartograph-build
+/kartograph:kartograph-screens
+/kartograph:kartograph-walk project-archiving
+/kartograph:kartograph-domain
+/kartograph:kartograph-adapters
 /kartograph:kartograph-walk project-archiving
 ```
 
-The first three also trigger on their own when the situation fits. Views, plan and walk
-need the capability or feature named; build takes the newest plan when you name none.
+The first three also trigger on their own when the situation fits. Plan and walk need
+the capability or feature named; screens, domain and adapters take the newest plan when
+you name none.
 
 ### Codex and the ChatGPT app
 
@@ -251,16 +284,17 @@ available in the IDE extension.
 
 OpenCode plugins register tools rather than skills, so the plugin exposes the skills as
 tools named `kartograph_explore`, `kartograph_knowledge`, `kartograph_features`,
-`kartograph_views`, `kartograph_plan`, `kartograph_build` and `kartograph_walk` that hand
-the model the same `SKILL.md`. Add the npm package to `opencode.json`:
+`kartograph_plan`, `kartograph_screens`, `kartograph_domain`, `kartograph_adapters` and
+`kartograph_walk` that hand the model the same `SKILL.md`. Add the npm package to
+`opencode.json`:
 
 ```json
 { "plugin": ["opencode-kartograph"] }
 ```
 
-Or skip the plugin: OpenCode also reads skills straight from `~/.agents/skills/`, so a copy
-or symlink of the seven `skills/kartograph-*` directories there is enough, and Codex
-picks them up from the same place.
+OpenCode also reads skills straight from `~/.agents/skills/`, and Codex picks them up from
+the same place; a copy of a single `skills/kartograph-*` directory works for every skill
+except plan, which needs the plugin's `stacks/` directory beside it.
 
 ### Any agent that reads `SKILL.md`
 
@@ -270,25 +304,23 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
 ## Guardrails
 
 - Each skill writes only its own output: explore the intent file, knowledge the
-  `knowledge/` bundle, features the `features/` directory, views one feature module plus
-  its wiring, plan one file under `plans/`, build that module plus `core/` and `server/`,
-  walk one record under `walks/`.
-- Each commits only what it wrote (`intent: <title>`, `knowledge: <intent title>`,
-  `features: <intent title>`, `views: <capability>`, `plan: <capability>`,
-  `build: <capability>`, `walk: <capability>`) and pushes to the branch's upstream.
+  `knowledge/` bundle, features the `features/` directory, plan the plan and the stack
+  declaration, screens the feature module and its wiring, domain the module and `core/`,
+  adapters the module's data layer, `core/` and `server/`, walk one record under `walks/`.
+- Each commits only what it wrote (`intent:`, `knowledge:`, `features:`, `plan:`,
+  `screens:`, `domain:`, `adapters:`, `walk:`) and pushes to the branch's upstream.
   Without git or a remote it says so and moves on.
-- None invents. What was not said is an assumption, an open question, or a stub marked as
-  undefined; never a guessed rule or a scenario with a guessed outcome.
+- None invents. What was not said is an assumption, an open question, a stub, or
+  friction; never a guessed rule, a guessed outcome, or a placeholder in a plan.
 - None writes a `verified` stamp or claims a feature is approved, implemented or tested.
   In a walk, only your answer becomes a verdict.
+- Screens, domain and adapters never edit a feature file, never weaken a test, never ship
+  a fake in production, and never touch the plan's content.
 - All drive. Explore ends every message with the next question or the written file;
-  knowledge, features, views, plan and build ask nothing at all; walk asks once per
-  scenario.
-- Build never edits a feature file, never weakens a test, and never ships a fake in
-  production code. A scenario it cannot build stays open with the reason.
+  knowledge, features, plan, screens, domain and adapters ask nothing at all; walk asks
+  once per scenario.
 - Every file has a fixed structure, and each skill ships a validator it runs before
-  committing, so an intent, a concept, or a capability written today looks like one
-  written next year:
+  committing:
 
   ```
   node skills/kartograph-explore/validate-intent.js intents/<file>.md
@@ -303,10 +335,11 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
 ## History
 
 Versions up to `v0.21.2` were a much larger Kartograph: a living map of a software system
-with a desktop app, validators, nine commands, and a build-and-walk pipeline. That work is
-still in git history under its tags. `v1.0.0` restarted from the one step that mattered
-most; `v1.1.0` added the knowledge base; `v1.2.0` the features; `v1.4.0` the screens;
-`v1.5.0` the walk; `v1.6.0` the plan and the build.
+with a desktop app, validators, nine commands, and a build-and-walk pipeline. `v1.0.0`
+restarted from the one step that mattered most; `v1.1.0` to `v1.6.1` added the knowledge
+base, the features, the screens, the walk, the plan and the build. `v2.0.0` reordered
+the middle: plan first, then three separately triggered rings, with the stack knowledge
+pulled in from `stacks/`.
 
 ## License
 

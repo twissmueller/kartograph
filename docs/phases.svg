@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1190" viewBox="0 0 1500 1190" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1690" height="1190" viewBox="0 0 1690 1190" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <style>
     .bg { fill: #f6f8fb; }
     .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; fill: #1d4ed8; }
@@ -31,17 +31,17 @@
     .foot { font-size: 11px; fill: #64748b; }
   </style>
 
-  <rect class="bg" width="1500" height="1190"/>
+  <rect class="bg" width="1690" height="1190"/>
 
   <!-- Header -->
-  <text class="eyebrow" x="20" y="28">KARTOGRAPH · CAPABILITY-CENTRED AI-NATIVE SDL · STATUS v1.6.1</text>
-  <text class="h1" x="20" y="60">Seven phases. Two planned human–AI sessions.</text>
-  <text class="sub" x="20" y="82">Every phase is a skill, starts from a fresh context and reads only the files the previous phase wrote. Three runtimes (Claude Code, Codex/ChatGPT, OpenCode), one source.</text>
+  <text class="eyebrow" x="20" y="28">KARTOGRAPH · CAPABILITY-CENTRED AI-NATIVE SDL · STATUS v2.0.0</text>
+  <text class="h1" x="20" y="60">Eight phases. Two planned human–AI sessions. Three rings, one stack.</text>
+  <text class="sub" x="20" y="82">Every phase is a skill, starts from a fresh context and reads only the files the previous phase wrote. The stack's design documents are pulled in at planning and read by every ring. Three runtimes, one source.</text>
 
-  <!-- columns: x = 140, 331, 522, 713, 904, 1095, 1286 · width 182 · text x = +10 · centre = +95 -->
+  <!-- columns: x = 140, 331, 522, 713, 904, 1095, 1286, 1477 · width 182 · text x = +10 · centre = +95 · chip text = +18 -->
 
   <!-- ===== Row: Sessions ===== -->
-  <rect class="band" x="20" y="98" width="1460" height="86" rx="6"/>
+  <rect class="band" x="20" y="98" width="1650" height="86" rx="6"/>
   <text class="rowlabel" x="30" y="120">Human–AI</text>
   <text class="rowlabel" x="30" y="136">sessions</text>
   <text class="rowsub" x="30" y="154">Planned only here</text>
@@ -52,17 +52,17 @@
   <text class="t" x="150" y="160">non-goals, decisions – together.</text>
   <text class="t-soft" x="150" y="173" font-weight="700" fill="#1d4ed8">Ends when the playback is confirmed.</text>
 
-  <rect class="card-teal" x="331" y="106" width="946" height="70" rx="6"/>
-  <text class="s-head" x="341" y="126" fill="#0f766e">AUTONOMOUS AI STRETCH</text>
-  <text class="t" x="341" y="145">Record the knowledge, specify the behaviour, show the screens on sample data, plan, then build the real thing – no questions, no review.</text>
-  <text class="t-soft" x="341" y="160">Every phase validates or tests its output, commits only its own directories and pushes.</text>
-  <text class="t-soft" x="341" y="173" font-weight="700" fill="#0f766e">No scheduled meeting. Anything undecided lands in the files as a stub, a collision, an open question or recorded friction.</text>
+  <rect class="card-teal" x="331" y="106" width="1137" height="70" rx="6"/>
+  <text class="s-head" x="341" y="126" fill="#0f766e">AUTONOMOUS AI STRETCH · SEPARATELY TRIGGERED, NEVER ASKING</text>
+  <text class="t" x="341" y="145">Record the knowledge, specify the behaviour, plan three rings for the project's stack, build the screens on sample data, then the domain, then the adapters.</text>
+  <text class="t-soft" x="341" y="160">Every phase validates or tests its output, commits only its own directories and pushes. Each ring refuses to run until the previous ring's checkboxes are ticked.</text>
+  <text class="t-soft" x="341" y="173" font-weight="700" fill="#0f766e">No scheduled meeting. Anything undecided lands in the files as a stub, a collision, an open question or recorded friction. A walk can follow any ring.</text>
 
-  <rect class="card-blue" x="1286" y="106" width="182" height="70" rx="6"/>
-  <text class="s-head" x="1296" y="126" fill="#1d4ed8">SESSION 2 · WALK TOGETHER</text>
-  <text class="t" x="1296" y="145">In voice mode: the AI drives the</text>
-  <text class="t" x="1296" y="160">app full screen, the person judges.</text>
-  <text class="t-soft" x="1296" y="173" font-weight="700" fill="#1d4ed8">Only their answer becomes a verdict.</text>
+  <rect class="card-blue" x="1477" y="106" width="182" height="70" rx="6"/>
+  <text class="s-head" x="1487" y="126" fill="#1d4ed8">SESSION 2 · WALK TOGETHER</text>
+  <text class="t" x="1487" y="145">After ring 1, 2 or 3, in voice mode:</text>
+  <text class="t" x="1487" y="160">the AI drives, the person judges.</text>
+  <text class="t-soft" x="1487" y="173" font-weight="700" fill="#1d4ed8">Only their answer becomes a verdict.</text>
 
   <!-- ===== Row: Phases ===== -->
   <text class="rowlabel" x="30" y="214">Phases</text>
@@ -87,26 +87,31 @@
 
   <rect class="phase-teal" x="713" y="196" width="182" height="66" rx="6"/>
   <circle cx="731" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="731" y="218" text-anchor="middle">4</text>
-  <text class="phase-text" x="808" y="226" text-anchor="middle">Show the screens</text>
-  <text class="phase-skill" x="808" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-views</text>
+  <text class="phase-text" x="808" y="226" text-anchor="middle">Plan the three rings</text>
+  <text class="phase-skill" x="808" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-plan</text>
 
   <rect class="phase-teal" x="904" y="196" width="182" height="66" rx="6"/>
   <circle cx="922" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="922" y="218" text-anchor="middle">5</text>
-  <text class="phase-text" x="999" y="226" text-anchor="middle">Plan the build</text>
-  <text class="phase-skill" x="999" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-plan</text>
+  <text class="phase-text" x="999" y="226" text-anchor="middle">Ring 1 · Screens</text>
+  <text class="phase-skill" x="999" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-screens</text>
 
   <rect class="phase-teal" x="1095" y="196" width="182" height="66" rx="6"/>
   <circle cx="1113" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="1113" y="218" text-anchor="middle">6</text>
-  <text class="phase-text" x="1190" y="226" text-anchor="middle">Build the real thing</text>
-  <text class="phase-skill" x="1190" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-build</text>
+  <text class="phase-text" x="1190" y="226" text-anchor="middle">Ring 2 · Domain</text>
+  <text class="phase-skill" x="1190" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-domain</text>
 
-  <rect class="phase-blue" x="1286" y="196" width="182" height="66" rx="6"/>
-  <circle cx="1304" cy="214" r="9" fill="#ffffff"/><text class="num" x="1304" y="218" text-anchor="middle">7</text>
-  <text class="phase-text" x="1381" y="226" text-anchor="middle">Walk it together</text>
-  <text class="phase-skill" x="1381" y="248" text-anchor="middle">kartograph-walk</text>
+  <rect class="phase-teal" x="1286" y="196" width="182" height="66" rx="6"/>
+  <circle cx="1304" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="1304" y="218" text-anchor="middle">7</text>
+  <text class="phase-text" x="1381" y="226" text-anchor="middle">Ring 3 · Adapters</text>
+  <text class="phase-skill" x="1381" y="248" text-anchor="middle" fill="#ccfbf1">kartograph-adapters</text>
+
+  <rect class="phase-blue" x="1477" y="196" width="182" height="66" rx="6"/>
+  <circle cx="1495" cy="214" r="9" fill="#ffffff"/><text class="num" x="1495" y="218" text-anchor="middle">8</text>
+  <text class="phase-text" x="1572" y="226" text-anchor="middle">Walk it together</text>
+  <text class="phase-skill" x="1572" y="248" text-anchor="middle">kartograph-walk</text>
 
   <!-- ===== Row: Developer ===== -->
-  <rect class="band" x="20" y="272" width="1460" height="100" rx="6"/>
+  <rect class="band" x="20" y="272" width="1650" height="100" rx="6"/>
   <text class="rowlabel" x="30" y="294">Developer</text>
   <text class="rowsub" x="30" y="312">Decides on intent</text>
   <text class="rowsub" x="30" y="325">and on whether</text>
@@ -130,30 +135,37 @@
   <text class="t" x="532" y="346">– as a new intent in the next</text>
   <text class="t" x="532" y="362">session 1.</text>
 
-  <text class="t" x="723" y="296" fill="#475569">Nothing to do</text>
-  <text class="t" x="723" y="314">Names the capability. Screens</text>
-  <text class="t" x="723" y="330">appear on sample data; judging</text>
-  <text class="t" x="723" y="346">them happens in the walk.</text>
+  <text class="t" x="723" y="296" fill="#475569">Only when needed</text>
+  <text class="t" x="723" y="314">Names the capability. Fills a</text>
+  <text class="t" x="723" y="330">scaffold stack before it can be</text>
+  <text class="t" x="723" y="346">used; edits the copied design</text>
+  <text class="t" x="723" y="362">docs to steer every later run.</text>
 
-  <text class="t" x="914" y="296" fill="#475569">Nothing to do</text>
-  <text class="t" x="914" y="314">Names the capability. The plan</text>
-  <text class="t" x="914" y="330">is there to read, but nothing</text>
-  <text class="t" x="914" y="346">waits for a review.</text>
+  <text class="t-head" x="914" y="296">Look at the flow</text>
+  <text class="t" x="914" y="314">Uses the screens on sample data</text>
+  <text class="t" x="914" y="330">(walk, phase 8) and judges the UX</text>
+  <text class="t" x="914" y="346">before any behaviour exists.</text>
+  <text class="t" x="914" y="362">Feedback becomes a new intent.</text>
 
-  <text class="t" x="1105" y="296" fill="#475569">Only when needed</text>
-  <text class="t" x="1105" y="314">Provides what the code cannot:</text>
-  <text class="t" x="1105" y="330">a service, a credential, an</text>
-  <text class="t" x="1105" y="346">answer to an open question –</text>
-  <text class="t" x="1105" y="362">via a new intent.</text>
+  <text class="t" x="1105" y="296" fill="#475569">Nothing to do</text>
+  <text class="t" x="1105" y="314">Triggers the ring. May walk the</text>
+  <text class="t" x="1105" y="330">same screens again, now on real</text>
+  <text class="t" x="1105" y="346">rules and in-memory data.</text>
 
-  <text class="t-head" x="1296" y="296">Watch and judge</text>
-  <text class="t" x="1296" y="314">Starts the app on the surface</text>
-  <text class="t" x="1296" y="330">they want, watches each</text>
-  <text class="t" x="1296" y="346">scenario, answers: passed,</text>
-  <text class="t" x="1296" y="362">failed, skipped.</text>
+  <text class="t" x="1296" y="296" fill="#475569">Only when needed</text>
+  <text class="t" x="1296" y="314">Provides what the code cannot:</text>
+  <text class="t" x="1296" y="330">a service, a credential, an</text>
+  <text class="t" x="1296" y="346">answer to an open question –</text>
+  <text class="t" x="1296" y="362">via a new intent.</text>
+
+  <text class="t-head" x="1487" y="296">Watch and judge</text>
+  <text class="t" x="1487" y="314">Starts the app on the surface</text>
+  <text class="t" x="1487" y="330">they want, watches each</text>
+  <text class="t" x="1487" y="346">scenario, answers: passed,</text>
+  <text class="t" x="1487" y="362">failed, skipped.</text>
 
   <!-- ===== Row: AI agent ===== -->
-  <rect class="band" x="20" y="382" width="1460" height="118" rx="6"/>
+  <rect class="band" x="20" y="382" width="1650" height="118" rx="6"/>
   <text class="rowlabel" x="30" y="404">AI agent</text>
   <text class="rowsub" x="30" y="422">Works the task</text>
   <text class="rowsub" x="30" y="435">within the files</text>
@@ -180,36 +192,43 @@
   <text class="t" x="532" y="472">first: covered, changed, new.</text>
   <text class="t" x="532" y="488">Only what the intent states.</text>
 
-  <text class="t-head t-head-teal" x="723" y="406">Phase-1 build (UI-first)</text>
-  <text class="t" x="723" y="424">Screen, View, ViewModel, use</text>
-  <text class="t" x="723" y="440">case interfaces, fakes with</text>
-  <text class="t" x="723" y="456">sample data per Given; per the</text>
-  <text class="t" x="723" y="472">two design docs. Compiles; looks</text>
-  <text class="t" x="723" y="488">via Hot Reload. Never launches.</text>
+  <text class="t-head t-head-teal" x="723" y="406">Planning, stack-aware</text>
+  <text class="t" x="723" y="424">Detects the stack, copies its docs</text>
+  <text class="t" x="723" y="440">in; screens table, layer map, ports</text>
+  <text class="t" x="723" y="456">with signatures; one task per</text>
+  <text class="t" x="723" y="472">screen, per scenario, per port.</text>
+  <text class="t" x="723" y="488">Real code in every step, no TBD.</text>
 
-  <text class="t-head t-head-teal" x="914" y="406">Planning</text>
-  <text class="t" x="914" y="424">Layer map, ports and adapters</text>
-  <text class="t" x="914" y="440">with exact signatures, files, one</text>
-  <text class="t" x="914" y="456">double-loop task per scenario</text>
-  <text class="t" x="914" y="472">with real code in every step.</text>
-  <text class="t" x="914" y="488">No placeholders, ever.</text>
+  <text class="t-head t-head-teal" x="914" y="406">Driving adapter</text>
+  <text class="t" x="914" y="424">Screen, View, ViewModel, use</text>
+  <text class="t" x="914" y="440">case interfaces, fakes with</text>
+  <text class="t" x="914" y="456">sample data per Given, Koin,</text>
+  <text class="t" x="914" y="472">nav, theme. Compiles; looks via</text>
+  <text class="t" x="914" y="488">Hot Reload. No tests, no launch.</text>
 
-  <text class="t-head t-head-teal" x="1105" y="406">Double-loop TDD (phases 2 + 3)</text>
-  <text class="t" x="1105" y="424">Executes the plan task by task:</text>
-  <text class="t" x="1105" y="440">outer test red, then red→green</text>
-  <text class="t" x="1105" y="456">per layer: use cases, repos,</text>
-  <text class="t" x="1105" y="472">Room, Ktor, platform, server.</text>
-  <text class="t" x="1105" y="488">Deviations reported, never silent.</text>
+  <text class="t-head t-head-teal" x="1105" y="406">The core, test first</text>
+  <text class="t" x="1105" y="424">Per scenario: outer test at the</text>
+  <text class="t" x="1105" y="440">ViewModel on fake ports, red first;</text>
+  <text class="t" x="1105" y="456">use case impl, rules, repository</text>
+  <text class="t" x="1105" y="472">interface; in-memory repo behind</text>
+  <text class="t" x="1105" y="488">the demo flag; Koin rebind.</text>
 
-  <text class="t-head" x="1296" y="406">Presentation</text>
-  <text class="t" x="1296" y="424">Per scenario: present it</text>
-  <text class="t" x="1296" y="440">verbatim, drive Given / When /</text>
-  <text class="t" x="1296" y="456">Then, say what it sees, ask</text>
-  <text class="t" x="1296" y="472">once. Stops where stuck; never</text>
-  <text class="t" x="1296" y="488">reloads, resets or edits the app.</text>
+  <text class="t-head t-head-teal" x="1296" y="406">Driven adapters, test first</text>
+  <text class="t" x="1296" y="424">Per port: failing adapter test,</text>
+  <text class="t" x="1296" y="440">…RepositoryImpl over Room / Ktor,</text>
+  <text class="t" x="1296" y="456">platform capabilities per target,</text>
+  <text class="t" x="1296" y="472">server routes; AppError at the</text>
+  <text class="t" x="1296" y="488">boundary; Koin rebind to real.</text>
+
+  <text class="t-head" x="1487" y="406">Presentation</text>
+  <text class="t" x="1487" y="424">Per scenario: present it</text>
+  <text class="t" x="1487" y="440">verbatim, drive Given / When /</text>
+  <text class="t" x="1487" y="456">Then, say what it sees, ask</text>
+  <text class="t" x="1487" y="472">once. Stops where stuck; never</text>
+  <text class="t" x="1487" y="488">reloads, resets or edits the app.</text>
 
   <!-- ===== Row: Workflow ===== -->
-  <rect class="band" x="20" y="510" width="1460" height="100" rx="6"/>
+  <rect class="band" x="20" y="510" width="1650" height="100" rx="6"/>
   <text class="rowlabel" x="30" y="532">Workflow /</text>
   <text class="rowlabel" x="30" y="548">evidence</text>
   <text class="rowsub" x="30" y="566">Check, secure,</text>
@@ -230,28 +249,33 @@
   <text class="t" x="532" y="570">plus a Gherkin parser if there;</text>
   <text class="mono" x="532" y="588">features: &lt;intent&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
 
-  <text class="t" x="723" y="534">Module in settings, Koin, nav;</text>
-  <text class="mono" x="723" y="552">./gradlew :feature-x:build</text>
-  <text class="t" x="723" y="570">reload → get_ui_error → shot;</text>
-  <text class="mono" x="723" y="588">views: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
+  <text class="t" x="723" y="534">docs/code-design/stack.md on first</text>
+  <text class="t" x="723" y="550">use; self-review; then</text>
+  <text class="mono" x="723" y="568">validate-plan.js plans/…</text>
+  <text class="mono" x="723" y="588">plan: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
 
-  <text class="t" x="914" y="534">Self-review: coverage, types,</text>
-  <text class="t" x="914" y="550">placeholders; then</text>
-  <text class="mono" x="914" y="568">validate-plan.js plans/…</text>
-  <text class="mono" x="914" y="588">plan: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
+  <text class="t" x="914" y="534">Ring-1 tasks ticked in the plan;</text>
+  <text class="mono" x="914" y="552">:feature-x:build · desktopApp</text>
+  <text class="t" x="914" y="570">reload → get_ui_error → shot;</text>
+  <text class="mono" x="914" y="588">screens: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
 
-  <text class="t" x="1105" y="534">Scenario tests green, red first;</text>
-  <text class="mono" x="1105" y="552">allTests · targets · server</text>
-  <text class="t" x="1105" y="570">diff: no fake, no Throwable up;</text>
-  <text class="mono" x="1105" y="588">build: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
+  <text class="t" x="1105" y="534">Ring 1 done? Scenario tests</text>
+  <text class="t" x="1105" y="550">green, red first; no fake left;</text>
+  <text class="mono" x="1105" y="568">allTests · every target</text>
+  <text class="mono" x="1105" y="588">domain: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
 
-  <text class="t" x="1296" y="534">Driver detected: Hot Reload,</text>
-  <text class="t" x="1296" y="550">browser, screen, or the person;</text>
-  <text class="mono" x="1296" y="568">validate-walk.js walks/…</text>
-  <text class="mono" x="1296" y="588">walk: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
+  <text class="t" x="1296" y="534">Ring 2 done? Adapter tests green;</text>
+  <text class="t" x="1296" y="550">ring-2 tests unchanged;</text>
+  <text class="mono" x="1296" y="568">allTests · targets · server</text>
+  <text class="mono" x="1296" y="588">adapters: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
+
+  <text class="t" x="1487" y="534">Driver detected: Hot Reload,</text>
+  <text class="t" x="1487" y="550">browser, screen, or the person;</text>
+  <text class="mono" x="1487" y="568">validate-walk.js walks/…</text>
+  <text class="mono" x="1487" y="588">walk: &lt;capability&gt;<tspan class="t" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5px">; push.</tspan></text>
 
   <!-- ===== Row: Artifacts ===== -->
-  <rect class="band" x="20" y="620" width="1460" height="150" rx="6"/>
+  <rect class="band" x="20" y="620" width="1650" height="150" rx="6"/>
   <text class="rowlabel" x="30" y="642">Artifacts</text>
   <text class="rowsub" x="30" y="660">Versioned results;</text>
   <text class="rowsub" x="30" y="673">every structure</text>
@@ -279,32 +303,39 @@
   <rect class="chip" x="532" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="540" y="750"># Source intent · # Capability</text>
 
   <!-- col 4 -->
-  <rect class="chip" x="723" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="646">feature-&lt;capability&gt;/ – one module</text>
-  <rect class="chip" x="723" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="672">State · Event · Effect · ViewModel</text>
-  <rect class="chip" x="723" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="698">Screen · View · fakes · sample data</text>
-  <rect class="chip" x="723" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="724">Koin module · route · nav · theme</text>
-  <rect class="chip" x="723" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="750">docs: design-system.md · mvvm.md</text>
+  <rect class="chip" x="723" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="646">plans/&lt;date-time&gt;-&lt;capability&gt;.md</text>
+  <rect class="chip" x="723" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="672">Screens · Layer map · Ports (sigs)</text>
+  <rect class="chip" x="723" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="698">Ring 1 / 2 / 3 tasks with code</text>
+  <rect class="chip" x="723" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="724">docs/code-design/stack.md + 3 docs</text>
+  <rect class="chip" x="723" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="731" y="750">Friction · Gaps · status planned</text>
 
   <!-- col 5 -->
-  <rect class="chip" x="914" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="646">plans/&lt;date-time&gt;-&lt;capability&gt;.md</text>
-  <rect class="chip" x="914" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="672">Layer map · reuse and new · files</text>
-  <rect class="chip" x="914" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="698">Ports and adapters (signatures)</text>
-  <rect class="chip" x="914" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="724">Task N per scenario: steps + code</text>
-  <rect class="chip" x="914" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="750">Friction · Gaps · status planned</text>
+  <rect class="chip" x="914" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="646">feature-&lt;capability&gt;/ – one module</text>
+  <rect class="chip" x="914" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="672">State · Event · Effect · ViewModel</text>
+  <rect class="chip" x="914" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="698">Screen · View · use case interfaces</text>
+  <rect class="chip" x="914" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="724">presentation/fake · sample data</text>
+  <rect class="chip" x="914" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="922" y="750">Koin module · route · nav · theme</text>
 
   <!-- col 6 -->
-  <rect class="chip" x="1105" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="646">…UseCaseImpl · …Repository/Impl</text>
-  <rect class="chip" x="1105" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="672">…Api · …Dao · mappers · AppError</text>
-  <rect class="chip" x="1105" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="698">core/data/db (Room + migrations)</text>
-  <rect class="chip" x="1105" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="724">core/data/network · platformModule</text>
-  <rect class="chip" x="1105" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="750">server/routes · commonTest per layer</text>
+  <rect class="chip" x="1105" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="646">…UseCaseImpl · rules · Validator</text>
+  <rect class="chip" x="1105" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="672">…Repository interfaces (ports)</text>
+  <rect class="chip" x="1105" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="698">InMemory…Repository · demo flag</text>
+  <rect class="chip" x="1105" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="724">commonTest: one test per scenario</text>
+  <rect class="chip" x="1105" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="1113" y="750">Fake…Repository · fixtures</text>
 
   <!-- col 7 -->
-  <rect class="chip" x="1296" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="646">walks/&lt;date-time&gt;-&lt;capability&gt;.md</text>
-  <rect class="chip" x="1296" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="672">driver · surface · walker</text>
-  <rect class="chip" x="1296" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="698">per scenario: verdict · observed</text>
-  <rect class="chip" x="1296" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="724">passed | failed | skipped | undrivable</text>
-  <rect class="chip" x="1296" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="750">Summary · what the surface proves</text>
+  <rect class="chip" x="1296" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="646">…RepositoryImpl · …Api · …Dao</text>
+  <rect class="chip" x="1296" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="672">core/data/db (Room + migrations)</text>
+  <rect class="chip" x="1296" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="698">core/data/network · platformModule</text>
+  <rect class="chip" x="1296" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="724">server/routes · route tests</text>
+  <rect class="chip" x="1296" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="1304" y="750">adapter tests per data source</text>
+
+  <!-- col 8 -->
+  <rect class="chip" x="1487" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="1495" y="646">walks/&lt;date-time&gt;-&lt;capability&gt;.md</text>
+  <rect class="chip" x="1487" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="1495" y="672">driver · surface · walker</text>
+  <rect class="chip" x="1487" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="1495" y="698">per scenario: verdict · observed</text>
+  <rect class="chip" x="1487" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="1495" y="724">passed | failed | skipped | undrivable</text>
+  <rect class="chip" x="1487" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="1495" y="750">Summary · what the surface proves</text>
 
   <!-- ===== Row: Proceed when ===== -->
   <text class="rowlabel" x="30" y="800">Proceed when …</text>
@@ -324,20 +355,24 @@
   <text class="gate-text" x="532" y="822">Validator ok, features pushed</text>
 
   <rect class="card-teal" x="713" y="782" width="182" height="56" rx="6"/>
-  <text class="gate-label" x="723" y="800" fill="#0f766e">AUTOMATIC</text>
-  <text class="gate-text" x="723" y="822">Compiles, module pushed</text>
+  <text class="gate-label" x="723" y="800" fill="#0f766e">AUTOMATIC · STACK IS READY</text>
+  <text class="gate-text" x="723" y="822">Validator ok, plan pushed</text>
 
   <rect class="card-teal" x="904" y="782" width="182" height="56" rx="6"/>
-  <text class="gate-label" x="914" y="800" fill="#0f766e">AUTOMATIC</text>
-  <text class="gate-text" x="914" y="822">Validator ok, plan pushed</text>
+  <text class="gate-label" x="914" y="800" fill="#0f766e">AUTOMATIC · THEN A WALK</text>
+  <text class="gate-text" x="914" y="822">Compiles, ring 1 ticked</text>
 
   <rect class="card-teal" x="1095" y="782" width="182" height="56" rx="6"/>
   <text class="gate-label" x="1105" y="800" fill="#0f766e">AUTOMATIC</text>
-  <text class="gate-text" x="1105" y="822">Tests green, targets build</text>
+  <text class="gate-text" x="1105" y="822">Tests green, ring 2 ticked</text>
 
-  <rect class="card-blue" x="1286" y="782" width="182" height="56" rx="6"/>
-  <text class="gate-label" x="1296" y="800" fill="#1d4ed8">HUMAN · IN SESSION 2</text>
-  <text class="gate-text" x="1296" y="822">Every scenario answered</text>
+  <rect class="card-teal" x="1286" y="782" width="182" height="56" rx="6"/>
+  <text class="gate-label" x="1296" y="800" fill="#0f766e">AUTOMATIC</text>
+  <text class="gate-text" x="1296" y="822">All targets build, ring 3 ticked</text>
+
+  <rect class="card-blue" x="1477" y="782" width="182" height="56" rx="6"/>
+  <text class="gate-label" x="1487" y="800" fill="#1d4ed8">HUMAN · IN SESSION 2</text>
+  <text class="gate-text" x="1487" y="822">Every scenario answered</text>
 
   <!-- ===== Row: Return paths ===== -->
   <text class="rowlabel" x="30" y="868">Return paths</text>
@@ -345,41 +380,42 @@
   <text class="rowsub" x="30" y="899">new intent, never</text>
   <text class="rowsub" x="30" y="912">by rewriting</text>
 
-  <!-- 2/3/5/6 -> 1 : stubs, collisions, open questions, friction -->
-  <path class="back" d="M 1190 838 L 1190 868 L 221 868 L 221 838" stroke="#b45309"/>
+  <!-- 2/3/4/6/7 -> 1 : stubs, collisions, open questions, friction -->
+  <path class="back" d="M 1381 838 L 1381 868 L 221 868 L 221 838" stroke="#b45309"/>
   <path class="back" d="M 426 838 L 426 868" stroke="#b45309"/>
   <path class="back" d="M 617 838 L 617 868" stroke="#b45309"/>
-  <path class="back" d="M 999 838 L 999 868" stroke="#b45309"/>
+  <path class="back" d="M 808 838 L 808 868" stroke="#b45309"/>
+  <path class="back" d="M 1190 838 L 1190 868" stroke="#b45309"/>
   <polygon points="216,842 221,834 226,842" fill="#b45309"/>
-  <text class="back-t" x="290" y="884" fill="#b45309">2 / 3 / 5 / 6 → 1 · Stubs, collisions, open questions and friction (plan or build) are the agenda of the next session 1.</text>
+  <text class="back-t" x="290" y="884" fill="#b45309">2 / 3 / 4 / 6 / 7 → 1 · Stubs, collisions, open questions, and friction from planning or a ring are the agenda of the next session 1.</text>
 
-  <!-- 7 -> 5 : failed scenario is re-planned, then rebuilt -->
-  <path class="back" d="M 1381 838 L 1381 900 L 1022 900 L 1022 838" stroke="#0f766e"/>
-  <polygon points="1017,842 1022,834 1027,842" fill="#0f766e"/>
-  <text class="back-t" x="1000" y="916" fill="#0f766e" text-anchor="end">7 → 5 · A failed scenario whose spec still holds is re-planned, then rebuilt; the walk record says what went wrong.</text>
+  <!-- 8 -> 4 : failed scenario is re-planned, then the rings run again -->
+  <path class="back" d="M 1572 838 L 1572 900 L 832 900 L 832 838" stroke="#0f766e"/>
+  <polygon points="827,842 832,834 837,842" fill="#0f766e"/>
+  <text class="back-t" x="810" y="916" fill="#0f766e" text-anchor="end">8 → 4 · A failed scenario whose spec still holds is re-planned, then the rings run again from the one that changed.</text>
 
-  <!-- 7 -> 1 : failed scenario with a spec problem becomes a new intent -->
-  <path class="back" d="M 1392 838 L 1392 932 L 245 932 L 245 838" stroke="#1d4ed8"/>
+  <!-- 8 -> 1 : failed scenario with a spec problem becomes a new intent -->
+  <path class="back" d="M 1583 838 L 1583 932 L 245 932 L 245 838" stroke="#1d4ed8"/>
   <polygon points="240,842 245,834 250,842" fill="#1d4ed8"/>
-  <text class="back-t" x="290" y="950" fill="#1d4ed8">7 → 1 · A failed scenario that reveals a wrong or missing spec becomes a new intent (related: the old one); phases 2 to 7 run again.</text>
+  <text class="back-t" x="290" y="950" fill="#1d4ed8">8 → 1 · A failed scenario that reveals a wrong or missing spec becomes a new intent (related: the old one); phases 2 to 8 run again.</text>
 
   <!-- ===== Notes ===== -->
-  <rect x="20" y="970" width="720" height="98" rx="6" fill="#fff7e6" stroke="#f3d9a4"/>
-  <text class="s-head" x="34" y="992" fill="#b45309">NOT BUILT YET · AND ONE DEFAULT TO REPLACE</text>
-  <text class="note-t" x="34" y="1012">Verify, deliver and observe from the nine-phase blueprint have no skill yet. The build's</text>
-  <text class="note-t" x="34" y="1030">server section is Kartograph's own minimal Ktor default: the knowledge repo's server and</text>
-  <text class="note-t" x="34" y="1048">shared-core atoms are deferred, and it will be replaced the day they land.</text>
+  <rect x="20" y="970" width="810" height="98" rx="6" fill="#fff7e6" stroke="#f3d9a4"/>
+  <text class="s-head" x="34" y="992" fill="#b45309">STACKS · ONE READY, THREE SCAFFOLDS · NOT BUILT YET</text>
+  <text class="note-t" x="34" y="1012">stacks/kmp is ready (from the owner's knowledge repo; its server section is Kartograph's own minimal default).</text>
+  <text class="note-t" x="34" y="1030">android-compose, apple-swift and angular-kotlin are scaffolds: every section present, every section UNFILLED;</text>
+  <text class="note-t" x="34" y="1048">plan refuses them. Verify, deliver and observe from the nine-phase blueprint still have no skill.</text>
 
-  <rect x="760" y="970" width="720" height="98" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
-  <text class="s-head" x="774" y="992" fill="#0f766e">GUARDRAILS THAT HOLD IN EVERY PHASE</text>
-  <text class="note-t" x="774" y="1012">Never invent: what was not said becomes an assumption, an open question, a stub or friction.</text>
-  <text class="note-t" x="774" y="1030">Every phase writes and commits only its own directories. No “verified”, no “accepted” by the AI.</text>
-  <text class="note-t" x="774" y="1048">Test first, never a weakened test, never a fake in production. Vocabulary from knowledge/.</text>
+  <rect x="850" y="970" width="820" height="98" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <text class="s-head" x="864" y="992" fill="#0f766e">GUARDRAILS THAT HOLD IN EVERY PHASE</text>
+  <text class="note-t" x="864" y="1012">Never invent: what was not said becomes an assumption, an open question, a stub or friction. Every phase writes and</text>
+  <text class="note-t" x="864" y="1030">commits only its own directories. No “verified”, no “accepted” by the AI. Test first, never a weakened test, never a fake in</text>
+  <text class="note-t" x="864" y="1048">production. The plan is the contract, the code is the truth; deviations are reported, never silent. Vocabulary from knowledge/.</text>
 
   <!-- ===== Legend / footer ===== -->
   <rect x="20" y="1088" width="10" height="10" fill="#1d4ed8"/><text class="foot" x="36" y="1097" fill="#1f2937">Human decides</text>
   <rect x="150" y="1088" width="10" height="10" fill="#0f766e"/><text class="foot" x="166" y="1097" fill="#1f2937">Autonomous, rule-based</text>
   <rect x="320" y="1088" width="10" height="10" fill="#b45309"/><text class="foot" x="336" y="1097" fill="#1f2937">Human only when a decision is needed, later</text>
-  <text class="foot" x="20" y="1124">End-to-end linkage: intent file → sources / # Source intent → capability.md → feature-&lt;capability&gt;/ → plans/ → (+ core/, server/) → walks/. Status: Kartograph v1.6.1, 2026-09-16.</text>
-  <text class="foot" x="20" y="1142">Skills: explore (interactive) · knowledge · features · views · plan · build (fully automated) · walk (interactive, once per scenario) – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
+  <text class="foot" x="20" y="1124">End-to-end linkage: intent file → sources / # Source intent → capability.md → plans/ (stack: docs/code-design/) → feature-&lt;capability&gt;/ (+ core/, server/) → walks/. Status: Kartograph v2.0.0, 2026-09-18.</text>
+  <text class="foot" x="20" y="1142">Skills: explore (interactive) · knowledge · features · plan · screens · domain · adapters (fully automated, separately triggered) · walk (interactive, once per scenario) – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
 </svg>

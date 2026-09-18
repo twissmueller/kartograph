@@ -1,81 +1,94 @@
 ---
 name: kartograph-plan
-description: Use when a capability or feature under features/ has its screens (phase 1, on fakes) and the real behaviour is about to be built, before any production code below the view is written; or when scenarios failed a walk and need re-planning. Produces the plan kartograph-build executes. Requires the capability or feature to be named.
+description: Use when a capability or feature under features/ is specified and nothing has been implemented for it yet, or when its scenarios changed or failed a walk and the implementation needs re-planning. Produces the three-ring plan that kartograph-screens, kartograph-domain and kartograph-adapters execute, and declares the project's technology stack. Requires the capability or feature to be named.
 ---
 
 # Kartograph Plan
 
-Turn a capability's scenarios into the implementation plan `kartograph-build` executes:
-the layer map, the ports and adapters with exact signatures, the files, and one
-double-loop task per scenario, with real test code and real minimal code in every step.
-Written for an implementer who sees only their task and knows nothing of the project.
-**Fully automated: ask nothing, wait for nothing.** If no capability or feature was
-named, stop and say so.
+Turn a capability's scenarios into the implementation plan the three build skills execute,
+ring by ring: screens (the driving adapter), domain (the core), adapters (the driven
+adapters). The plan carries the layer map, the ports and adapters with exact signatures,
+the files, and one task per unit of each ring with real code in every step, written for
+an implementer who sees only their task. **Fully automated: ask nothing, wait for
+nothing.** If no capability or feature was named, stop and say so.
 
 ## Hard rules
 
 - **No placeholders.** Never "TBD", "TODO", "implement later", "add error handling",
   "handle edge cases", "write tests for the above", or "similar to task N". Every code
-  step shows the code. Every type, function and signature used in a task is defined in
-  that task or an earlier one.
+  step shows the code. Every type and signature used in a task is defined in that task or
+  an earlier one.
 - **Never invent behaviour or vocabulary.** A task implements what a scenario states.
   Domain types come from `knowledge/`; a word in any `aliases_to_avoid` never appears. A
-  scenario that cannot be planned as written (ambiguous `Then`, unreachable `Given`,
-  contradiction) gets no task and a friction entry instead. A `.feature` is never edited.
-- **Follow `docs/code-design/mvvm.md` and the build skill's `build-design.md`** for every
-  layer decision; the plan cites them, it does not restate them.
-- **Write only the plan file, and commit only that.**
-- Re-running on unchanged input changes nothing; a re-plan after changes supersedes the
-  earlier plan rather than rewriting it.
+  scenario that cannot be planned as written gets no task and a friction entry. A
+  `.feature` is never edited.
+- **The stack's documents are the contract.** The plan cites `docs/code-design/*` for
+  every layer decision; it does not restate them.
+- **Never plan against a scaffold stack** or an unknown one; stop and say what is missing.
+- **Write only the plan and, on first use, the stack declaration; commit only those.**
+- Re-running on unchanged input changes nothing; a re-plan supersedes the earlier plan.
 
-## 1. Read
+## 1. Stack
 
-Take the named capability or feature. Read its `capability.md` and `.feature` files, the
-`knowledge/` bundle, `docs/code-design/mvvm.md`, `build-design.md` from the build skill's
-directory (a sibling of this file's directory), the feature module as phase 1 left it
-(State, Event, Effect, ViewModel, use case interfaces, `presentation/fake/`), `core/`,
-`shared/`, `server/`, `settings.gradle.kts` and `gradle/libs.versions.toml`, the newest
-file under `walks/` for this capability, and the newest `planned` file under `plans/` for
-it. If that plan already covers every scenario and nothing changed since, report so and
-stop.
+If `docs/code-design/stack.md` exists, read its `stack` and use the documents beside it.
+Otherwise **detect** the stack: read each `STACK.md` under the `stacks/` directory at the
+plugin root (two levels above this file's directory) and test its *Detection* rules
+against the project's build files. Exactly one match with `status: ready` → copy that
+stack's `design-system.md`, `code-design.md` and `build-design.md` into
+`docs/code-design/` and write `docs/code-design/stack.md` (frontmatter: `stack`, `title`,
+`version`, `declared: <date>`; body: one line per copied document). No match, more than
+one, or a `status: scaffold` → stop, name what was seen and what must exist, write
+nothing. The copies are the project's from then on; later runs never touch `stacks/`.
 
-## 2. Map
+## 2. Read
 
-Decide, and write down, before any task:
+The named capability's `capability.md` and `.feature` files, the `knowledge/` bundle, the
+three documents in `docs/code-design/`, the existing `feature-<capability>` module if any,
+`core/`, `shared/`, `server/`, `settings.gradle.kts` and the version catalog, the newest
+`walks/` file for the capability, and the newest `planned` plan for it. If that plan
+covers every scenario and nothing changed since, report so and stop.
 
-- **Layers per scenario:** which of use case, repository, Room, Ktor client, settings,
-  platform capability, server endpoint each scenario crosses, and its entry point.
-- **Reuse versus new:** what exists in the module, `core/` and `server/` and is reused;
-  what is new; what moves to `core/` because a second feature will use it.
-- **Ports and adapters:** every interface (use case, repository, platform capability) with
-  its exact Kotlin signature, and every adapter (`…Impl`, `…Api`, `…Dao`, per-target
-  implementation, server route) that fulfils it.
-- **Files:** exact paths to create or modify, with one responsibility each.
-- **Friction and gaps:** what the project cannot provide (an external service, a
-  credential, an open question's answer); those scenarios get no task.
+## 3. Map
 
-## 3. Write
+Before any task, decide and write down: the **screens** (one per `.feature` unless its
+scenarios clearly describe more than one place, each listing the scenarios it serves and
+the controls their steps name); per scenario the **layers** it crosses and its entry
+point; **reuse versus new**, and what moves to `core/`; the **ports and adapters** with
+exact Kotlin signatures; the **files** to create or modify; **friction and gaps**.
+
+## 4. Write the three rings
 
 Fill `plan-template.md` from this file's directory into
-`plans/<YYYY-MM-DD-HHMM>-<capability>.md`. Tasks are in walk order: scenarios a walk
-failed first, then by feature file. Each task is one scenario and carries, in order: the
-outer test (real Kotlin, at the ViewModel level, Given/When/Then, Turbine), its expected
-failure, then per layer the failing test, the expected failure, the minimal code, and the
-passing run, then the Koin change, the on-screen check, and the commit. A task's
-*Interfaces* block names exactly what it consumes from earlier tasks and produces for
-later ones. Section headings stay exactly as in the template.
+`plans/<YYYY-MM-DD-HHMM>-<capability>.md`. Section headings stay exactly as in the
+template.
 
-If an earlier `planned` plan exists for the capability, set its frontmatter `status` to
+- **Ring 1, one task per screen:** State, Event, Effect, ViewModel, use case interfaces and
+  bundle, Screen, View, fakes and sample data covering every listed scenario's `Given`,
+  the Koin binding of the fakes, route and nav entry, the compile-and-see step, commit.
+  Real code in every step; no tests in this ring.
+- **Ring 2, one task per scenario** in walk order (walk failures first): the outer test
+  at the ViewModel against fake repositories, red first; then per layer the failing test,
+  the minimal code, the passing run: use case implementation, rules, repository
+  interface, in-memory repository behind the demo flag; the Koin rebind from fake use case
+  to implementation; the on-screen check; commit.
+- **Ring 3, one task per port or endpoint:** the adapter and its data source and mapper,
+  the failing adapter test (in-memory driver, `MockEngine`, `testApplication`), the
+  implementation, the passing run, the Koin rebind from in-memory to real, commit.
+
+Each task's *Interfaces* block names exactly what it consumes from earlier tasks and
+produces for later ones. If an earlier `planned` plan exists, set its `status` to
 `superseded` in the same commit.
 
-**Self-review** before validating: every in-scope scenario has a task or a friction entry;
-no placeholder pattern anywhere; every signature used in a later task matches where it
-was defined; the files list and the tasks agree. Fix inline.
+**Self-review** before validating: every scenario has a ring-2 task or a friction entry
+and appears in exactly one ring-1 screen; every port declared in ring 2 has a ring-3
+task; no placeholder pattern anywhere; every signature used later matches where it was
+defined; the files list and the tasks agree. Fix inline.
 
-## 4. Validate, commit, push, report
+## 5. Validate, commit, push, report
 
 Run `node validate-plan.js <path>` from this file's directory until it prints `ok`; never
-commit a plan that does not pass. Stage only the plan files, commit as
-`plan: <capability>`, push to the branch's upstream; no git or no upstream, skip and say
-so. Report the task count, the scenarios with friction and why, the gaps a person has to
-close, and one line that `kartograph-build` can now run. Then you are done.
+commit a plan that does not pass. Stage the plan files and, if created, `docs/code-design/`;
+commit as `plan: <capability>`; push to the branch's upstream; no git or no upstream, skip
+and say so. Report the stack, the screens, the task count per ring, the scenarios with
+friction and why, the gaps a person has to close, and one line that `kartograph-screens`
+can now run. Then you are done.

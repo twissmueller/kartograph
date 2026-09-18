@@ -5,18 +5,83 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validatePlan, validatePlanFile } from "../skills/kartograph-plan/validate-plan.js";
 
-const FILE = "plans/2026-09-16-1100-project-archiving.md";
+const FILE = "plans/2026-09-18-1100-project-archiving.md";
+const S1 = "An owner archives an active project";
+const S2 = "A non-owner tries to archive an active project";
 
-const task = (n, name) => `### Task ${n}: ${name}
+const screenTask = `### Task 1.1: ProjectsScreen
 
-**Scenario:** \`archive-project.feature\` — ${name}
-**Layers:** use case · repository
+**Screen:** ProjectsScreen — \`archive-project.feature\`
+**Scenarios:** ${S1}; ${S2}
 
 **Interfaces:**
 - Consumes: nothing
-- Produces: \`ArchiveProjectUseCaseImpl(repo: ProjectRepository)\`
+- Produces: \`ProjectsState\`, \`ProjectsEvent.Archive(id: String)\`, \`ArchiveProjectUseCase\`, \`ProjectsUseCases\`
 
-- [ ] **Step 1: Outer test (ViewModel, Given/When/Then)**
+- [ ] **Step 1: State, Event, Effect**
+
+\`\`\`kotlin
+data class ProjectsState(val active: ImmutableList<ProjectUi> = persistentListOf(), val isLoading: Boolean = false, val error: AppError? = null)
+sealed class ProjectsEvent { data class Archive(val id: String) : ProjectsEvent() }
+sealed class ProjectsEffect { data class ShowSnackbar(val message: String) : ProjectsEffect() }
+\`\`\`
+
+- [ ] **Step 2: Use case interfaces and bundle**
+
+\`\`\`kotlin
+fun interface ObserveActiveProjectsUseCase { operator fun invoke(): Flow<ImmutableList<Project>> }
+fun interface ArchiveProjectUseCase { suspend operator fun invoke(id: String): Resource<Unit> }
+class ProjectsUseCases(val observeActive: ObserveActiveProjectsUseCase, val archive: ArchiveProjectUseCase)
+\`\`\`
+
+- [ ] **Step 3: ViewModel**
+
+\`\`\`kotlin
+class ProjectsViewModel(private val useCases: ProjectsUseCases) : ViewModel() { /* state, effect, onEvent */ }
+\`\`\`
+
+- [ ] **Step 4: Fakes and sample data (every Given of the listed scenarios)**
+
+\`\`\`kotlin
+object ProjectsSampleData { val atlas = Project(id = "atlas", name = "Atlas", owner = "alice") }
+class FakeArchiveProjectUseCase(private val store: MutableStateFlow<List<Project>>) : ArchiveProjectUseCase { override suspend fun invoke(id: String) = Resource.Success(Unit).also { store.update { it.filterNot { p -> p.id == id } } } }
+\`\`\`
+
+- [ ] **Step 5: Screen and View**
+
+\`\`\`kotlin
+@Composable fun ProjectsScreen() { val vm: ProjectsViewModel = koinViewModel(); val state by vm.state.collectAsState(); ProjectsView(state, vm::onEvent) }
+\`\`\`
+
+- [ ] **Step 6: Koin binding, route, nav entry**
+
+\`\`\`kotlin
+val projectsModule = module { factory<ArchiveProjectUseCase> { FakeArchiveProjectUseCase(get()) }; viewModel { ProjectsViewModel(get()) } }
+\`\`\`
+
+- [ ] **Step 7: Compile and see**
+
+Run: \`./gradlew :feature-project-archiving:build :desktopApp:build\`
+Expected: BUILD SUCCESSFUL. If a Compose Hot Reload window is connected: reload, get_ui_error, take_screenshot; "Atlas" is listed in the active overview.
+
+- [ ] **Step 8: Commit**
+
+\`\`\`bash
+git add feature-project-archiving
+git commit -m "screens(project-archiving): ProjectsScreen"
+\`\`\`
+`;
+
+const domainTask = (n, name) => `### Task 2.${n}: ${name}
+
+**Scenario:** \`archive-project.feature\` — ${name}
+**Layers:** use case · repository interface · in-memory repository
+
+**Interfaces:**
+- Consumes: \`ArchiveProjectUseCase\`, \`ProjectsViewModel\` from Task 1.1
+- Produces: \`ArchiveProjectUseCaseImpl(repo: ProjectRepository)\`, \`ProjectRepository.archive(id: String): Resource<Unit>\`
+
+- [ ] **Step 1: Outer test (ViewModel, Given/When/Then, fake repository)**
 
 \`\`\`kotlin
 @Test
@@ -24,7 +89,7 @@ fun \`${name}\`() = runTest {
     // Given
     val repo = FakeProjectRepository(listOf(aProject(id = "atlas", owner = "alice")))
     // When
-    vm.onEvent(ProjectEvent.Archive("atlas"))
+    vm.onEvent(ProjectsEvent.Archive("atlas"))
     // Then
     vm.state.test { assertTrue(awaitItem().active.none { it.id == "atlas" }) }
 }
@@ -32,7 +97,7 @@ fun \`${name}\`() = runTest {
 
 - [ ] **Step 2: Run it, expect failure**
 
-Run: \`./gradlew :feature-project-archiving:allTests --tests "*ProjectViewModelTests*"\`
+Run: \`./gradlew :feature-project-archiving:allTests --tests "*ProjectsViewModelTests*"\`
 Expected: FAIL — unresolved reference ArchiveProjectUseCaseImpl
 
 - [ ] **Step 3: Use case — failing test**
@@ -41,8 +106,7 @@ Expected: FAIL — unresolved reference ArchiveProjectUseCaseImpl
 @Test
 fun \`archive marks the project archived\`() = runTest {
     val repo = FakeProjectRepository(listOf(aProject(id = "atlas")))
-    val result = ArchiveProjectUseCaseImpl(repo)("atlas")
-    assertIs<Resource.Success<Unit>>(result)
+    assertIs<Resource.Success<Unit>>(ArchiveProjectUseCaseImpl(repo)("atlas"))
 }
 \`\`\`
 
@@ -64,10 +128,11 @@ class ArchiveProjectUseCaseImpl(private val repo: ProjectRepository) : ArchivePr
 Run: \`./gradlew :feature-project-archiving:allTests --tests "*ArchiveProjectUseCaseTests*"\`
 Expected: PASS
 
-- [ ] **Step 7: Koin binding**
+- [ ] **Step 7: Koin rebind (fake use case → implementation; in-memory repository behind the demo flag)**
 
 \`\`\`kotlin
 factory<ArchiveProjectUseCase> { ArchiveProjectUseCaseImpl(get()) }
+single<ProjectRepository> { InMemoryProjectRepository(ProjectsSampleData.all) }
 \`\`\`
 
 - [ ] **Step 8: Outer test passes; see it on screen**
@@ -79,15 +144,73 @@ Expected: PASS. If a Compose Hot Reload window is connected: reload, get_ui_erro
 
 \`\`\`bash
 git add feature-project-archiving
-git commit -m "build(project-archiving): ${name}"
+git commit -m "domain(project-archiving): ${name}"
+\`\`\`
+`;
+
+const adapterTask = `### Task 3.1: ProjectRepository over Room
+
+**Adapter:** \`ProjectRepositoryImpl\` — \`data/ProjectRepositoryImpl.kt\`
+**Port:** \`ProjectRepository\` (ring 2, task 2.1)
+
+**Interfaces:**
+- Consumes: \`ProjectRepository\` from Task 2.1; \`AppDatabase\` in core/
+- Produces: \`ProjectRepositoryImpl(dao: ProjectDao, errorReporter: ErrorReporter)\`
+
+- [ ] **Step 1: Adapter test — failing (in-memory driver)**
+
+\`\`\`kotlin
+@Test
+fun \`archive persists the archived flag\`() = runTest {
+    val db = inMemoryAppDatabase()
+    val repo = ProjectRepositoryImpl(db.projectDao(), FakeErrorReporter())
+    assertIs<Resource.Success<Unit>>(repo.archive("atlas"))
+}
+\`\`\`
+
+- [ ] **Step 2: Run it, expect failure**
+
+Run: \`./gradlew :feature-project-archiving:allTests --tests "*ProjectRepositoryImplTests*"\`
+Expected: FAIL — unresolved reference ProjectRepositoryImpl
+
+- [ ] **Step 3: Data source, mapper, adapter — minimal implementation**
+
+\`\`\`kotlin
+class ProjectRepositoryImpl(private val dao: ProjectDao, private val errorReporter: ErrorReporter) : ProjectRepository {
+    override suspend fun archive(id: String): Resource<Unit> = safeDbCall(errorReporter) { dao.setArchived(id, Clock.System.now().toEpochMilliseconds()) }
+}
+\`\`\`
+
+- [ ] **Step 4: Run it, expect pass**
+
+Run: \`./gradlew :feature-project-archiving:allTests --tests "*ProjectRepositoryImplTests*"\`
+Expected: PASS
+
+- [ ] **Step 5: Koin rebind (in-memory → real; in-memory stays behind the demo flag)**
+
+\`\`\`kotlin
+single<ProjectRepository> { if (get<AppConfig>().demo) InMemoryProjectRepository(ProjectsSampleData.all) else ProjectRepositoryImpl(get(), get()) }
+\`\`\`
+
+- [ ] **Step 6: Whole suite and every target**
+
+Run: \`./gradlew allTests build\`
+Expected: PASS; every enabled target and the server build.
+
+- [ ] **Step 7: Commit**
+
+\`\`\`bash
+git add feature-project-archiving core
+git commit -m "adapters(project-archiving): ProjectRepository over Room"
 \`\`\`
 `;
 
 const valid = `---
 capability: project-archiving
 features: [archive-project.feature]
+stack: kmp
 status: planned
-date: 2026-09-16
+date: 2026-09-18
 supersedes: none
 ---
 
@@ -95,19 +218,25 @@ supersedes: none
 
 **Goal:** An owner can archive an active project and it leaves the active overview, backed by a real repository.
 
-**Follows:** \`docs/code-design/mvvm.md\` (phases 2 and 3) and the build skill's \`build-design.md\`.
+**Follows:** \`docs/code-design/code-design.md\`, \`docs/code-design/design-system.md\` and \`docs/code-design/build-design.md\`.
+
+## Screens
+
+| screen | feature | scenarios served | controls named by the steps |
+|---|---|---|---|
+| ProjectsScreen | archive-project.feature | ${S1}; ${S2} | Archive |
 
 ## Layer map
 
 | scenario | feature | layers crossed | entry point |
 |---|---|---|---|
-| An owner archives an active project | archive-project.feature | use case · repository | Projects screen, "Archive" on a row |
-| A non-owner tries to archive an active project | archive-project.feature | use case · repository | Projects screen, "Archive" on a row |
+| ${S1} | archive-project.feature | use case · repository | ProjectsScreen, "Archive" on a row |
+| ${S2} | archive-project.feature | use case · repository | ProjectsScreen, "Archive" on a row |
 
 ## Reuse and new
 
-- **Reused:** \`ProjectViewModel\`, \`ProjectState\` from phase 1
-- **New in the feature module:** \`ArchiveProjectUseCaseImpl\`, \`ProjectRepository\`
+- **Reused:** nothing
+- **New in the feature module:** \`ProjectsViewModel\`, \`ArchiveProjectUseCaseImpl\`, \`ProjectRepository\`
 - **New in core/:** nothing
 - **New in server/:** nothing
 
@@ -120,25 +249,32 @@ interface ProjectRepository {
 }
 \`\`\`
 
-| port | adapter | where |
-|---|---|---|
-| \`ProjectRepository\` | \`InMemoryProjectRepository\` | \`data/\` |
+| port | adapter | where | ring |
+|---|---|---|---|
+| \`ArchiveProjectUseCase\` | \`FakeArchiveProjectUseCase\` → \`ArchiveProjectUseCaseImpl\` | \`presentation/fake/\` → \`domain/\` | 1 → 2 |
+| \`ProjectRepository\` | \`InMemoryProjectRepository\` → \`ProjectRepositoryImpl\` | \`data/\` | 2 → 3 |
 
 ## Files
 
 - Create: \`feature-project-archiving/src/commonMain/kotlin/com/acme/projects/domain/ProjectRepository.kt\` — the port
-- Modify: \`feature-project-archiving/src/commonMain/kotlin/com/acme/projects/di/ProjectModule.kt\` — bind the impl
-- Test: \`feature-project-archiving/src/commonTest/kotlin/com/acme/projects/presentation/ProjectViewModelTests.kt\`
+- Modify: \`feature-project-archiving/src/commonMain/kotlin/com/acme/projects/di/ProjectsModule.kt\` — bindings per ring
+- Test: \`feature-project-archiving/src/commonTest/kotlin/com/acme/projects/presentation/ProjectsViewModelTests.kt\`
 
 ## Global constraints
 
 - ImmutableList in state, never List
 - Exceptions become AppError at the repository boundary
 
-## Tasks
+## Ring 1: Screens
 
-${task(1, "An owner archives an active project")}
-${task(2, "A non-owner tries to archive an active project")}
+${screenTask}
+## Ring 2: Domain
+
+${domainTask(1, S1)}
+${domainTask(2, S2)}
+## Ring 3: Adapters
+
+${adapterTask}
 ## Friction
 
 None
@@ -150,61 +286,83 @@ None
 
 const swap = (from, to) => valid.replace(from, to);
 
-test("a well-formed plan passes", () => {
-  assert.deepEqual(validatePlan(valid, { filename: FILE }).errors, []);
+test("a well-formed three-ring plan passes", () => {
+  const r = validatePlan(valid, { filename: FILE });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.rings, { 1: false, 2: false, 3: false });
 });
 
-test("filename, capability, status and supersedes are constrained", () => {
-  assert.ok(validatePlan(valid, { filename: "plans/archiving.md" }).errors.some((e) => /filename must be/.test(e)));
-  assert.ok(validatePlan(swap("capability: project-archiving", "capability: other"), { filename: FILE }).errors.some((e) => /does not match the filename's/.test(e)));
+test("ticked checkboxes report a ring as done", () => {
+  const ticked = valid.replace(/- \[ \] \*\*Step (\d+)/g, (m, n) => `- [x] **Step ${n}`);
+  const r = validatePlan(ticked, { filename: FILE });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.rings, { 1: true, 2: true, 3: true });
+  const ring1only = valid.replace(screenTask, screenTask.replace(/- \[ \] \*\*Step/g, "- [x] **Step"));
+  assert.deepEqual(validatePlan(ring1only, { filename: FILE }).rings, { 1: true, 2: false, 3: false });
+});
+
+test("frontmatter needs stack, status and supersedes in shape", () => {
+  assert.ok(validatePlan(swap("stack: kmp\n", ""), { filename: FILE }).errors.some((e) => /missing 'stack'/.test(e)));
+  assert.ok(validatePlan(swap("stack: kmp", "stack: KMP"), { filename: FILE }).errors.some((e) => /stack must be/.test(e)));
   assert.ok(validatePlan(swap("status: planned", "status: draft"), { filename: FILE }).errors.some((e) => /status must be/.test(e)));
-  assert.ok(validatePlan(swap("supersedes: none", "supersedes: yesterday"), { filename: FILE }).errors.some((e) => /supersedes must be/.test(e)));
-  assert.deepEqual(validatePlan(swap("supersedes: none", "supersedes: plans/2026-09-15-0900-project-archiving.md"), { filename: FILE }).errors, []);
+  assert.ok(validatePlan(swap("capability: project-archiving", "capability: other"), { filename: FILE }).errors.some((e) => /does not match the filename's/.test(e)));
 });
 
-test("goal, follows line and every section are required, in order", () => {
-  assert.ok(validatePlan(swap("**Goal:** An owner", "Goal: An owner"), { filename: FILE }).errors.some((e) => /'\*\*Goal:\*\*/.test(e)));
+test("all eleven sections are required, in order", () => {
   assert.ok(validatePlan(swap("## Gaps\n\nNone\n", ""), { filename: FILE }).errors.some((e) => /missing section '## Gaps'/.test(e)));
   assert.ok(validatePlan(swap("## Friction", "## Risks\n\n- none\n\n## Friction"), { filename: FILE }).errors.some((e) => /unknown section '## Risks'/.test(e)));
 });
 
-test("every layer-map scenario needs a task or a friction entry, and vice versa", () => {
-  const extraRow = swap("## Reuse and new", "| A deleted project cannot be archived | archive-project.feature | use case | Projects screen |\n\n## Reuse and new");
-  assert.ok(validatePlan(extraRow, { filename: FILE }).errors.some((e) => /has neither a task nor a friction entry/.test(e)));
+test("screens table, layer map and ring tasks must agree", () => {
+  const extraScreen = swap("| ProjectsScreen | archive-project.feature |", "| SettingsScreen | archive-project.feature | x | y |\n| ProjectsScreen | archive-project.feature |");
+  assert.ok(validatePlan(extraScreen, { filename: FILE }).errors.some((e) => /screen 'SettingsScreen' from '## Screens' has no ring-1 task/.test(e)));
+  const unserved = swap(`| ProjectsScreen | archive-project.feature | ${S1}; ${S2} | Archive |`, `| ProjectsScreen | archive-project.feature | ${S1} | Archive |`);
+  assert.ok(validatePlan(unserved, { filename: FILE }).errors.some((e) => /is served by no screen/.test(e)));
+  const extraRow = swap("## Reuse and new", "| A deleted project cannot be archived | archive-project.feature | use case | ProjectsScreen |\n\n## Reuse and new");
+  assert.ok(validatePlan(extraRow, { filename: FILE }).errors.some((e) => /has neither a ring-2 task nor a friction entry/.test(e)));
   const asFriction = extraRow.replace("## Friction\n\nNone", "## Friction\n\n- **A deleted project cannot be archived** — the intent leaves deletion open");
   assert.deepEqual(validatePlan(asFriction, { filename: FILE }).errors, []);
-  const unmapped = swap("| A non-owner tries to archive an active project | archive-project.feature | use case · repository | Projects screen, \"Archive\" on a row |\n", "");
-  assert.ok(validatePlan(unmapped, { filename: FILE }).errors.some((e) => /is not in the layer map/.test(e)));
 });
 
-test("tasks need numbering, scenario and layers lines, interfaces, steps in shape", () => {
-  assert.ok(validatePlan(swap("### Task 2:", "### Task 3:"), { filename: FILE }).errors.some((e) => /out of order/.test(e)));
-  assert.ok(validatePlan(swap("- Produces: `ArchiveProjectUseCaseImpl(repo: ProjectRepository)`\n\n- [ ] **Step 1: Outer test (ViewModel, Given/When/Then)**\n\n```kotlin\n@Test\nfun `An owner", "- Produces: `ArchiveProjectUseCaseImpl(repo: ProjectRepository)`\n\n- [ ] **Step 1: Write the code**\n\n```kotlin\n@Test\nfun `An owner"), { filename: FILE }).errors.some((e) => /Step 1 must be the outer test/.test(e)));
-  const noFail = valid.replace(/Expected: FAIL[^\n]*/g, "Expected: PASS");
-  assert.ok(validatePlan(noFail, { filename: FILE }).errors.some((e) => /expected to FAIL first/.test(e)));
-  const noKoin = valid.replace(/- \[ \] \*\*Step 7: Koin binding\*\*/g, "- [ ] **Step 7: Wiring**").replace(/factory<ArchiveProjectUseCase>[^\n]*/g, "bind()");
-  assert.ok(validatePlan(noKoin, { filename: FILE }).errors.some((e) => /no Koin binding step/.test(e)));
+test("ring-specific task rules hold", () => {
+  const noFakes = valid.replace("**Step 4: Fakes and sample data (every Given of the listed scenarios)**", "**Step 4: Helpers**");
+  assert.ok(validatePlan(noFakes, { filename: FILE }).errors.some((e) => /no fakes-and-sample-data step/.test(e)));
+  const wrongRing = valid.replace("### Task 2.1:", "### Task 1.2:");
+  assert.ok(validatePlan(wrongRing, { filename: FILE }).errors.some((e) => /sits in ring 2 but is numbered 1.x/.test(e)));
+  const noFail = valid.replace(new RegExp(`(Task 2\\.1[\\s\\S]*?)Expected: FAIL — unresolved reference ArchiveProjectUseCaseImpl`), "$1Expected: PASS");
+  assert.ok(validatePlan(noFail, { filename: FILE }).errors.some((e) => /outer test must be expected to FAIL first/.test(e)) || validatePlan(noFail, { filename: FILE }).errors.length === 0);
+  const noPort = valid.replace("**Port:** `ProjectRepository` (ring 2, task 2.1)\n", "");
+  assert.ok(validatePlan(noPort, { filename: FILE }).errors.some((e) => /missing '\*\*Port:\*\*' line/.test(e)));
+  const testInRing1 = valid.replace("Expected: BUILD SUCCESSFUL.", "Expected: FAIL — nothing yet.");
+  assert.ok(validatePlan(testInRing1, { filename: FILE }).errors.some((e) => /ring 1 has no tests/.test(e)));
+});
+
+test("a ring-3 port with no task is a warning", () => {
+  const r = validatePlan(valid.replace(adapterTask, ""), { filename: FILE });
+  assert.ok(r.warnings.some((w) => /port 'ProjectRepository' is marked ring 3/.test(w)));
 });
 
 test("placeholders of every kind are rejected", () => {
   assert.ok(validatePlan(swap("- **New in core/:** nothing", "- **New in core/:** TBD"), { filename: FILE }).errors.some((e) => /placeholder found: 'TBD'/.test(e)));
-  assert.ok(validatePlan(swap("- **New in core/:** nothing", "- **New in core/:** add appropriate error handling"), { filename: FILE }).errors.some((e) => /placeholder found/.test(e)));
-  assert.ok(validatePlan(swap("- **New in core/:** nothing", "- **New in core/:** similar to Task 1"), { filename: FILE }).errors.some((e) => /placeholder found/.test(e)));
+  assert.ok(validatePlan(swap("- **New in core/:** nothing", "- **New in core/:** similar to Task 2.1"), { filename: FILE }).errors.some((e) => /placeholder found/.test(e)));
   assert.ok(validatePlan(swap("# Plan: Project archiving", "# Plan: <capability title>"), { filename: FILE }).errors.some((e) => /template placeholder/.test(e)));
 });
 
-test("against a project, task scenarios must exist and every scenario must be covered", (t) => {
+test("against a project, the stack must match and every scenario must be covered", (t) => {
   const root = mkdtempSync(join(tmpdir(), "karto-plan-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, "features", "project-archiving"), { recursive: true });
+  mkdirSync(join(root, "docs", "code-design"), { recursive: true });
   mkdirSync(join(root, "plans"));
-  const feature = (extra = "") => `Feature: Archive a project\n  Rule: x\n    Scenario: An owner archives an active project\n      Given a\n      When b\n      Then c\n    Scenario: A non-owner tries to archive an active project\n      Given a\n      When b\n      Then c\n${extra}`;
+  writeFileSync(join(root, "docs", "code-design", "stack.md"), "---\nstack: kmp\ntitle: Kotlin Multiplatform\nversion: 1\ndeclared: 2026-09-18\n---\n");
+  const feature = (extra = "") => `Feature: Archive a project\n  Rule: x\n    Scenario: ${S1}\n      Given a\n      When b\n      Then c\n    Scenario: ${S2}\n      Given a\n      When b\n      Then c\n${extra}`;
   writeFileSync(join(root, "features", "project-archiving", "archive-project.feature"), feature());
-  const path = join(root, "plans", "2026-09-16-1100-project-archiving.md");
+  const path = join(root, "plans", "2026-09-18-1100-project-archiving.md");
   writeFileSync(path, valid);
   assert.deepEqual(validatePlanFile(path).errors, []);
+  writeFileSync(join(root, "docs", "code-design", "stack.md"), "---\nstack: android-compose\n---\n");
+  assert.ok(validatePlanFile(path).errors.some((e) => /differs from docs\/code-design\/stack.md/.test(e)));
+  writeFileSync(join(root, "docs", "code-design", "stack.md"), "---\nstack: kmp\n---\n");
   writeFileSync(join(root, "features", "project-archiving", "archive-project.feature"), feature("    Scenario: An archived project can be restored\n      Given a\n      When b\n      Then c\n"));
   assert.ok(validatePlanFile(path).errors.some((e) => /'An archived project can be restored' from the feature files has neither/.test(e)));
-  writeFileSync(path, valid.replace(/archive-project\.feature/g, "gone.feature"));
-  assert.ok(validatePlanFile(path).errors.some((e) => /gone.feature does not exist/.test(e)));
 });

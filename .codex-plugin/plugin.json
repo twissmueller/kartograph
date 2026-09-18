@@ -1,7 +1,7 @@
 {
   "name": "kartograph",
-  "version": "1.6.1",
-  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, build their screens UI-first on mocked data in a Kotlin Multiplatform app, plan and then make them real with double-loop TDD down to database, API and server, and walk the person through what was built.",
+  "version": "2.0.0",
+  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, plan the implementation in three hexagonal rings for the project's technology stack, build the screens on sample data, then the domain, then the adapters, and walk the person through what was built.",
   "author": {
     "name": "Tobias Wissmüller",
     "email": "tobias@wissmueller.net",
@@ -28,13 +28,15 @@
     "acceptance",
     "tdd",
     "clean-architecture",
-    "planning"
+    "planning",
+    "hexagonal",
+    "stacks"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Kartograph",
     "shortDescription": "Draw out what a person really wants before anything gets built",
-    "longDescription": "Kartograph has seven skills that build on each other through plain files. kartograph-explore runs one exploring conversation with you and writes intents/<date>-<slug>.md. kartograph-knowledge reads an intent and records every concept it introduces in an Open Knowledge Format bundle at knowledge/. kartograph-features reads an intent and derives capabilities and Gherkin features under features/. kartograph-views builds a capability's screens and view models on fake use cases with sample data in a Kotlin Multiplatform app. kartograph-plan turns the capability's scenarios into an implementation plan: layer map, ports and adapters with exact signatures, one double-loop task per scenario with real code. kartograph-build executes that plan task by task: use cases, repositories, Room, Ktor client, platform capabilities and the Ktor server. kartograph-walk drives the running app scenario by scenario in front of you, asks whether each is right, and records your verdicts under walks/.",
+    "longDescription": "Kartograph has eight skills that build on each other through plain files. kartograph-explore runs one exploring conversation with you and writes intents/<date>-<slug>.md. kartograph-knowledge records every concept an intent introduces in an Open Knowledge Format bundle at knowledge/. kartograph-features derives capabilities and Gherkin features under features/. kartograph-plan detects the project's technology stack (Kotlin Multiplatform today; more stacks are directories) and writes a three-ring plan: screens, domain, adapters. kartograph-screens builds ring 1 on fakes with sample data so you can walk the flow first; kartograph-domain builds the real behaviour with a test per scenario; kartograph-adapters builds repositories, database, API client, platform capabilities and the server. kartograph-walk drives the running app scenario by scenario in front of you after any ring and records your verdicts under walks/.",
     "developerName": "Tobias Wissmüller",
     "category": "Engineering",
     "capabilities": [
@@ -44,13 +46,9 @@
     "websiteURL": "https://github.com/twissmueller/kartograph",
     "defaultPrompt": [
       "Explore my intent for a new feature with kartograph-explore",
-      "I have a rough idea for a product change — help me write down what I actually want",
-      "Extract the concepts of my newest intent into the knowledge base with kartograph-knowledge",
-      "Derive the capabilities and features of my newest intent with kartograph-features",
-      "Build the screens for the project-archiving capability with kartograph-views",
-      "Walk me through the project-archiving capability with kartograph-walk",
-      "Build the real behaviour behind the project-archiving capability with kartograph-build",
-      "Plan the implementation of the project-archiving capability with kartograph-plan"
+      "Plan the project-archiving capability with kartograph-plan",
+      "Build the screens for the newest plan with kartograph-screens",
+      "Walk me through the project-archiving capability with kartograph-walk"
     ]
   }
 }
