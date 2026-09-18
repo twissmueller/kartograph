@@ -193,13 +193,13 @@ export function migrateProject(root, { date, time } = {}) {
   intent = intent ? `intents/${intent}` : `intents/${date}-${time}-migrated-feature-tree.md`;
   const map = readMap(root); const knowledge = readKnowledge(root);
   const sources = [".kartograph/kartograph.json", "features/README.md"].filter((s) => existsSync(join(root, s)));
-  const contexts = readdirSync(featuresDir).filter((e) => statSync(join(featuresDir, e)).isDirectory()).sort();
+  const contexts = readdirSync(featuresDir).filter((e) => !e.startsWith(".") && statSync(join(featuresDir, e)).isDirectory()).sort();
 
   const readme = join(featuresDir, "README.md");
   if (existsSync(readme)) { mkdirSync(join(root, "docs"), { recursive: true }); renameSync(readme, join(root, "docs", "features-README.md")); written.push("docs/features-README.md"); }
 
   const visit = (dir, rel) => {
-    const entries = readdirSync(dir).sort();
+    const entries = readdirSync(dir).filter((e) => !e.startsWith(".")).sort();
     const featureFiles = entries.filter((f) => f.endsWith(".feature"));
     const subs = entries.filter((e) => statSync(join(dir, e)).isDirectory());
     const features = [];

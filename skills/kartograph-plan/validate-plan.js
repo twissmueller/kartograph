@@ -116,7 +116,7 @@ function resolveCapabilityDir(featuresDir, name) {
   const walk = (d, rel) => {
     if (!existsSync(d)) return;
     for (const e of readdirSync(d).sort()) {
-      const p = join(d, e); if (!statSync(p).isDirectory()) continue;
+      const p = join(d, e); if (e.startsWith(".") || !statSync(p).isDirectory()) continue;
       const r = rel ? `${rel}/${e}` : e;
       if (e === name) hits.push(r);
       walk(p, r);

@@ -63,8 +63,9 @@ Still strict:
 - Header comments after the optional language line: one or more
   `# Source intent: intents/<YYYY-MM-DD-HHMM-slug>.md`, then `# Capability: <path>`.
 - Exactly one `Feature:`; at least one scenario; unique scenario names in a file; every
-  scenario has a When and a Then step of its own; every outline has `Examples:`; no
-  unresolved template placeholders.
+  scenario has a Then step of its own (Given/Then without a When is valid Gherkin and
+  occurs in legacy files); every outline has `Examples:`; no unresolved template
+  placeholders. Hidden entries (`.claude/`, `.DS_Store`) are ignored throughout.
 - Every source intent of a feature is listed under `## Sources` of its capability and
   exists on disk when the project has an `intents/` directory.
 

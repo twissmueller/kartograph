@@ -87,6 +87,7 @@ function v0Project() {
   writeFileSync(join(root, "features", "scheduling", "move-session", "move-session.feature"), english);
   writeFileSync(join(root, "features", "training", "general-fitness.feature"), english.replace("Move session", "General fitness"));
   writeFileSync(join(root, "features", "README.md"), "# old layout\n");
+  mkdirSync(join(root, "features", ".claude", ".cc-writes"), { recursive: true });
   return root;
 }
 
@@ -99,6 +100,7 @@ test("migrateProject turns a v0 tree into a passing v2 tree and is idempotent", 
   assert.ok(existsSync(join(root, r.intent)));
   assert.deepEqual(validateIntent(readFileSync(join(root, r.intent), "utf8"), { filename: join(root, r.intent) }).errors, []);
   assert.ok(existsSync(join(root, "docs", "features-README.md")) && !existsSync(join(root, "features", "README.md")));
+  assert.ok(!existsSync(join(root, "features", ".claude", "capability.md")));
   const parent = readFileSync(join(root, "features", "scheduling", "capability.md"), "utf8");
   assert.ok(parent.startsWith("# Capability: Scheduling\n"));
   assert.ok(parent.includes("- [Move a session](move-session/capability.md):"));

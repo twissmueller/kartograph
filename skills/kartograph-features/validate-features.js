@@ -3,7 +3,7 @@
 // capability, at any depth, holding `capability.md` (the structure of
 // `capability-template.md`), `.feature` files and sub-capability directories. Feature
 // files are plain Gherkin; checked are only Kartograph's additions: the header comments,
-// one Feature:, unique scenario names, a When and a Then per scenario. Enforced so no
+// one Feature:, unique scenario names, a Then per scenario. Enforced so no
 // capability or feature drifts.
 //
 //   node validate-features.js [features]                  validate the whole tree
@@ -185,7 +185,7 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
   const closeBlock = () => {
     if (!cur) return;
     if (cur.type === "scenario") {
-      if (!cur.steps.includes("when") || !cur.steps.includes("then")) err(`scenario '${cur.name}' needs at least a When and a Then step`);
+      // Given/Then scenarios are valid Gherkin (a state that must hold); an observable result is not optional.
       if (!cur.steps.includes("then")) err(`scenario '${cur.name}' has no Then step`);
       if (cur.outline && !cur.examples) err(`scenario outline '${cur.name}' has no 'Examples:'`);
     }
@@ -241,7 +241,8 @@ export function validateCapabilityDir(dir, { projectRoot, relPath } = {}) {
   const relPathOrName = relPath ?? name;
   const rel = (f) => `features/${relPathOrName}/${f}`;
   if (!SLUG.test(name)) errors.push(`${dir}: capability directory must be a lowercase hyphenated slug`);
-  const entries = readdirSync(dir).sort();
+  // Hidden entries (.claude, .DS_Store, …) are tooling, never part of the tree.
+  const entries = readdirSync(dir).filter((e) => !e.startsWith(".")).sort();
   const featureFiles = entries.filter((f) => f.endsWith(".feature"));
   const subCapabilities = entries.filter((e) => statSync(join(dir, e)).isDirectory());
   for (const e of entries) {
@@ -281,7 +282,7 @@ export function validateTree(dir) {
   const errors = []; const warnings = [];
   if (!existsSync(dir) || !statSync(dir).isDirectory()) return { errors: [`${dir}: no such directory`], warnings };
   const projectRoot = dirname(resolve(dir));
-  const entries = readdirSync(dir);
+  const entries = readdirSync(dir).filter((e) => !e.startsWith("."));
   if (!entries.length) warnings.push(`${dir}: no capabilities yet`);
   for (const e of entries) {
     const p = join(dir, e);
@@ -303,7 +304,7 @@ export function resolveCapabilityDir(featuresDir, name) {
   const walk = (d, rel) => {
     if (!existsSync(d)) return;
     for (const e of readdirSync(d).sort()) {
-      const p = join(d, e); if (!statSync(p).isDirectory()) continue;
+      const p = join(d, e); if (e.startsWith(".") || !statSync(p).isDirectory()) continue;
       const r = rel ? `${rel}/${e}` : e;
       if (e === name) hits.push(r);
       walk(p, r);

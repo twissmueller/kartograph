@@ -134,9 +134,12 @@ test("tags before Feature:, backgrounds, docstrings and rule descriptions are ac
   // Prose after a step inside a scenario is still not Gherkin.
   const prose = feature.replace("      When Alice archives \"Atlas\"", "      When Alice archives \"Atlas\"\n      Because she wants to");
   assert.ok(validateFeature(prose, FOPTS).errors.some((e) => /unexpected line: Because she wants to/.test(e)));
-  // A step in a background does not count towards a scenario's When/Then.
-  const onlyBackgroundWhen = feature.replace("  Rule: Owners can archive their active projects", "  Background:\n    When something happens\n\n  Rule: Owners can archive their active projects").replace("      When Alice archives \"Atlas\"\n", "");
-  assert.ok(validateFeature(onlyBackgroundWhen, FOPTS).errors.some((e) => /needs at least a When and a Then/.test(e)));
+  // A step in a background does not count towards a scenario's Then.
+  const onlyBackgroundThen = feature.replace("  Rule: Owners can archive their active projects", "  Background:\n    Then something is true\n\n  Rule: Owners can archive their active projects").replace("      Then \"Atlas\" is absent from the active project overview\n", "");
+  assert.ok(validateFeature(onlyBackgroundThen, FOPTS).errors.some((e) => /has no Then step/.test(e)));
+  // Given/Then without a When is valid Gherkin: a state that must hold.
+  const givenThen = feature.replace("      When Alice archives \"Atlas\"\n", "");
+  assert.deepEqual(validateFeature(givenThen, FOPTS).errors, []);
 });
 
 test("outline parameters with spaces are not placeholders when an Examples header declares them", () => {
@@ -268,6 +271,9 @@ test("a nested tree validates, with full paths in the feature headers", (t) => {
   writeFileSync(join(root, "features", "admin-console", "capability.md"), parentCapability);
   writeFileSync(join(sub, "capability.md"), capability.replace("# Capability: Project archiving", "# Capability: Individual accounts"));
   writeFileSync(join(sub, "archive-project.feature"), feature.replace("# Capability: features/project-archiving/capability.md", "# Capability: features/admin-console/individual-accounts/capability.md"));
+  // Hidden tooling directories and files are ignored everywhere in the tree.
+  mkdirSync(join(root, "features", ".claude", ".cc-writes"), { recursive: true }); writeFileSync(join(root, "features", ".claude", "x.json"), "{}");
+  mkdirSync(join(sub, ".claude")); writeFileSync(join(sub, ".DS_Store"), "");
   const r = validateTree(join(root, "features"));
   assert.deepEqual(r.errors, []);
   assert.deepEqual(validateCapabilityDir(sub, { projectRoot: root, relPath: "admin-console/individual-accounts" }).errors, []);
