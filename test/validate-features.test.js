@@ -197,3 +197,27 @@ test("a single capability directory can be validated on its own", (t) => {
   const root = tree(t);
   assert.deepEqual(validateCapabilityDir(join(root, "features", "project-archiving"), { projectRoot: root }).errors, []);
 });
+
+test("a '# language: de' first line switches every keyword to German", () => {
+  const de = `# language: de
+# Source intent: ${INTENT}
+# Capability: features/project-archiving/capability.md
+Funktionalität: Projekt archivieren
+  Besitzer nehmen ein Projekt aus der Übersicht.
+
+  Regel: Besitzer archivieren ihre aktiven Projekte
+
+    Szenario: Ein Besitzer archiviert ein aktives Projekt
+      Angenommen Alice besitzt das aktive Projekt "Atlas"
+      Wenn Alice "Atlas" archiviert
+      Dann fehlt "Atlas" in der Übersicht der aktiven Projekte
+      Und nichts sonst ändert sich
+`;
+  assert.deepEqual(validateFeature(de, FOPTS).errors, []);
+  assert.ok(validateFeature(de.replace("# language: de", "# language: xx"), FOPTS).errors.some((e) => /unknown language 'xx'/.test(e)));
+  // Without the language line, English keywords are expected and the German file fails.
+  assert.ok(validateFeature(de.replace("# language: de\n", ""), FOPTS).errors.some((e) => /must be 'Feature: <title>'/.test(e)));
+  // The language line must be line 1, before the header comments.
+  const late = de.replace("# language: de\n", "").replace("# Capability: features/project-archiving/capability.md", "# Capability: features/project-archiving/capability.md\n# language: de");
+  assert.ok(validateFeature(late, FOPTS).errors.some((e) => /must be 'Feature: <title>'/.test(e)));
+});
