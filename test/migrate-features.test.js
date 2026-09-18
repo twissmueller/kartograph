@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { hasHeader, germanise, addHeader, featureInfo, capabilityMarkdown, migrationIntent, migrateProject } from "../scripts/migrate-features.js";
+import { hasHeader, germanise, addHeader, declareGerman, featureInfo, capabilityMarkdown, migrationIntent, migrateProject } from "../scripts/migrate-features.js";
 import { validateCapability, validateFeature } from "../skills/kartograph-features/validate-features.js";
 import { validateIntent } from "../skills/kartograph-explore/validate-intent.js";
 
@@ -55,6 +55,16 @@ test("a German file gets the language line and German block keywords, steps unto
   // A file that already declares its language keeps the line first and is not germanised again.
   const declared = addHeader("# language: de\n" + germanise(german), { intent: INTENT, capabilityPath: "a" });
   assert.ok(declared.startsWith(`# language: de\n# Source intent: ${INTENT}\n`));
+});
+
+test("a file with a header but mixed dialects gets the language line and German block keywords", () => {
+  const mixed = `# Source intent: ${INTENT}\n# Capability: features/mac/capability.md\n` + german;
+  const out = declareGerman(mixed);
+  assert.ok(out.startsWith(`# language: de\n# Source intent: ${INTENT}\n# Capability: features/mac/capability.md\nFunktionalität: Einstiegsseite\n`));
+  assert.deepEqual(validateFeature(out, { path: "x", capabilityDir: "mac" }).errors, []);
+  assert.equal(declareGerman(out), out);
+  const englishWithHeader = `# Source intent: ${INTENT}\n# Capability: features/a/capability.md\n` + english;
+  assert.equal(declareGerman(englishWithHeader), englishWithHeader);
 });
 
 test("featureInfo reads the title and the first description line", () => {

@@ -217,9 +217,11 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
     if (block(t, d.examples) !== null) { if (cur && cur.type === "scenario") cur.examples = true; expectHeader = true; continue; }
     if (t.startsWith("|")) { if (expectHeader) { for (const c of t.split("|").slice(1, -1)) headerCells.add(c.trim()); expectHeader = false; } continue; }
     if (t.startsWith('"""') || t.startsWith("```")) { inDocString = t.slice(0, 3); continue; }
+    // Outside a background or scenario every line is description, even one starting like a step.
+    if (!cur) continue;
     const kind = stepKind(t, d);
-    if (kind) { if (!cur) err(`step outside any scenario: ${t}`); else cur.steps.push(kind); continue; }
-    if (!cur || cur.steps.length === 0) continue; // feature, rule, background or scenario description
+    if (kind) { cur.steps.push(kind); continue; }
+    if (cur.steps.length === 0) continue; // background or scenario description before its first step
     err(`unexpected line: ${t}`);
   }
   closeRule(); closeBlock();

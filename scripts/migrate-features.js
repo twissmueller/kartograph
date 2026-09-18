@@ -41,6 +41,14 @@ export function addHeader(text, { intent, capabilityPath }) {
   return `${language}# Source intent: ${intent}\n# Capability: features/${capabilityPath}/capability.md\n${body}`;
 }
 
+// A file that already carries its header but mixes German steps with English block keywords
+// (the v1 features skill wrote those) gets the language line and German block keywords too.
+export function declareGerman(text) {
+  const lines = text.split(/\r?\n/);
+  if (LANGUAGE.test(lines[0]) || !GERMAN_STEP.test(text)) return text;
+  return "# language: de\n" + germanise(text);
+}
+
 const TITLE = /^\s*(?:Feature|Funktionalität|Funktion|Business Need|Ability):\s*(.*)$/;
 const KEYWORD = /^\s*(?:Rule|Regel|Background|Grundlage|Hintergrund|Scenario Outline|Szenariogrundriss|Scenario|Szenario|Example|Beispiel|Examples|Beispiele):/;
 // The feature's title and the first line of its description ("" when it has none).
@@ -216,7 +224,8 @@ export function migrateProject(root, { date, time } = {}) {
     const features = [];
     for (const f of featureFiles) {
       const p = join(dir, f); let text = readFileSync(p, "utf8");
-      if (!hasHeader(text)) { text = addHeader(text, { intent, capabilityPath: rel }); writeFileSync(p, text); written.push(`features/${rel}/${f}`); }
+      const next = hasHeader(text) ? declareGerman(text) : addHeader(text, { intent, capabilityPath: rel });
+      if (next !== text) { text = next; writeFileSync(p, text); written.push(`features/${rel}/${f}`); }
       const info = featureInfo(text);
       features.push({ file: f, title: info.title || f.replace(/\.feature$/, ""), text: info.description || info.title || f });
     }

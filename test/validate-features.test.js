@@ -125,6 +125,9 @@ test("one Feature, optional rules, scenarios with When and Then", () => {
 test("tags before Feature:, backgrounds, docstrings and rule descriptions are accepted", () => {
   const tagged = feature.replace("Feature: Archive a project", "@role:owner\nFeature: Archive a project");
   assert.deepEqual(validateFeature(tagged, FOPTS).errors, []);
+  // Description prose may start like a step; outside a scenario it is still prose.
+  const prosey = feature.replace("  Project owners can remove an active project from the active overview.", "  Project owners can remove an active project.\n  And nothing else changes for them.");
+  assert.deepEqual(validateFeature(prosey, FOPTS).errors, []);
   const background = feature.replace("  Rule: Owners can archive their active projects", "  Background:\n    Given the workspace \"Acme\" exists\n\n  Rule: Owners can archive their active projects");
   assert.deepEqual(validateFeature(background, FOPTS).errors, []);
   const ruleBackground = feature.replace("    Scenario: An owner archives an active project", "    Background:\n      Given nothing else\n\n    Scenario: An owner archives an active project");
