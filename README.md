@@ -19,6 +19,7 @@ skills that build on each other through plain files in your repository:
 | **`kartograph-domain`** | ring 2 of the plan | use case implementations, rules, ports, one test per scenario |
 | **`kartograph-adapters`** | ring 3 of the plan | repositories, database, API client, platform capabilities, server |
 | **`kartograph-walk`** | any ring's result, and you watching | `walks/<date>-<capability>.md`, your verdicts |
+| **`kartograph-deliver`** | the built app, the stack's delivery scripts | `distribution/` on first use; then a device, TestFlight, Play, the stores or a host |
 
 Each run starts from a fresh context. What one skill knows, it knows from the files the
 previous one wrote, so everything worth keeping is in your repo, versioned, and readable
@@ -246,6 +247,34 @@ answerable with a word. Nothing technical is ever spoken; that stays in the writ
 The walk ends in `walks/<date>-<capability>.md`: driver, surface, one section per scenario
 with the verdict and your words on a failure, a summary, and one line saying what that
 surface proves. Committed as `walk: <capability>`, pushed. Feature files stay untouched.
+
+## `kartograph-deliver` — from the build to a person's hands
+
+Names the action: run it here, put it on my iPad, TestFlight, Play internal, the store
+listings, a release, the stores, deploy the backend. On first use it copies the stack's
+delivery scripts into `distribution/`, fills `distribution/config.sh` from the build files
+(identifiers and paths only, never a secret), and commits. From then on the scripts are
+yours: run them from a terminal or let the skill run them. Anything that leaves the machine
+(upload, promote, submit, deploy) is confirmed by you once; the scripts themselves ask for a
+typed word when run by hand.
+
+| script | does |
+|---|---|
+| `run-local.sh <lane>` | Mac app, iOS simulator, Android emulator, JVM desktop, or the docker stack |
+| `run-device.sh [udid]` | Debug build onto a paired iPhone or iPad over the cable, the everyday path |
+| `prepare-release.sh <bump>` | release notes from the commits, version and build numbers bumped in every lane's file, optional tag |
+| `deploy-testflight.sh` | archive, export, upload, internal group; the Mac lane validates a `.pkg` first |
+| `deploy-play-internal.sh` | signed bundle to the internal track in one edit, read back and verified |
+| `push-store-metadata.sh` | listing texts and screenshots from `distribution/store/`, templates created when missing |
+| `release-stores.sh --notes …` | Play internal promoted to production; the tested build attached, What's New set, submitted for review |
+| `deploy.sh` | backend to Fly, frontend to Vercel, each with a live health check (angular-kotlin) |
+
+The scripts consolidate the owner's delivery tooling from six shipped apps: one App Store
+Connect library (ES256 token, TestFlight groups, versions, review submission with the
+subscription check), one Play library (service-account token, one-edit uploads, promotion,
+staged rollout, read-back verification), Xcode and Gradle helpers, and stdlib-only Python for
+the listings and screenshot uploads. The contract every script keeps is in
+`stacks/common/DISTRIBUTION.md`; a stack's own scripts live in `stacks/<stack>/distribution/`.
 
 ## Install
 

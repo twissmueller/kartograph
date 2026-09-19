@@ -1,0 +1,102 @@
+# The local stack: Kotlin server, Angular frontend, Postgres, Redis.
+#
+# Copy this file to where COMPOSE_FILE in distribution/config.sh points (usually
+# the repository root or the directory holding ./server and ./web), delete what
+# the project does not have, and add what it does. distribution/run-local.sh
+# drives it: `run-local.sh` builds and starts everything, `down` stops it, `logs`
+# follows, `status` lists.
+#
+# Two things are deliberately absent:
+#   - a reverse proxy. Services publish their own host ports here. A project that
+#     wants one host name per service adds Traefik (or nginx) as a service of its
+#     own; the delivery library knows nothing about it either way.
+#   - secrets. Everything that must not be in git comes from .env beside this
+#     file (gitignored); the values below are local-only throwaways.
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      args:
+        # Busted on every local deploy so the jar is rebuilt from current source
+        # while the dependency layer stays cached. See server.Dockerfile.example:
+        # a bare ARG is not enough, a RUN has to consume it.
+        CACHEBUST: ${CACHEBUST:-0}
+    env_file:
+      # Optional: the stack is meant to come up without it.
+      - path: .env
+        required: false
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/app
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # The image is alpine, so wget rather than curl. start_period covers the
+      # JVM's slow first start; without it the container is restarted while it
+      # is still coming up.
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      # Host 4200 — the port `ng serve` would have used — onto nginx's 80.
+      - "4200:80"
+    depends_on:
+      - server
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      # Bound to 127.0.0.1 so it is reachable from the host — integration tests
+      # run in the host JVM and need it — without being reachable from the
+      # network. Only one stack at a time can own host 5432.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    # No host port: only the server talks to it. Add one when a tool on the host
+    # has to look inside.
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:

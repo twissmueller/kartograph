@@ -1,0 +1,28 @@
+# distribution/config.sh — the project's identifiers and paths for the delivery scripts.
+# Filled by kartograph-deliver on first use from what the build files reveal; edit freely.
+# Empty means not configured: a script that needs a key stops and names it. No secrets here,
+# only paths to key files under your home directory.
+
+APP_NAME=""                      # display name
+STACK="apple-swift"
+LANES="ios mac"                  # subset of: ios mac
+LOCALES="en-US"                  # store locales, space-separated
+
+# Apple
+TEAM_ID=""                       # Apple Developer team id (10 characters)
+APPLE_BUNDLE_ID=""               # one id for iOS and macOS (Universal Purchase)
+ASC_APP_ID=""                    # numeric App Store Connect app id; the record is created in the web UI, never by API
+ASC_KEY_ID=""                    # App Store Connect API key id
+ASC_ISSUER_ID=""                 # its issuer id
+ASC_KEY_PATH="$HOME/.private_keys/AuthKey_${ASC_KEY_ID}.p8"
+IOS_PROJECT=""                   # path to the .xcodeproj or .xcworkspace, relative to the project root
+IOS_SCHEME=""
+MAC_PROJECT=""                   # empty when the Mac app lives in the same project
+MAC_SCHEME=""
+VERSION_FILE=""                  # the file holding MARKETING_VERSION and CURRENT_PROJECT_VERSION: an .xcconfig or project.yml
+XCODEGEN="no"                    # yes when the Xcode project is generated from project.yml
+IOS_PROFILE_NAME=""              # empty → automatic signing; else manual signing with this App Store profile (created by the API when absent)
+MAC_PROFILE_NAME=""
+SIMULATOR="iPad Pro 13-inch (M4)"
+TESTFLIGHT_GROUP="Internal Testing"
+BETA_FEEDBACK_EMAIL=""

@@ -40,3 +40,9 @@ atoms A0–A11, C1, C2, C9–C12, P3, P4, P8, I1–I4). Two deliberate departure
 in the documents: the theme lives in `shared/` rather than `core/presentation/` because
 `core` carries no Compose, and the server section of `build-design.md` is Kartograph's own
 minimal default because the repository's server atom is a deferred stub.
+
+## Delivery
+
+`distribution/` beside this file holds the entry scripts `kartograph-deliver` copies into a
+project on first use, over the shared libraries from `stacks/common/distribution/lib/`:
+run-local.sh (desktop, ios, android, docker), run-device.sh, prepare-release.sh, deploy-testflight.sh, deploy-play-internal.sh, push-store-metadata.sh, release-stores.sh. Their contract is `stacks/common/DISTRIBUTION.md`.

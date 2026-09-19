@@ -4,8 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Kartograph is a plugin with **eight skills**, a structure validator for each of the five
-that write a fixed-shape file, a directory of **technology stacks**, and no build step.
+Kartograph is a plugin with **nine skills**, a structure validator for each of the five
+that write a fixed-shape file, a directory of **technology stacks** (three design documents
+and the delivery scripts per stack), and no build step.
 Each skill starts from a fresh context and knows only what the files in the target
 project tell it:
 
@@ -27,6 +28,11 @@ project tell it:
 - `kartograph-walk` takes one named capability, feature or scenario, drives the running
   app in front of the person scenario by scenario after any ring, asks once per scenario,
   and records the verdicts in `walks/<YYYY-MM-DD-HHMM>-<capability>.md`.
+- `kartograph-deliver` takes a named action (run locally, on a device, TestFlight, Play
+  internal, store listings, prepare a release, release, deploy), copies the stack's
+  delivery scripts into the project's `distribution/` on first use and fills
+  `distribution/config.sh`, then runs the matching script; outward actions are confirmed
+  by the person once.
 
 The same skills are served to three runtimes from one place:
 
@@ -43,6 +49,9 @@ stacks/<stack>/STACK.md                     identity, status (ready | scaffold),
 stacks/<stack>/design-system.md             tokens, theme, components, layout
 stacks/<stack>/code-design.md               the three rings in that stack, layout, state, naming, DI, nav
 stacks/<stack>/build-design.md              ports and adapters in detail, tests, definition of done
+stacks/<stack>/distribution/                the stack's delivery entry scripts and config.sh.template
+stacks/common/distribution/lib/             the shared delivery libraries (bash + stdlib python)
+stacks/common/DISTRIBUTION.md               the delivery contract: layout, config keys, library API
 test/*.test.js                              node:test suite for the validators (`npm test`)
 .claude-plugin/plugin.json                  Claude Code manifest  (lists each skill directory)
 .claude-plugin/marketplace.json             Claude Code marketplace, source "./"
@@ -115,6 +124,28 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   confirms a convention.
 - Bump the `generated.by` actor (`kartograph-knowledge/<version>`) in the knowledge
   `SKILL.md` and `concept-template.md` with every release.
+
+## Rules the deliver skill and the delivery scripts must keep
+
+- **The contract is `stacks/common/DISTRIBUTION.md`.** Every function name, config key and
+  script in it exists; `test/distribution.test.js` sources the libraries and checks. A
+  new function, key or script is added there first.
+- **Common library, per-stack entry scripts.** `stacks/common/distribution/lib/` is copied
+  into every project; `stacks/<stack>/distribution/` holds only the entry scripts and
+  `config.sh.template`. An entry script shared by several stacks is byte-identical in each
+  (the test enforces it); edit it once and copy.
+- **Bash 3.2, stdlib Python, curl, openssl.** No PyJWT, no fastlane, no Ruby, no gcloud.
+  Identifiers (team, key ids, package names, hosts) come only from `config.sh`; the test
+  rejects any literal from the source projects.
+- **Outward actions confirm.** Upload, promote, submit and deploy call `confirm_typed`;
+  `--yes` skips it and the skill passes it only after the person agreed in chat. A step that
+  fails deletes the edit or reservation it opened and says "nothing was published".
+- **Numbers land in the diff.** A bumped version or build number is written to the
+  project's file before the upload. A Mac `.pkg` is validated before it is uploaded. Never
+  signing flags on the `xcodebuild` command line; never two runs on one derived-data path.
+- **The scripts consolidate** Longpath, AFuP Karten, MIDI Aid, Mokuso, Beatrep, Kikitori
+  and Hyperid; a trap those projects learned (cloud signing, the DER signature, the Play
+  commit error body, 403 versus 404, APP_IPHONE_69) stays as a comment where it applies.
 
 ## The validators are the structure contract
 

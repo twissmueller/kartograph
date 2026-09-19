@@ -1,0 +1,18 @@
+# distribution/config.sh — the project's identifiers and paths for the delivery scripts.
+# Filled by kartograph-deliver on first use from what the build files reveal; edit freely.
+# Empty means not configured: a script that needs a key stops and names it. No secrets here,
+# only paths to key files under your home directory.
+
+APP_NAME=""                      # display name
+STACK="android-compose"
+LANES="android"
+LOCALES="en-US"                  # store locales, space-separated
+
+# Android
+PLAY_PACKAGE_NAME=""             # applicationId
+PLAY_SERVICE_ACCOUNT="$HOME/.google-play/service-account.json"
+GRADLE_DIR=""                    # directory holding gradlew, relative to the project root
+ANDROID_MODULE=":androidApp"
+ANDROID_BUILD_FILE=""            # the build.gradle.kts holding versionCode and versionName
+KEYSTORE_PROPERTIES=""           # gitignored file with storeFile, storePassword, keyAlias, keyPassword
+EMULATOR=""                      # AVD name; empty → the first one listed

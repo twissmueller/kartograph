@@ -1,0 +1,17 @@
+# distribution/config.sh — the project's identifiers and paths for the delivery scripts.
+# Filled by kartograph-deliver on first use from what the build files reveal; edit freely.
+# Empty means not configured: a script that needs a key stops and names it. No secrets here,
+# only paths to key files under your home directory.
+
+APP_NAME=""                      # display name
+STACK="angular-kotlin"
+LANES="backend frontend"         # subset of: backend frontend
+LOCALES="en-US"
+
+# Docker, Fly, Vercel
+COMPOSE_FILE=""                  # docker compose file for the local stack (see docker-compose.example.yml)
+BACKEND_DIR=""                   # directory holding fly.toml
+FLY_APP=""                       # Fly app name
+FRONTEND_DIR=""                  # directory holding the Angular project
+PROD_URL=""                      # public URL checked after a frontend deploy
+HEALTH_URL=""                    # backend health endpoint checked after a deploy and after compose up

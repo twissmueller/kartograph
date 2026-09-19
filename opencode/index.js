@@ -3,8 +3,8 @@
 // OpenCode plugins register tools, not skills, so this module exposes each skill as a
 // tool: calling it hands the model the same SKILL.md and supporting files that Claude Code
 // and Codex read from `skills/<name>/`. Nothing is duplicated — the files are read from
-// this package at call time. The plan tool also names the `stacks/` directory, since it is
-// the one skill that reads it.
+// this package at call time. The plan and deliver tools also name the `stacks/` directory,
+// since those two skills read it.
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tool } from "@opencode-ai/plugin";
@@ -127,6 +127,20 @@ export const KartographPlugin = async () => ({
         "named. Returns the instructions to follow for the rest of the conversation.",
       args: { target: tool.schema.string().describe("The capability directory, feature file, or scenario name to walk.") },
       opening: (a) => `The capability, feature or scenario to walk: ${a.target}\n\n`,
+    }),
+    kartograph_deliver: skillTool({
+      skill: "kartograph-deliver",
+      files: [],
+      description:
+        "Use when the person wants the app running locally (Mac, iOS simulator, Android emulator, " +
+        "or the docker stack), on their own iPhone or iPad, on TestFlight or Play internal testing, " +
+        "in the store listings, prepared as a release with notes and a version bump, released to the " +
+        "stores, or deployed as a backend and frontend. Sets up the project's delivery scripts on " +
+        "first use. Requires the action to be named. Returns the instructions to follow for the rest " +
+        "of the conversation.",
+      args: { action: tool.schema.string().describe("What to deliver and where, in the person's words.") },
+      opening: (a) => `What the person wants delivered: ${a.action}\n\n`,
+      extraNote: `\nThe stacks/ directory the instructions refer to is: ${stacksDir}`,
     }),
   },
 });

@@ -1,0 +1,63 @@
+# The Kotlin server image. Copy to server/Dockerfile and adjust the module names.
+#
+# Stage 1 builds with a full Gradle image, stage 2 ships a JRE only: the runtime
+# image carries the jar and nothing that built it.
+
+FROM gradle:8-jdk21 AS builder
+
+WORKDIR /app
+
+# The build files first, on their own layer, so `gradlew dependencies` is cached
+# and a source change does not re-download the world. List every module's
+# build file here — one COPY per module.
+COPY gradlew .
+COPY gradle gradle/
+COPY settings.gradle.kts .
+COPY gradle.properties* ./
+COPY build-logic build-logic/
+COPY app/build.gradle.kts app/
+# COPY <module>/build.gradle.kts <module>/
+
+# `|| true`: this run exists to warm the dependency cache, and a project that
+# cannot resolve everything without its sources still builds below.
+RUN ./gradlew dependencies --no-daemon || true
+
+# Cache-bust everything below. The local deploy passes a fresh value so the jar
+# is always built from current source while the dependency layer above stays
+# cached — without it, `docker compose up --build` has been seen to serve a
+# stale jar. The ARG must be CONSUMED by a RUN: BuildKit only invalidates
+# layers that actually reference it, so a bare ARG would not bust the COPYs.
+ARG CACHEBUST=0
+RUN echo "cachebust=$CACHEBUST"
+
+COPY app/src app/src
+# COPY <module>/src <module>/src
+
+RUN ./gradlew :app:bootJar --no-daemon -x test
+
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+# Never root: a container that is broken into should not be a container that owns
+# its own filesystem.
+RUN addgroup -S app && adduser -S app -G app
+USER app:app
+
+COPY --from=builder /app/app/build/libs/*.jar app.jar
+
+EXPOSE 8080
+
+# start-period covers the JVM's slow first start; without it the orchestrator
+# kills the container while it is still coming up.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# MaxRAMPercentage, not -Xmx: the JVM reads the container's memory limit, so the
+# heap follows whatever the machine is sized to instead of a number baked in here.
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", \
+  "app.jar"]

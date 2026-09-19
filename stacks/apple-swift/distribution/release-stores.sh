@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# release-stores.sh [--apple] [--play] [--rollout FRACTION] [--version X.Y.Z] --notes FILE [--yes]
+#
+# Releases what TestFlight and the internal track already carry:
+#   play   promotes the versionCodes on the internal track to production in one edit,
+#          with the notes file's play_short section as release notes; --rollout 0.1 starts
+#          a staged rollout (10 %), raise it later with a higher fraction.
+#   apple  finds the newest processed build for the version, attaches it to the editable
+#          App Store version (created when absent, released after approval), sets What's
+#          New from the notes file's asc_short section per locale, and submits for review.
+#          Refuses while a subscription waits at READY_TO_SUBMIT unattached (Guideline 2.1(b)).
+# Nothing is rebuilt: the artefact that was tested is the artefact that ships.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$HERE/lib/common.sh"
+case "${1:-}" in --help|-h) usage_exit "${BASH_SOURCE[0]}" ;; esac
+load_config
+apple=0; play=0; rollout=""; notes=""; version=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --apple) apple=1 ;; --play) play=1 ;;
+    --rollout) rollout="$2"; shift ;;
+    --version) version="$2"; shift ;;
+    --notes) notes="$2"; shift ;;
+    --yes) ASSUME_YES=1 ;;
+    *) die "unknown option $1" 2 ;;
+  esac; shift
+done
+[ -n "$notes" ] || die "--notes FILE is required (write it with prepare-release.sh)" 2
+[ -f "$notes" ] || die "notes file not found: $notes"
+has_lane() { case " ${LANES:-} " in *" $1 "*) return 0 ;; esac; return 1; }
+if [ "$apple" = 0 ] && [ "$play" = 0 ]; then
+  { has_lane ios || has_lane mac; } && apple=1
+  has_lane android && play=1
+fi
+
+if [ "$play" = 1 ]; then
+  has_lane android || die "no android lane in LANES" 2
+  . "$HERE/lib/play.sh"
+  require_var PLAY_PACKAGE_NAME
+  codes="$(play_track_versions internal)"
+  [ -n "$codes" ] || die "nothing on the internal track to promote — run deploy-play-internal.sh first"
+  log "Play: promoting versionCode(s) $codes from internal to production${rollout:+ at $rollout}"
+  confirm_typed production "Promote to PRODUCTION on Google Play? Type 'production'"
+  play_promote internal production "$rollout" "$notes"
+  for c in $codes; do play_verify production "$c"; done
+fi
+
+if [ "$apple" = 1 ]; then
+  { has_lane ios || has_lane mac; } || die "no Apple lane in LANES" 2
+  . "$HERE/lib/xcode.sh"; . "$HERE/lib/asc.sh"
+  require_var ASC_APP_ID ASC_KEY_ID ASC_ISSUER_ID
+  [ -n "$version" ] || version="$(version_read)"
+  for platform in IOS MAC_OS; do
+    case "$platform" in IOS) has_lane ios || continue ;; MAC_OS) has_lane mac || continue ;; esac
+    build_id="$(asc_build_latest "$platform" "$version")"
+    [ -n "$build_id" ] || die "no processed $platform build for $version — run deploy-testflight.sh first"
+    version_id="$(asc_version_editable "$platform" "$version")"
+    asc_version_attach "$version_id" "$build_id"
+    for locale in $LOCALES; do
+      asc_version_whats_new "$version_id" "$locale" "$(notes_slice "$notes" asc_short 4000)"
+    done
+    log "App Store ($platform): $APP_NAME $version has its build and What's New"
+    confirm_typed submit "Submit $APP_NAME $version ($platform) for App Review? Type 'submit'"
+    asc_review_submit "$platform"
+  done
+fi

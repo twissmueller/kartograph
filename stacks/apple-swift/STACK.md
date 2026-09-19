@@ -44,3 +44,9 @@ two apps differ the documents take the newer convention and say so, marked *proj
 a project's copy may switch a dial and every later run follows the copy. Apple's current
 guidance (Observation, Swift 6 concurrency, SwiftData, Swift Testing, Liquid Glass, string
 catalogs) is cited where it confirms or sharpens a convention; it never replaces one.
+
+## Delivery
+
+`distribution/` beside this file holds the entry scripts `kartograph-deliver` copies into a
+project on first use, over the shared libraries from `stacks/common/distribution/lib/`:
+run-local.sh (macos, ios), run-device.sh, prepare-release.sh, deploy-testflight.sh (ios or mac), push-store-metadata.sh, release-stores.sh. Their contract is `stacks/common/DISTRIBUTION.md`.
