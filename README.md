@@ -174,6 +174,7 @@ The plugin ships the stacks under `stacks/`, one directory each:
 | `android-compose` | scaffold | an Android application module without multiplatform |
 | `apple-swift` | ready | `Package.swift`, an `.xcodeproj` or a `project.yml`, no Gradle |
 | `angular-kotlin` | scaffold | `angular.json` beside a Kotlin server build |
+| `python-fastapi` | ready | a root `docker-compose.yml` plus a `requirements.txt` pinning `fastapi`, no Gradle, Xcode or Angular |
 
 A scaffold carries every section a stack must answer and an unfilled marker in each; plan
 refuses to run against it. Adding a stack is adding a directory with a `STACK.md` and the

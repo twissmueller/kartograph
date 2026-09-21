@@ -122,6 +122,15 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   their port in the app target and are chosen only in `AppEnvironment` under `isUITest`,
   because they are the UI-test and walk substrate. Apple's guidance is cited only where it
   confirms a convention.
+- **The python-fastapi stack** derives from the owner's simulation-to-AI platform AIDA
+  (`~/projects/aida`): a FastAPI aggregator with static dashboards over one shared
+  stylesheet and script (no build step), a JSBSim worker, Redis streams, Postgres with a
+  single idempotent `db/init.sql`, a pytest suite in a docker image with an `integration`
+  marker, docker compose first and the same images on Kubernetes. Its ports are
+  `typing.Protocol` classes, its composition root is `wiring.py` reading one env var per
+  port (the shape of AIDA's `build_engine(kind)`), and the demo flag is the `fake` value
+  of that variable, so fakes stay in production code like AIDA's `SyntheticEngine`. Lines
+  the source project was silent on are marked *stack default* in the documents.
 - Bump the `generated.by` actor (`kartograph-knowledge/<version>`) in the knowledge
   `SKILL.md` and `concept-template.md` with every release.
 

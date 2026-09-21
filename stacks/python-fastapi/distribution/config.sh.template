@@ -1,0 +1,13 @@
+# distribution/config.sh — the project's identifiers and paths for the delivery scripts.
+# Filled by kartograph-deliver on first use from what the build files reveal; edit freely.
+# Empty means not configured: a script that needs a key stops and names it. No secrets here,
+# only paths to key files under your home directory.
+
+APP_NAME=""                      # display name
+STACK="python-fastapi"
+LANES="backend"                  # subset of: backend
+LOCALES="en-US"
+
+# Docker
+COMPOSE_FILE=""                  # docker compose file for the local stack (services, database, stream)
+HEALTH_URL=""                    # the FastAPI health endpoint checked after compose up, e.g. http://localhost:8000/health

@@ -17,6 +17,7 @@ const REQUIRED = {
   "apple-swift": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "push-store-metadata.sh", "release-stores.sh"],
   "android-compose": ["run-local.sh", "prepare-release.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-stores.sh"],
   "angular-kotlin": ["run-local.sh", "prepare-release.sh", "deploy.sh"],
+  "python-fastapi": ["run-local.sh", "prepare-release.sh"],
 };
 
 test("every stack ships its entry scripts and a config template", () => {

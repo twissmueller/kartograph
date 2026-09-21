@@ -33,16 +33,16 @@ distribution/
 
 ## Entry scripts per stack
 
-| script | kmp | apple-swift | android-compose | angular-kotlin | does |
-|---|---|---|---|---|---|
-| `run-local.sh <lane>` | desktop, ios, android, docker | macos, ios | android | docker | builds and starts the app on that lane for development |
-| `run-device.sh [udid]` | ios | ios | – | – | installs and launches the debug build on a paired iPhone or iPad over the cable |
-| `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags |
-| `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ✓ | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
-| `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | – | ✓ | – | builds the release bundle and uploads it to the internal track in one edit |
-| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots]` | ✓ | ✓ | play only | – | pushes listing texts and screenshots; creates the JSON templates when missing; states what only the web UI can do |
-| `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | play only | – | Play: promotes the internal track to production; Apple: attaches the processed build to the editable version, sets What's New, submits for review |
-| `deploy.sh [backend\|frontend\|all]` | – | – | – | ✓ | backend to Fly, frontend to Vercel, each followed by a live health check |
+| script | kmp | apple-swift | android-compose | angular-kotlin | python-fastapi | does |
+|---|---|---|---|---|---|---|
+| `run-local.sh <lane>` | desktop, ios, android, docker | macos, ios | android | docker | docker | builds and starts the app on that lane for development |
+| `run-device.sh [udid]` | ios | ios | – | – | – | installs and launches the debug build on a paired iPhone or iPad over the cable |
+| `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags |
+| `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
+| `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
+| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots]` | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; creates the JSON templates when missing; states what only the web UI can do |
+| `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production; Apple: attaches the processed build to the editable version, sets What's New, submits for review |
+| `deploy.sh [backend\|frontend\|all]` | – | – | – | ✓ | – | backend to Fly, frontend to Vercel, each followed by a live health check |
 
 A script whose lane the project does not ship (per `LANES` in `config.sh`) says so and exits 2.
 
@@ -54,7 +54,7 @@ live here: only paths to key files under the home directory.
 
 ```bash
 APP_NAME=""                      # display name, e.g. Longpath
-STACK=""                         # kmp | apple-swift | android-compose | angular-kotlin
+STACK=""                         # kmp | apple-swift | android-compose | angular-kotlin | python-fastapi
 LANES=""                         # space-separated subset of: ios mac android desktop web server backend frontend
 LOCALES="en-US"                  # store locales, space-separated
 
