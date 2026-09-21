@@ -346,6 +346,8 @@ test("placeholders of every kind are rejected", () => {
   assert.ok(validatePlan(swap("- **New in core/:** nothing", "- **New in core/:** TBD"), { filename: FILE }).errors.some((e) => /placeholder found: 'TBD'/.test(e)));
   assert.ok(validatePlan(swap("- **New in core/:** nothing", "- **New in core/:** similar to Task 2.1"), { filename: FILE }).errors.some((e) => /placeholder found/.test(e)));
   assert.ok(validatePlan(swap("# Plan: Project archiving", "# Plan: <capability title>"), { filename: FILE }).errors.some((e) => /template placeholder/.test(e)));
+  const withMarkup = swap("val x = 1", "val x = 1 // <div class=\"row\" id=\"x\"> and List<String> are code, not placeholders");
+  assert.ok(!validatePlan(withMarkup, { filename: FILE }).errors.some((e) => /template placeholder/.test(e)), "markup inside a code fence is not a placeholder");
 });
 
 test("against a project, the stack must match and every scenario must be covered", (t) => {

@@ -234,7 +234,10 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
   for (const p of ring3Ports) if (!adapterPorts.some((a) => a === p) && !frictionNames.some((f) => f.includes(p))) warnings.push(`port '${p}' is marked ring 3 in '## Ports and adapters' but has no ring-3 task`);
 
   for (const p of PLACEHOLDER_PATTERNS) { const m = p.exec(body); if (m) err(`placeholder found: '${m[0]}' — plans carry the actual content`); }
-  const tp = TEMPLATE_PLACEHOLDER.exec(body.replace(/`[^`\n]*`/g, ""));
+  // Prose only: a fenced block holds real code, where `<div class="row">` or `List<String>` is
+  // content, not a template placeholder; the placeholder patterns above still scan the fences.
+  const prose = body.replace(/^```[\s\S]*?^```[ \t]*$/gm, "").replace(/`[^`\n]*`/g, "");
+  const tp = TEMPLATE_PLACEHOLDER.exec(prose);
   if (tp) err(`template placeholder left in the body: ${tp[0].trim()}`);
 
   if (projectRoot) {
