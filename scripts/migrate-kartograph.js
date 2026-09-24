@@ -4,15 +4,17 @@
 // layout directly, never an intermediate one:
 //   2.1.0  a v0 features/ tree gets capability.md files and headers (migrate-features.js,
 //          which writes its provenance intent into kartograph/ already)
-//   3.0.0  intents/<stamp>-<slug>.md become kartograph/<stamp>-<slug>.intent.md, the
-//          provenance lines in features/ and knowledge/ follow, kartograph/index.md and
-//          log.md are written, and the empty intents/ is removed.
+//   3.0.0  what a pre-3.0 kartograph/ held that is not a flat document moves to
+//          docs/kartograph-v0/, intents/<stamp>-<slug>.md become
+//          kartograph/<stamp>-<slug>.intent.md, the provenance lines in features/ and
+//          knowledge/ follow, kartograph/index.md and log.md are written, and the empty
+//          intents/ is removed.
 //
 //   node scripts/migrate-kartograph.js <project-root> --check   versions and pending documents
 //   node scripts/migrate-kartograph.js <project-root> [--date YYYY-MM-DD] [--time HHMM]
 //
 // Node built-ins only. Pure functions are exported for tests; the CLI is at the bottom.
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, rmSync, rmdirSync, realpathSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, rmSync, rmdirSync, renameSync, realpathSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hasHeader, migrateProject as migrateFeatures } from "./migrate-features.js";
@@ -24,7 +26,7 @@ import { validateIntent } from "../skills/kartograph-intent/validate-intent.js";
 const PLUGIN_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const LEGACY = "legacy-no-conversation";
 const OLD_INTENT = /^(\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
-const LEGACY_DIRS = ["intents", "knowledge", "features", "plans", "walks"];
+const V0_DIR = "docs/kartograph-v0";
 
 export function compareVersions(a, b) {
   const pa = a.split(".").map(Number); const pb = b.split(".").map(Number);
@@ -59,12 +61,26 @@ export function featuresAreV0(root) {
   return listFiles(join(root, "features"), (f) => f.endsWith(".feature")).some((p) => !hasHeader(readFileSync(p, "utf8")));
 }
 
-// The layout a project is on: kartograph/index.md says so; before 3.0.0 there was no such
-// file, so the layout tells. null is a new project with no Kartograph files at all.
+// Files only Kartograph writes. A directory name alone is no evidence: a Cucumber repo has
+// features/*.feature, many code bases have features/ or knowledge/ folders of their own.
+export function hasLegacyEvidence(root) {
+  if (existsSync(join(root, ".kartograph"))) return true;
+  const idir = join(root, "intents");
+  if (existsSync(idir) && statSync(idir).isDirectory() && readdirSync(idir).some((f) => OLD_INTENT.test(f))) return true;
+  const kindex = join(root, "knowledge", "index.md");
+  if (existsSync(kindex) && /^okf_version:/m.test(readFileSync(kindex, "utf8"))) return true;
+  const fdir = join(root, "features");
+  if (listFiles(fdir, (f) => f === "capability.md").length) return true;
+  return listFiles(fdir, (f) => f.endsWith(".feature")).some((p) => hasHeader(readFileSync(p, "utf8")));
+}
+
+// The layout a project is on: kartograph/index.md says so (without kartograph_version it is
+// older than every migration); before 3.0.0 there was no such file, so Kartograph's own
+// files tell. null is a new project with no Kartograph files at all.
 export function projectVersion(root) {
   const index = join(root, "kartograph", "index.md");
   if (existsSync(index)) return /^kartograph_version:\s*"?(\d+\.\d+\.\d+)"?\s*$/m.exec(readFileSync(index, "utf8"))?.[1] ?? "0.0.0";
-  if (!LEGACY_DIRS.some((d) => existsSync(join(root, d)))) return null;
+  if (!hasLegacyEvidence(root)) return null;
   return featuresAreV0(root) ? "2.0.0" : "2.3.0";
 }
 
@@ -99,8 +115,11 @@ export function convertIntent(text) {
   const body = text.slice(m[0].length);
   const summary = /^## Summary[ \t]*\r?\n([\s\S]*?)(?=^## )/m.exec(body)?.[1] ?? "";
   const description = firstSentence(summary.replace(/\s+/g, " ").trim()) || old.title;
-  const sources = [LEGACY, ...listOf(old.sources)];
-  const related = listOf(old.related).map((r) => (r.startsWith("intents/") && newName(r)) || r);
+  const renamed = (r) => (r.startsWith("intents/") && newName(r)) || r;
+  // 'none (verbal feedback from users)' names a source that is not a file; its text stays.
+  const said = /^none\s*\((.+)\)\s*$/i.exec(old.sources?.trim() ?? "")?.[1];
+  const sources = [LEGACY, ...(said ? [said.replace(/[[\]]/g, "").replace(/,/g, " —").trim()] : listOf(old.sources).map(renamed))];
+  const related = listOf(old.related).map(renamed);
   return [
     "---", "type: Intent", `title: ${old.title}`, `description: ${description}`, `status: ${old.status}`,
     `date: ${old.date}`, `role: ${old.role}`, `language: ${old.language}`,
@@ -108,14 +127,15 @@ export function convertIntent(text) {
   ].join("\n") + body;
 }
 
-// Only provenance moves: the two header comments, capability.md's Sources lines, the
+// Only provenance moves: the '# Source intent:' comments (header or per scenario, with any
+// text after the path), capability.md's '- Intent:' and '- <Words> intent:' lines, the
 // per-scenario '# Added by'/'# Changed by' comments, and the knowledge bundle's relative
 // links. A step or other line that merely mentions a path is left alone.
 export function rewriteProvenance(text) {
   return text
-    .replace(/^(# Source intent: )intents\/([^\s`]+)\.md[ \t]*$/gm, "$1kartograph/$2.intent.md")
+    .replace(/^(\s*# Source intent: )intents\/([^\s`]+)\.md/gm, "$1kartograph/$2.intent.md")
     .replace(/^(\s*# (?:Added|Changed) by )intents\/([^\s`]+)\.md/gm, "$1kartograph/$2.intent.md")
-    .replace(/^(- Intent: `)intents\/([^`]+)\.md`/gm, "$1kartograph/$2.intent.md`")
+    .replace(/^(\s*- (?:[A-Z][\w-]*(?: [\w-]+)* )?[Ii]ntent: `)intents\/([^`]+)\.md`/gm, "$1kartograph/$2.intent.md`")
     .replace(/^(\s*resource: )\.\.\/intents\/([^\s]+)\.md[ \t]*$/gm, "$1../kartograph/$2.intent.md")
     .replace(/\]\(\.\.\/intents\/([^)\s]+)\.md\)/g, "](../kartograph/$1.intent.md)");
 }
@@ -171,6 +191,22 @@ export function migrateProject(root, { date, time, pluginRoot = PLUGIN_ROOT } = 
   if (compareVersions(from, to) >= 0) return { from, to, written, removed, errors: runValidators(root) };
 
   const errors = [];
+  const kdir = join(root, "kartograph");
+  // Before 3.0.0 a kartograph/ directory could hold anything (decisions/, surveys/, …). What
+  // is not a flat document of this layout moves aside, never overwriting what is there.
+  const aside = [];
+  if (existsSync(kdir) && !existsSync(join(kdir, "index.md"))) {
+    for (const e of readdirSync(kdir).sort()) {
+      if (e.startsWith(".") || DOC.test(e)) continue;
+      if (e === "log.md" && readFileSync(join(kdir, e), "utf8").startsWith("# Kartograph Log")) continue;
+      const target = join(root, V0_DIR, e);
+      if (existsSync(target)) { errors.push(`kartograph/${e}: ${V0_DIR}/${e} already exists; left in place`); continue; }
+      mkdirSync(join(root, V0_DIR), { recursive: true });
+      renameSync(join(kdir, e), target);
+      removed.push(`kartograph/${e}`); written.push(`${V0_DIR}/${e}`); aside.push(e);
+    }
+  }
+
   // 2.1.0 — a v0 features tree; migrate-features.js writes its intent into kartograph/ already.
   if (featuresAreV0(root)) {
     const r = migrateFeatures(root, { date, time });
@@ -178,7 +214,6 @@ export function migrateProject(root, { date, time, pluginRoot = PLUGIN_ROOT } = 
   }
 
   // 3.0.0 — intents/ into kartograph/, provenance follows.
-  const kdir = join(root, "kartograph");
   mkdirSync(kdir, { recursive: true });
   const idir = join(root, "intents");
   let moved = 0;
@@ -207,7 +242,7 @@ export function migrateProject(root, { date, time, pluginRoot = PLUGIN_ROOT } = 
   const docs = readdirSync(kdir).filter((f) => DOC.test(f)).map((f) => ({ file: f, ...docInfo(readFileSync(join(kdir, f), "utf8")) }));
   writeFileSync(join(kdir, "index.md"), indexMarkdown(docs, to));
   const logPath = join(kdir, "log.md");
-  writeFileSync(logPath, logEntry(existsSync(logPath) ? readFileSync(logPath, "utf8") : "", date, `* **Migration**: ${from} → ${to} — ${moved} intents moved into kartograph/.`));
+  writeFileSync(logPath, logEntry(existsSync(logPath) ? readFileSync(logPath, "utf8") : "", date, `* **Migration**: ${from} → ${to} — ${moved} intents moved into kartograph/${aside.length ? `; ${aside.join(", ")} moved to ${V0_DIR}/` : ""}.`));
   written.push("kartograph/index.md", "kartograph/log.md");
 
   errors.push(...runValidators(root));

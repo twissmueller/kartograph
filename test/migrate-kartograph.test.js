@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   compareVersions, migrationVersions, layoutVersion, projectVersion, convertIntent,
   rewriteProvenance, logEntry, migrateProject,
@@ -135,6 +137,9 @@ test("projectVersion: new, before 2.1, before 3.0, and from index.md", (t) => {
   const root = mkdtempSync(join(tmpdir(), "karto-v-")); t.after(() => rmSync(root, { recursive: true, force: true }));
   assert.equal(projectVersion(root), null);
   mkdirSync(join(root, "features", "a"), { recursive: true }); writeFileSync(join(root, "features", "a", "x.feature"), feature);
+  // A header-less .feature alone is any Cucumber repo; the .kartograph/ directory makes it a v0 Kartograph tree.
+  assert.equal(projectVersion(root), null);
+  mkdirSync(join(root, ".kartograph"));
   assert.equal(projectVersion(root), "2.0.0");
   writeFileSync(join(root, "features", "a", "x.feature"), addHeader(feature, { intent: `intents/${OLD}.md`, capabilityPath: "a" }));
   assert.equal(projectVersion(root), "2.3.0");
@@ -163,8 +168,10 @@ test("convertIntent keeps a free-text sources value as one item, its own commas 
 });
 
 test("convertIntent treats any 'none…' sources or related value as empty, not just an exact 'none'", () => {
-  const noSources = convertIntent(oldIntent("none", "none (nothing to link)"));
+  const noSources = convertIntent(oldIntent("none", "none"));
   assert.ok(noSources.includes("sources: [legacy-no-conversation]\n"));
+  const noSourcesDash = convertIntent(oldIntent("none", "none identified"));
+  assert.ok(noSourcesDash.includes("sources: [legacy-no-conversation]\n"));
   const noRelated = convertIntent(oldIntent("none (nothing else linked)"));
   assert.ok(noRelated.includes("related: []\n"));
 });
@@ -252,6 +259,7 @@ test("a rerun does not hide validation errors: it revalidates, reports them, and
 
 test("a v0 project goes to 3.0.0 directly: the migration intent lands in kartograph/, never in intents/", (t) => {
   const root = mkdtempSync(join(tmpdir(), "karto-v0-")); t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, ".kartograph"));
   mkdirSync(join(root, "features", "watering"), { recursive: true });
   writeFileSync(join(root, "features", "watering", "water.feature"), feature);
   const r = migrateProject(root, { date: "2026-09-24", time: "1200" });
@@ -267,4 +275,123 @@ test("a new project has nothing to migrate", (t) => {
   assert.equal(r.from, null);
   assert.deepEqual(r.written, []);
   assert.ok(!existsSync(join(root, "kartograph")));
+});
+
+// --- final review fixes -------------------------------------------------------------
+
+test("convertIntent: a 'none (text)' sources value keeps its text as the single item; an intents/ source is renamed", () => {
+  const verbal = convertIntent(oldIntent("none", "none (verbal feedback from users)"));
+  assert.ok(verbal.includes("sources: [legacy-no-conversation, verbal feedback from users]\n"));
+  const linked = convertIntent(oldIntent("none", "`knowledge/index.md`, `intents/2026-09-18-1200-migrated-feature-tree.md`"));
+  assert.ok(linked.includes("sources: [legacy-no-conversation, knowledge/index.md, 2026-09-18-1200-migrated-feature-tree.intent.md]\n"));
+});
+
+test("rewriteProvenance: an indented '# Source intent:' with trailing text keeps the text", () => {
+  const line = `    # Source intent: intents/${OLD}.md — am Mac wird nicht mehr getippt\n`;
+  const once = rewriteProvenance(line);
+  assert.equal(once, `    # Source intent: kartograph/${OLD}.intent.md — am Mac wird nicht mehr getippt\n`);
+  assert.equal(rewriteProvenance(once), once);
+  assert.equal(rewriteProvenance(`  # Source intent: intents/${OLD}.md\n`), `  # Source intent: kartograph/${OLD}.intent.md\n`);
+});
+
+test("rewriteProvenance: every '- <Words> intent:' line in capability.md follows, a step does not", () => {
+  for (const lead of ["Intent", "Revising intent", "Repair intent", "Related intent"]) {
+    const line = `- ${lead}: \`intents/${OLD}.md\` — exact viewport restoration`;
+    const once = rewriteProvenance(line);
+    assert.equal(once, `- ${lead}: \`kartograph/${OLD}.intent.md\` — exact viewport restoration`, lead);
+    assert.equal(rewriteProvenance(once), once, lead);
+  }
+  const prose = `- Existing rule vs intent: "refused" (intent). Blocks: changing @AC-1.`;
+  assert.equal(rewriteProvenance(prose), prose);
+  const step = `    Given the file intents/${OLD}.md exists\n`;
+  assert.equal(rewriteProvenance(step), step);
+});
+
+function bare(t) {
+  const root = mkdtempSync(join(tmpdir(), "karto-ev-")); t.after(() => rmSync(root, { recursive: true, force: true }));
+  return root;
+}
+
+test("projectVersion: a Cucumber repo or a features/ folder of code is new, and --check says so", (t) => {
+  const cuke = bare(t);
+  mkdirSync(join(cuke, "features", "step_definitions"), { recursive: true });
+  writeFileSync(join(cuke, "features", "login.feature"), feature);
+  writeFileSync(join(cuke, "features", "step_definitions", "login.js"), "// steps\n");
+  assert.equal(projectVersion(cuke), null);
+  const script = fileURLToPath(new URL("../scripts/migrate-kartograph.js", import.meta.url));
+  assert.match(execFileSync("node", [script, cuke, "--check"], { encoding: "utf8" }), /^project: new$/m);
+  const r = migrateProject(cuke, { date: "2026-09-24", time: "1200" });
+  assert.equal(r.from, null);
+  assert.ok(!existsSync(join(cuke, "kartograph")));
+
+  const code = bare(t);
+  mkdirSync(join(code, "features", "auth"), { recursive: true });
+  writeFileSync(join(code, "features", "auth", "index.ts"), "export {};\n");
+  mkdirSync(join(code, "knowledge")); writeFileSync(join(code, "knowledge", "README.md"), "# Notes\n");
+  mkdirSync(join(code, "plans")); mkdirSync(join(code, "intents")); writeFileSync(join(code, "intents", "ideas.md"), "x\n");
+  assert.equal(projectVersion(code), null);
+});
+
+test("projectVersion: each kind of Kartograph evidence makes a legacy project", (t) => {
+  const stamped = bare(t);
+  mkdirSync(join(stamped, "intents")); writeFileSync(join(stamped, "intents", `${OLD}.md`), oldIntent());
+  assert.equal(projectVersion(stamped), "2.3.0");
+
+  const cap = bare(t);
+  mkdirSync(join(cap, "features", "a", "b"), { recursive: true }); writeFileSync(join(cap, "features", "a", "b", "capability.md"), "# B\n");
+  assert.equal(projectVersion(cap), "2.3.0");
+
+  const header = bare(t);
+  mkdirSync(join(header, "features", "a"), { recursive: true });
+  writeFileSync(join(header, "features", "a", "x.feature"), addHeader(feature, { intent: `intents/${OLD}.md`, capabilityPath: "a" }));
+  assert.equal(projectVersion(header), "2.3.0");
+  // One header elsewhere makes a header-less file a v0 file of a Kartograph tree.
+  writeFileSync(join(header, "features", "a", "y.feature"), feature);
+  assert.equal(projectVersion(header), "2.0.0");
+
+  const okf = bare(t);
+  mkdirSync(join(okf, "knowledge")); writeFileSync(join(okf, "knowledge", "index.md"), `---\nokf_version: "0.2"\n---\n\n# Knowledge\n`);
+  assert.equal(projectVersion(okf), "2.3.0");
+
+  const dot = bare(t);
+  mkdirSync(join(dot, ".kartograph"));
+  assert.equal(projectVersion(dot), "2.3.0");
+
+  const noVersion = bare(t);
+  mkdirSync(join(noVersion, "kartograph")); writeFileSync(join(noVersion, "kartograph", "index.md"), "# Kartograph\n");
+  assert.equal(projectVersion(noVersion), "0.0.0");
+});
+
+test("a pre-3.0 kartograph/ that is not flat: subdirectories and foreign files move to docs/kartograph-v0/", (t) => {
+  const root = project23(t);
+  mkdirSync(join(root, "kartograph", "decisions"), { recursive: true });
+  writeFileSync(join(root, "kartograph", "decisions", "0001-ink.md"), "# Ink\n");
+  mkdirSync(join(root, "kartograph", "surveys"));
+  writeFileSync(join(root, "kartograph", "surveys", "s.json"), "{}\n");
+  writeFileSync(join(root, "kartograph", "notes.txt"), "loose\n");
+  const r = migrateProject(root, { date: "2026-09-24" });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(readdirSync(join(root, "kartograph")).sort(), [`${OLD}.intent.md`, "index.md", "log.md"]);
+  assert.equal(readFileSync(join(root, "docs", "kartograph-v0", "decisions", "0001-ink.md"), "utf8"), "# Ink\n");
+  assert.ok(existsSync(join(root, "docs", "kartograph-v0", "surveys", "s.json")));
+  assert.ok(existsSync(join(root, "docs", "kartograph-v0", "notes.txt")));
+  for (const e of ["decisions", "notes.txt", "surveys"]) {
+    assert.ok(r.removed.includes(`kartograph/${e}`), e);
+    assert.ok(r.written.includes(`docs/kartograph-v0/${e}`), e);
+  }
+  const log = readFileSync(join(root, "kartograph", "log.md"), "utf8");
+  assert.ok(log.includes("* **Migration**: 2.3.0 → 3.0.0 — 1 intents moved into kartograph/; decisions, notes.txt, surveys moved to docs/kartograph-v0/."), log);
+});
+
+test("a pre-3.0 kartograph/ entry whose target already exists stays, with an error, and nothing is overwritten", (t) => {
+  const root = project23(t);
+  mkdirSync(join(root, "kartograph", "decisions"), { recursive: true });
+  writeFileSync(join(root, "kartograph", "decisions", "0001-ink.md"), "# Ink\n");
+  mkdirSync(join(root, "docs", "kartograph-v0", "decisions"), { recursive: true });
+  writeFileSync(join(root, "docs", "kartograph-v0", "decisions", "keep.md"), "keep\n");
+  const r = migrateProject(root, { date: "2026-09-24" });
+  assert.ok(r.errors.some((e) => /^kartograph\/decisions: docs\/kartograph-v0\/decisions already exists/.test(e)), r.errors.join("\n"));
+  assert.ok(existsSync(join(root, "kartograph", "decisions", "0001-ink.md")));
+  assert.ok(!existsSync(join(root, "docs", "kartograph-v0", "decisions", "0001-ink.md")));
+  assert.equal(readFileSync(join(root, "docs", "kartograph-v0", "decisions", "keep.md"), "utf8"), "keep\n");
 });
