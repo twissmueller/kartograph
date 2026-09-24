@@ -73,7 +73,7 @@
   <rect class="phase-blue" x="140" y="196" width="182" height="66" rx="6"/>
   <circle cx="158" cy="214" r="9" fill="#ffffff"/><text class="num" x="158" y="218" text-anchor="middle">1</text>
   <text class="phase-text" x="235" y="226" text-anchor="middle">Clarify the intent</text>
-  <text class="phase-skill" x="235" y="248" text-anchor="middle">kartograph-explore</text>
+  <text class="phase-skill" x="235" y="248" text-anchor="middle">converse · intent · map</text>
 
   <rect class="phase-teal" x="331" y="196" width="182" height="66" rx="6"/>
   <circle cx="349" cy="214" r="9" fill="#ffffff"/><text class="num num-teal" x="349" y="218" text-anchor="middle">2</text>
@@ -282,7 +282,7 @@
   <text class="rowsub" x="30" y="686">has a validator</text>
 
   <!-- col 1 -->
-  <rect class="chip" x="150" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="646">intents/&lt;date-time&gt;-&lt;slug&gt;.md</text>
+  <rect class="chip" x="150" y="632" width="220" height="20" rx="4"/><text class="chip-t" x="158" y="646">kartograph/&lt;stamp&gt;-&lt;slug&gt;.&lt;type&gt;.md</text>
   <rect class="chip" x="150" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="672">Goals · Outcomes · Non-goals</text>
   <rect class="chip" x="150" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="698">Constraints · Assumptions · Decisions</text>
   <rect class="chip" x="150" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="724">Open questions · Terms</text>
@@ -417,5 +417,5 @@
   <rect x="150" y="1088" width="10" height="10" fill="#0f766e"/><text class="foot" x="166" y="1097" fill="#1f2937">Autonomous, rule-based</text>
   <rect x="320" y="1088" width="10" height="10" fill="#b45309"/><text class="foot" x="336" y="1097" fill="#1f2937">Human only when a decision is needed, later</text>
   <text class="foot" x="20" y="1124">End-to-end linkage: intent file → sources / # Source intent → capability.md → plans/ (stack: docs/code-design/) → feature-&lt;capability&gt;/ (+ core/, server/) → walks/. Status: Kartograph v2.0.0, 2026-09-18.</text>
-  <text class="foot" x="20" y="1142">Skills: explore (interactive) · knowledge · features · plan · screens · domain · adapters (fully automated, separately triggered) · walk (interactive, once per scenario) – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
+  <text class="foot" x="20" y="1142">Skills: converse (interactive) · intent · map · knowledge · features · plan · screens · domain · adapters (fully automated, separately triggered) · walk (interactive, once per scenario) · migrate – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
 </svg>

@@ -1,7 +1,7 @@
 {
   "name": "kartograph",
   "version": "2.3.0",
-  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, plan the implementation in three hexagonal rings for the project's technology stack, build the screens on sample data, then the domain, then the adapters, and walk the person through what was built.",
+  "description": "Record a conversation with a person, derive their intent from it, and map that intent against what the project already has, all in one kartograph/ bundle; extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, plan the implementation in three hexagonal rings for the project's technology stack, build the screens on sample data, then the domain, then the adapters, and walk the person through what was built.",
   "author": {
     "name": "Tobias Wissmüller",
     "email": "tobias@wissmueller.net",

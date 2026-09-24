@@ -38,3 +38,12 @@ test("outside the version gate, no skill but migrate mentions intents/", () => {
     assert.ok(!/(^|[^a-z])intents\//.test(body), `${s} still mentions intents/ outside its version gate`);
   }
 });
+
+test("every skill is in the Claude Code manifest and has an OpenCode tool; npm ships migrations and scripts", () => {
+  const manifest = JSON.parse(read(".claude-plugin/plugin.json"));
+  assert.deepEqual(manifest.skills.map((s) => s.replace("./skills/", "")).sort(), skills);
+  const opencode = read("opencode/index.js");
+  for (const s of skills) assert.ok(opencode.includes(`skill: "${s}"`), `opencode/index.js has no tool for ${s}`);
+  const pkg = JSON.parse(read("package.json"));
+  for (const f of ["migrations/", "scripts/"]) assert.ok(pkg.files.includes(f), `package.json files lacks ${f}`);
+});

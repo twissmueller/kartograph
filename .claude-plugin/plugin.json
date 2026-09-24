@@ -1,6 +1,6 @@
 {
   "name": "kartograph",
-  "description": "Explore a person's intent into intents/<date>-<slug>.md, extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, plan the implementation in three hexagonal rings for the project's technology stack, build the screens on sample data, then the domain, then the adapters, walk the person through what was built, and deliver it: locally, to a device, to TestFlight and Play, to the stores, or to a host.",
+  "description": "Record a conversation with a person, derive their intent from it, and map that intent against what the project already has, all in one kartograph/ bundle; extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, plan the implementation in three hexagonal rings for the project's technology stack, build the screens on sample data, then the domain, then the adapters, walk the person through what was built, and deliver it: locally, to a device, to TestFlight and Play, to the stores, or to a host.",
   "version": "2.3.0",
   "author": {
     "name": "Tobias Wissmüller",
@@ -34,7 +34,9 @@
     "release"
   ],
   "skills": [
-    "./skills/kartograph-explore",
+    "./skills/kartograph-converse",
+    "./skills/kartograph-intent",
+    "./skills/kartograph-map",
     "./skills/kartograph-knowledge",
     "./skills/kartograph-features",
     "./skills/kartograph-plan",
@@ -42,6 +44,7 @@
     "./skills/kartograph-domain",
     "./skills/kartograph-adapters",
     "./skills/kartograph-walk",
-    "./skills/kartograph-deliver"
+    "./skills/kartograph-deliver",
+    "./skills/kartograph-migrate"
   ]
 }

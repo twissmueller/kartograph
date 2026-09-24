@@ -6,20 +6,23 @@
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/twissmueller)
 
 Kartograph is a plugin for [Claude Code](https://code.claude.com),
-[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with eight
+[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with twelve
 skills that build on each other through plain files in your repository:
 
 | skill | reads | writes |
 |---|---|---|
-| **`kartograph-explore`** | a conversation with you | `intents/<date>-<slug>.md` |
-| **`kartograph-knowledge`** | one intent file | `knowledge/`, an Open Knowledge Format bundle |
-| **`kartograph-features`** | one intent file | `features/`, capabilities and Gherkin features |
+| **`kartograph-converse`** | a conversation with you, the features and the git log | `kartograph/<date>-<slug>.conversation.md` |
+| **`kartograph-intent`** | one conversation | `kartograph/<date>-<slug>.intent.md` |
+| **`kartograph-map`** | one intent, the features and the git log | `kartograph/<date>-<slug>.mapping.md`: done, partly done, new, contradicts |
+| **`kartograph-knowledge`** | one intent and its mapping | `knowledge/`, an Open Knowledge Format bundle |
+| **`kartograph-features`** | one intent and its mapping | `features/`, capabilities and Gherkin features |
 | **`kartograph-plan`** | one capability, the stack's design docs | `plans/<date>-<capability>.md`, three rings; `docs/code-design/` on first use |
 | **`kartograph-screens`** | ring 1 of the plan | the screens and view models on fakes with sample data |
 | **`kartograph-domain`** | ring 2 of the plan | use case implementations, rules, ports, one test per scenario |
 | **`kartograph-adapters`** | ring 3 of the plan | repositories, database, API client, platform capabilities, server |
 | **`kartograph-walk`** | any ring's result, and you watching | `walks/<date>-<capability>.md`, your verdicts |
 | **`kartograph-deliver`** | the built app, the stack's delivery scripts | `distribution/` on first use; then a device, TestFlight, Play, the stores or a host |
+| **`kartograph-migrate`** | the project and `migrations/` | the project moved onto the plugin's current layout, one commit |
 
 Each run starts from a fresh context. What one skill knows, it knows from the files the
 previous one wrote, so everything worth keeping is in your repo, versioned, and readable
@@ -35,24 +38,46 @@ intent that lived only in someone's head and was never pulled out and written do
 written down, the words it uses drift too, unless they are defined once and reused. And once
 the words hold, the screens should be seen before the behaviour behind them is committed to.
 
-## `kartograph-explore` — one conversation, one intent file
+## `kartograph-converse` — talk, and only record
 
-The conversation has two halves:
+One conversation that pulls what you really want out of your head and records it, block by
+block, as `kartograph/<date>-<slug>.conversation.md`. It steers as well as it can; it does
+not interpret. Before any solution is on the table it establishes who you are in this, what
+you want and why, who it is for, and how you would recognise success; when your goal could
+be read two ways, it reflects both back and lets you pick. Then it converges, one question
+at a time, always with a recommended answer, sharpening vague words into concrete cases and
+asking what you deliberately left out, until you say nothing is missing.
 
-1. **Opening up.** Before any solution is on the table: who you are in this, what you want
-   and why, who it is for, and how you would recognise success. When your goal could be
-   read two ways, the AI reflects both back and lets you pick.
-2. **Converging.** Then it grills you, one question at a time, always with a recommended
-   answer, until it can play your whole intent back and you say nothing is missing. Vague
-   words get sharpened into concrete cases. Solutions get asked what outcome they serve.
-   Non-goals get asked for explicitly. Decisions get recorded with their reasons and the
-   alternatives you rejected. Anything you cannot answer yet becomes an open question with
-   a name next to it, not a loop.
+Every message ends with the next question or the written file. What it finds in the project
+— capabilities under `features/`, commits in the git log — is looked up only to ask a
+sharper question, never to answer on your behalf. Your words are recorded verbatim; its own
+reasoning is at most one line per message. No goals, no buckets, no summary: deriving your
+intent is a separate skill's job.
 
-The intent file has the same sections every time, and an empty section says so: summary,
-who (your role, who benefits, who is affected), goals, intended outcomes, non-goals,
-constraints, assumptions, decisions with reasons, open questions with who can answer them,
-terms, notes. It is written in the language of the conversation.
+## `kartograph-intent` — the intent, derived from what you said
+
+Reads one recorded conversation and sorts everything you said into goals, intended
+outcomes, non-goals, constraints, assumptions, decisions and open questions, writing
+`kartograph/<date>-<slug>.intent.md` beside it. Every entry cites the conversation block it
+came from; what you did not say stays an assumption or an open question, never a statement,
+and a recommendation only becomes a decision when you chose it.
+
+Fully automated: no questions, no review. It reads the conversation and nothing else — never
+code, never `features/` — then writes, commits, pushes, and reports the open questions it
+found.
+
+## `kartograph-map` — what exists, held against what you want
+
+Reads one derived intent and holds each intended outcome against what the project already
+has — `features/` and the git history — writing `kartograph/<date>-<slug>.mapping.md`
+beside it: Done (a scenario and a commit), Partly done (what exists, cited, then what is
+missing), New, or Contradicts (both statements, then the open question a follow-up
+conversation has to settle).
+
+The truth is what exists, never an earlier intent or conversation. Every Done and Partly
+done entry cites its evidence — a commit hash, or a `feature › scenario`; no evidence, not
+done. Fully automated, committed and pushed; knowledge and features both refuse to run
+against an intent that has not been mapped yet.
 
 ## `kartograph-knowledge` — one intent, a growing knowledge base
 
@@ -277,6 +302,16 @@ staged rollout, read-back verification), Xcode and Gradle helpers, and stdlib-on
 the listings and screenshot uploads. The contract every script keeps is in
 `stacks/common/DISTRIBUTION.md`; a stack's own scripts live in `stacks/<stack>/distribution/`.
 
+## `kartograph-migrate` — after every update
+
+Every other skill starts with a version gate and refuses to run against a project on an
+older Kartograph layout. This skill brings it forward in one step and one commit, whatever
+version the project comes from: it checks the project's layout against `migrations/`,
+reads every pending migration document (target state, how to recognise a project that is
+not there, what to do), runs `scripts/migrate-kartograph.js` for the mechanical part, and
+carries out the rest by hand. What it cannot derive is noted in `kartograph/log.md`, never
+invented.
+
 ## Install
 
 ### Claude Code
@@ -289,7 +324,9 @@ the listings and screenshot uploads. The contract every script keeps is in
 Then, in any project:
 
 ```
-/kartograph:kartograph-explore I want the app to work without a network connection
+/kartograph:kartograph-converse I want the app to work without a network connection
+/kartograph:kartograph-intent
+/kartograph:kartograph-map
 /kartograph:kartograph-knowledge
 /kartograph:kartograph-features
 /kartograph:kartograph-plan project-archiving
@@ -320,9 +357,10 @@ available in the IDE extension.
 ### OpenCode
 
 OpenCode plugins register tools rather than skills, so the plugin exposes the skills as
-tools named `kartograph_explore`, `kartograph_knowledge`, `kartograph_features`,
-`kartograph_plan`, `kartograph_screens`, `kartograph_domain`, `kartograph_adapters` and
-`kartograph_walk` that hand the model the same `SKILL.md`. Add the npm package to
+tools named `kartograph_converse`, `kartograph_intent`, `kartograph_map`,
+`kartograph_knowledge`, `kartograph_features`, `kartograph_plan`, `kartograph_screens`,
+`kartograph_domain`, `kartograph_adapters`, `kartograph_walk`, `kartograph_deliver` and
+`kartograph_migrate` that hand the model the same `SKILL.md`. Add the npm package to
 `opencode.json`:
 
 ```json
@@ -340,27 +378,31 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
 
 ## Guardrails
 
-- Each skill writes only its own output: explore the intent file, knowledge the
-  `knowledge/` bundle, features the `features/` directory, plan the plan and the stack
-  declaration, screens the feature module and its wiring, domain the module and `core/`,
-  adapters the module's data layer, `core/` and `server/`, walk one record under `walks/`.
-- Each commits only what it wrote (`intent:`, `knowledge:`, `features:`, `plan:`,
-  `screens:`, `domain:`, `adapters:`, `walk:`) and pushes to the branch's upstream.
-  Without git or a remote it says so and moves on.
+- Each skill writes only its own output: converse the conversation file, intent the intent
+  file, map the mapping file, knowledge the `knowledge/` bundle, features the `features/`
+  directory, plan the plan and the stack declaration, screens the feature module and its
+  wiring, domain the module and `core/`, adapters the module's data layer, `core/` and
+  `server/`, walk one record under `walks/`, migrate the project's `kartograph/` layout.
+- Each commits only what it wrote (`conversation:`, `intent:`, `mapping:`, `knowledge:`,
+  `features:`, `plan:`, `screens:`, `domain:`, `adapters:`, `walk:`) and pushes to the
+  branch's upstream. Without git or a remote it says so and moves on.
 - None invents. What was not said is an assumption, an open question, a stub, or
   friction; never a guessed rule, a guessed outcome, or a placeholder in a plan.
 - None writes a `verified` stamp or claims a feature is approved, implemented or tested.
   In a walk, only your answer becomes a verdict.
 - Screens, domain and adapters never edit a feature file, never weaken a test, never ship
   a fake in production, and never touch the plan's content.
-- All drive. Explore ends every message with the next question or the written file;
-  knowledge, features, plan, screens, domain and adapters ask nothing at all; walk asks
-  once per scenario.
+- All drive. Converse ends every message with the next question or the written file;
+  intent, map, knowledge, features, plan, screens, domain and adapters ask nothing at all;
+  walk asks once per scenario.
 - Every file has a fixed structure, and each skill ships a validator it runs before
   committing:
 
   ```
-  node skills/kartograph-explore/validate-intent.js intents/<file>.md
+  node skills/kartograph-converse/validate-conversation.js kartograph/<file>.conversation.md
+  node skills/kartograph-intent/validate-intent.js kartograph/<file>.intent.md
+  node skills/kartograph-map/validate-mapping.js kartograph/<file>.mapping.md
+  node skills/kartograph-migrate/validate-kartograph.js kartograph
   node skills/kartograph-knowledge/validate-knowledge.js knowledge
   node skills/kartograph-features/validate-features.js features
   node skills/kartograph-plan/validate-plan.js plans/<file>.md

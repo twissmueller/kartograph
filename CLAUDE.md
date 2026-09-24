@@ -4,14 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Kartograph is a plugin with **nine skills**, a structure validator for each of the five
+Kartograph is a plugin with **twelve skills**, a structure validator for each of the eight
 that write a fixed-shape file, a directory of **technology stacks** (three design documents
 and the delivery scripts per stack), and no build step.
 Each skill starts from a fresh context and knows only what the files in the target
 project tell it:
 
-- `kartograph-explore` runs one exploring conversation and writes
-  `intents/<YYYY-MM-DD-HHMM>-<slug>.md`.
+- `kartograph-converse` runs one conversation and records it, block by block, as
+  `kartograph/<YYYY-MM-DD-HHMM>-<slug>.conversation.md`.
+- `kartograph-intent` reads one conversation and derives its goals, intended outcomes,
+  non-goals, constraints and decisions, citing every entry, as
+  `kartograph/<YYYY-MM-DD-HHMM>-<slug>.intent.md`.
+- `kartograph-map` reads one intent and holds it against `features/` and the git history,
+  writing `kartograph/<YYYY-MM-DD-HHMM>-<slug>.mapping.md`: done, partly done, new, or
+  contradicts, each cited.
 - `kartograph-knowledge` reads one intent file and records its concepts in `knowledge/`,
   an Open Knowledge Format v0.2 bundle (one markdown file per concept, path = identity).
 - `kartograph-features` reads one intent file and derives capabilities
@@ -33,18 +39,24 @@ project tell it:
   delivery scripts into the project's `distribution/` on first use and fills
   `distribution/config.sh`, then runs the matching script; outward actions are confirmed
   by the person once.
+- `kartograph-migrate` brings a project's Kartograph files onto this plugin's layout, in
+  one step and one commit, whatever version the project comes from.
 
 The same skills are served to three runtimes from one place:
 
 ```
 skills/<name>/SKILL.md                      the skill (agentskills.io format, read by all three)
-skills/kartograph-explore/intent-template.md   skeleton of the intent file
+skills/kartograph-converse/conversation-template.md skeleton of the conversation file
+skills/kartograph-intent/intent-template.md   skeleton of the intent file
+skills/kartograph-map/mapping-template.md     skeleton of the mapping file
 skills/kartograph-knowledge/concept-template.md skeleton of one OKF concept file
 skills/kartograph-features/capability-template.md skeleton of capability.md
 skills/kartograph-features/example.md         worked example (fictional) for features
 skills/kartograph-plan/plan-template.md       skeleton of one three-ring plan
 skills/kartograph-walk/walk-template.md       skeleton of one walk record
 skills/<name>/validate-*.js                 the skill's structure validator (see below)
+migrations/<version>.md   what each layout change requires; the highest is the layout version
+scripts/migrate-*.js   the mechanical part of the migrations
 stacks/<stack>/STACK.md                     identity, status (ready | scaffold), detection rules
 stacks/<stack>/design-system.md             tokens, theme, components, layout
 stacks/<stack>/code-design.md               the three rings in that stack, layout, state, naming, DI, nav
@@ -77,13 +89,14 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 - **Each skill writes only its own output** and commits only that. None names or starts
   a phase beyond itself; the next phase is a separate skill that *reads* the previous
   one's files.
-- **The AI drives.** Explore ends every message with the next question or the written
-  file and never waits to be asked what comes next. Knowledge, features, plan, screens,
-  domain and adapters are fully automated: no question, no review, no confirmation; each
-  runs to the end, commits, pushes, reports. Anything undecided becomes an open question,
-  a stub, or friction in the written file. Walk is interactive by design, but asks exactly
-  once per scenario, never after trivial steps. Plan and walk need an argument; the three
-  ring skills fall back to the newest planned plan.
+- **The AI drives.** Converse ends every message with the next question or the written
+  file and never waits to be asked what comes next. Intent, map, knowledge, features, plan,
+  screens, domain and adapters are fully automated: no question, no review, no
+  confirmation; each runs to the end, commits, pushes, reports. Anything undecided becomes
+  an open question, a stub, or friction in the written file. Walk is interactive by design,
+  but asks exactly once per scenario, never after trivial steps. Plan and walk need an
+  argument; the three ring skills fall back to the newest planned plan. Intent and map
+  fall back to the newest conversation or intent without a successor.
 - **Frontmatter is the contract.** `name` is the slash name and the Codex skill folder.
   `description` states *when* to use the skill, never *how* it works — a description that
   summarises the process makes agents skip the body.
@@ -162,7 +175,10 @@ Every artifact a skill writes has a validator next to the skill, and the skill r
 before committing. They exist so files never drift from their templates:
 
 ```bash
-node skills/kartograph-explore/validate-intent.js intents/<file>.md     # or no arg: all of ./intents
+node skills/kartograph-converse/validate-conversation.js kartograph/<file>.conversation.md # or no arg: all of ./kartograph
+node skills/kartograph-intent/validate-intent.js kartograph/<file>.intent.md               # or no arg: all of ./kartograph
+node skills/kartograph-map/validate-mapping.js kartograph/<file>.mapping.md                # or no arg: all of ./kartograph
+node skills/kartograph-migrate/validate-kartograph.js kartograph                           # or no arg: ./kartograph
 node skills/kartograph-knowledge/validate-knowledge.js knowledge        # or one concept file
 node skills/kartograph-features/validate-features.js features           # or one capability dir
 node skills/kartograph-plan/validate-plan.js plans/<file>.md            # or no arg: all of ./plans
@@ -174,7 +190,8 @@ Rules for editing them:
 
 - **Self-contained.** Each validator is one file with no imports beyond Node built-ins,
   because a skill directory must work when copied on its own. The YAML-subset parser lives
-  only in the knowledge validator; the other frontmatters are flat and need no parser.
+  only in the knowledge validator; the other frontmatters are flat and need no parser,
+  with `sources`/`related` as one-line `[a, b]` lists.
 - **Pure function + thin CLI.** `validateIntent`, `validateConcept`/`validateBundle`,
   `validateCapability`/`validateFeature`/`validateTree`, `validatePlan`, `validateWalk` take
   text or a path and return `{ errors, warnings }` (plan also returns which rings are
@@ -191,7 +208,7 @@ Rules for editing them:
 - Only `type` is required by the spec; we always write `title`, `description`, `status`,
   `generated`, `sources`. Six types, one directory each: Concept, Actor, Subject, Event,
   Command, Policy.
-- **Provenance:** `sources[]` points back at the intent (`../intents/<file>.md`) and body
+- **Provenance:** `sources[]` points back at the intent (`../kartograph/<file>.intent.md`) and body
   quotes are footnoted to `sources[].id`.
 - **Trust:** an LLM never writes `verified`; the trust tier is derived from the `human:`
   prefix, never stored.
@@ -268,6 +285,29 @@ Rules for editing them:
 - **Voice first.** Designed for ChatGPT/Codex voice mode: the written blocks stay as the
   record, but what matters is spoken in short sentences, actions are announced before
   they happen, questions are one-word answerable, nothing technical is said aloud.
+
+## Rules the conversation, intent and mapping skills must keep
+
+- **Converse records, never interprets.** The person's words verbatim; an AI block holds
+  only lookups, one line of reasoning, the question and the options. Lookups (git log,
+  features from the top capability down) serve only to ask.
+- **Intent derives only from the conversation** and cites the person's block for every
+  goal, outcome, non-goal, constraint and decision; an AI recommendation is a decision only
+  when the person chose it. Status `derived`.
+- **Map treats features and the git log as the truth**; every outcome lands in exactly one
+  of Done (commit and scenario), Partly done (cited, `Missing:`), New, Contradicts (`Open
+  question:`). Knowledge and features refuse an intent without its mapping.
+- **One flat `kartograph/`**, documents `<stamp>-<slug>.<type>.md`; the intent and mapping
+  take the conversation's stamp and slug.
+
+## Migrations
+
+- A release that changes a project's layout adds `migrations/<version>.md` (Target state,
+  Recognise, Do) and extends `scripts/migrate-kartograph.js`. Migration scripts always
+  write the newest layout; when a later version changes it, the earlier scripts are
+  updated, never chained through an intermediate layout.
+- Every skill but migrate starts with the byte-identical `## 0. Version gate`;
+  `test/skills.test.js` enforces it.
 
 ## Releasing
 
