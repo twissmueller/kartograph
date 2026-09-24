@@ -28,7 +28,7 @@ Each run starts from a fresh context. What one skill knows, it knows from the fi
 previous one wrote, so everything worth keeping is in your repo, versioned, and readable
 by you, a colleague, or a later AI session.
 
-![The eight phases: who does what, which files result, and when a phase hands over](docs/phases.svg)
+![The eight phases and twelve skills: who does what, which files result, and when a phase hands over](docs/phases.svg)
 
 ## Why
 
@@ -77,12 +77,13 @@ conversation has to settle).
 The truth is what exists, never an earlier intent or conversation. Every Done and Partly
 done entry cites its evidence — a commit hash, or a `feature › scenario`; no evidence, not
 done. Fully automated, committed and pushed; knowledge and features both refuse to run
-against an intent that has not been mapped yet.
+against an intent that has not been mapped yet. An intent migrated from before 3.0.0 is
+never picked as the newest, but mapped like any other when you name it.
 
 ## `kartograph-knowledge` — one intent, a growing knowledge base
 
-Reads the intent you name, or the newest one, and records every concept it introduces in
-`knowledge/`, a bundle in Google's
+Reads the intent you name, or the newest mapped one, and records every concept it
+introduces in `knowledge/`, a bundle in Google's
 [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
 v0.2: one markdown file per concept, YAML frontmatter plus a body, the path being the
 concept's identity.
@@ -112,8 +113,8 @@ stubs and collisions left for you.
 
 ## `kartograph-features` — one intent, the behaviour it asks for
 
-Reads the intent you name, or the newest one, and turns it into what the product must let
-someone achieve and how that behaves, under `features/`:
+Reads the intent you name, or the newest mapped one, and turns it into what the product
+must let someone achieve and how that behaves, under `features/`:
 
 ```
 features/
@@ -310,7 +311,9 @@ version the project comes from: it checks the project's layout against `migratio
 reads every pending migration document (target state, how to recognise a project that is
 not there, what to do), runs `scripts/migrate-kartograph.js` for the mechanical part, and
 carries out the rest by hand. What it cannot derive is noted in `kartograph/log.md`, never
-invented.
+invented — including validator errors the project had before the migration. Whatever an
+earlier `kartograph/` directory held beside the flat documents moves to
+`docs/kartograph-v0/`.
 
 ## Install
 

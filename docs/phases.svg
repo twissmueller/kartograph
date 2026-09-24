@@ -34,8 +34,8 @@
   <rect class="bg" width="1690" height="1190"/>
 
   <!-- Header -->
-  <text class="eyebrow" x="20" y="28">KARTOGRAPH · CAPABILITY-CENTRED AI-NATIVE SDL · STATUS v2.0.0</text>
-  <text class="h1" x="20" y="60">Eight phases. Two planned human–AI sessions. Three rings, one stack.</text>
+  <text class="eyebrow" x="20" y="28">KARTOGRAPH · CAPABILITY-CENTRED AI-NATIVE SDL · STATUS v3.0.0</text>
+  <text class="h1" x="20" y="60">Eight phases, twelve skills. Two planned human–AI sessions. Three rings, one stack.</text>
   <text class="sub" x="20" y="82">Every phase is a skill, starts from a fresh context and reads only the files the previous phase wrote. The stack's design documents are pulled in at planning and read by every ring. Three runtimes, one source.</text>
 
   <!-- columns: x = 140, 331, 522, 713, 904, 1095, 1286, 1477 · width 182 · text x = +10 · centre = +95 · chip text = +18 -->
@@ -286,7 +286,7 @@
   <rect class="chip" x="150" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="672">Goals · Outcomes · Non-goals</text>
   <rect class="chip" x="150" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="698">Constraints · Assumptions · Decisions</text>
   <rect class="chip" x="150" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="724">Open questions · Terms</text>
-  <rect class="chip" x="150" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="750">Status draft | confirmed · related</text>
+  <rect class="chip" x="150" y="736" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="750">Status derived | confirmed · related</text>
 
   <!-- col 2 -->
   <rect class="chip" x="341" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="349" y="646">knowledge/ – OKF v0.2 bundle</text>
@@ -401,10 +401,10 @@
 
   <!-- ===== Notes ===== -->
   <rect x="20" y="970" width="810" height="98" rx="6" fill="#fff7e6" stroke="#f3d9a4"/>
-  <text class="s-head" x="34" y="992" fill="#b45309">STACKS · ONE READY, THREE SCAFFOLDS · NOT BUILT YET</text>
-  <text class="note-t" x="34" y="1012">stacks/kmp is ready (from the owner's knowledge repo; its server section is Kartograph's own minimal default).</text>
-  <text class="note-t" x="34" y="1030">android-compose, apple-swift and angular-kotlin are scaffolds: every section present, every section UNFILLED;</text>
-  <text class="note-t" x="34" y="1048">plan refuses them. Verify, deliver and observe from the nine-phase blueprint still have no skill.</text>
+  <text class="s-head" x="34" y="992" fill="#b45309">STACKS · THREE READY, TWO SCAFFOLDS · NOT BUILT YET</text>
+  <text class="note-t" x="34" y="1012">stacks/kmp, apple-swift and python-fastapi are ready, each derived from the owner's own projects and conventions.</text>
+  <text class="note-t" x="34" y="1030">android-compose and angular-kotlin are scaffolds: every section present, every section UNFILLED;</text>
+  <text class="note-t" x="34" y="1048">plan refuses them. Delivery is kartograph-deliver; verify and observe still have no skill.</text>
 
   <rect x="850" y="970" width="820" height="98" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
   <text class="s-head" x="864" y="992" fill="#0f766e">GUARDRAILS THAT HOLD IN EVERY PHASE</text>
@@ -416,6 +416,6 @@
   <rect x="20" y="1088" width="10" height="10" fill="#1d4ed8"/><text class="foot" x="36" y="1097" fill="#1f2937">Human decides</text>
   <rect x="150" y="1088" width="10" height="10" fill="#0f766e"/><text class="foot" x="166" y="1097" fill="#1f2937">Autonomous, rule-based</text>
   <rect x="320" y="1088" width="10" height="10" fill="#b45309"/><text class="foot" x="336" y="1097" fill="#1f2937">Human only when a decision is needed, later</text>
-  <text class="foot" x="20" y="1124">End-to-end linkage: intent file → sources / # Source intent → capability.md → plans/ (stack: docs/code-design/) → feature-&lt;capability&gt;/ (+ core/, server/) → walks/. Status: Kartograph v2.0.0, 2026-09-18.</text>
-  <text class="foot" x="20" y="1142">Skills: converse (interactive) · intent · map · knowledge · features · plan · screens · domain · adapters (fully automated, separately triggered) · walk (interactive, once per scenario) · migrate – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
+  <text class="foot" x="20" y="1124">End-to-end linkage: intent file → sources / # Source intent → capability.md → plans/ (stack: docs/code-design/) → feature-&lt;capability&gt;/ (+ core/, server/) → walks/. Status: Kartograph v3.0.0, 2026-09-24.</text>
+  <text class="foot" x="20" y="1142">Skills: converse (interactive) · intent · map · knowledge · features · plan · screens · domain · adapters (fully automated, separately triggered) · walk (interactive, once per scenario) · deliver · migrate – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
 </svg>

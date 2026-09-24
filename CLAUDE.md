@@ -18,9 +18,10 @@ project tell it:
 - `kartograph-map` reads one intent and holds it against `features/` and the git history,
   writing `kartograph/<YYYY-MM-DD-HHMM>-<slug>.mapping.md`: done, partly done, new, or
   contradicts, each cited.
-- `kartograph-knowledge` reads one intent file and records its concepts in `knowledge/`,
-  an Open Knowledge Format v0.2 bundle (one markdown file per concept, path = identity).
-- `kartograph-features` reads one intent file and derives capabilities
+- `kartograph-knowledge` reads one intent and its mapping and records its concepts in
+  `knowledge/`, an Open Knowledge Format v0.2 bundle (one markdown file per concept,
+  path = identity).
+- `kartograph-features` reads one intent and its mapping and derives capabilities
   (`features/<capability>/capability.md`) and Gherkin features
   (`features/<capability>/<feature>.feature`), updating what already exists.
 - `kartograph-plan` takes one named capability, detects and declares the project's stack
@@ -192,7 +193,8 @@ Rules for editing them:
   because a skill directory must work when copied on its own. The YAML-subset parser lives
   only in the knowledge validator; the other frontmatters are flat and need no parser,
   with `sources`/`related` as one-line `[a, b]` lists.
-- **Pure function + thin CLI.** `validateIntent`, `validateConcept`/`validateBundle`,
+- **Pure function + thin CLI.** `validateConversation`, `validateIntent`, `validateMapping`,
+  `validateKartograph`, `validateConcept`/`validateBundle`,
   `validateCapability`/`validateFeature`/`validateTree`, `validatePlan`, `validateWalk` take
   text or a path and return `{ errors, warnings }` (plan also returns which rings are
   done); the CLI is guarded by `fileURLToPath(import.meta.url) === realpathSync(process.argv[1])`.
