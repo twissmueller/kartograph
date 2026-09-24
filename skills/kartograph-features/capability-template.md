@@ -3,7 +3,7 @@
 <One or two sentences: the lasting ability this capability represents.>
 
 ## Sources
-- Intent: `intents/<YYYY-MM-DD-HHMM-slug>.md`
+- Intent: `kartograph/<YYYY-MM-DD-HHMM-slug>.intent.md`
 <!-- one line per intent that shaped this capability, oldest first; never remove one.
      Add links to existing definitions or decisions where the capability relies on them. -->
 

@@ -1,9 +1,9 @@
 # Worked example
 
 Fictional input, not default product requirements. Do not import its rules into unrelated
-intents.
+intents under `kartograph/`.
 
-## Input: `intents/2026-09-15-1042-archive-projects.md` (excerpt)
+## Input: `kartograph/2026-09-15-1042-archive-projects.intent.md` (excerpt)
 
 ```markdown
 # Archive projects
@@ -24,7 +24,7 @@ non-owner's attempt must be rejected and leave the project unchanged.
 Owners can take a project out of the active overview without deleting it.
 
 ## Sources
-- Intent: `intents/2026-09-15-1042-archive-projects.md`
+- Intent: `kartograph/2026-09-15-1042-archive-projects.intent.md`
 
 ## Purpose and outcome
 Project owners can remove active projects from the active overview by archiving them.
@@ -45,7 +45,7 @@ is excluded.
 ## Output: `features/project-archiving/archive-project.feature`
 
 ```gherkin
-# Source intent: intents/2026-09-15-1042-archive-projects.md
+# Source intent: kartograph/2026-09-15-1042-archive-projects.intent.md
 # Capability: features/project-archiving/capability.md
 Feature: Archive a project
   Project owners can remove an active project from the active overview.

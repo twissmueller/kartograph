@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validateCapability, validateFeature, validateCapabilityDir, validateTree, resolveCapabilityDir } from "../skills/kartograph-features/validate-features.js";
 
-const INTENT = "intents/2026-09-15-1042-archive-projects.md";
+const INTENT = "kartograph/2026-09-15-1042-archive-projects.intent.md";
 
 const capability = `# Capability: Project archiving
 
@@ -70,7 +70,7 @@ test("capability heading, lead paragraph and section order are enforced", () => 
 
 test("sources need an intent line with the right path shape", () => {
   assert.ok(validateCapability(capability.replace(`- Intent: \`${INTENT}\``, "- Decision: `docs/adr-1.md`"), OPTS).errors.some((e) => /needs at least one '- Intent:/.test(e)));
-  assert.ok(validateCapability(capability.replace(INTENT, "intent/archive.md"), OPTS).errors.some((e) => /must look like intents\//.test(e)));
+  assert.ok(validateCapability(capability.replace(INTENT, "intent/archive.md"), OPTS).errors.some((e) => /must look like kartograph\//.test(e)));
 });
 
 test("the features list must match the .feature files in the directory", () => {
@@ -98,7 +98,7 @@ test("a well-formed feature file passes", () => {
 test("header comments are required and the capability path must match the directory", () => {
   assert.ok(validateFeature(feature.replace(`# Source intent: ${INTENT}\n`, ""), FOPTS).errors.some((e) => /line 1 must be '# Source intent:/.test(e)));
   assert.ok(validateFeature(feature.replace("features/project-archiving/capability.md", "features/other/capability.md"), FOPTS).errors.some((e) => /must point at features\/project-archiving\/capability.md/.test(e)));
-  const two = feature.replace(`# Source intent: ${INTENT}\n`, `# Source intent: ${INTENT}\n# Source intent: intents/2026-09-16-0900-restore.md\n`);
+  const two = feature.replace(`# Source intent: ${INTENT}\n`, `# Source intent: ${INTENT}\n# Source intent: kartograph/2026-09-16-0900-restore.intent.md\n`);
   assert.deepEqual(validateFeature(two, FOPTS).errors, []);
   assert.equal(validateFeature(two, FOPTS).intents.length, 2);
 });
@@ -165,7 +165,7 @@ test("scenario outlines need Examples and tables are tolerated", () => {
 function tree(t, { intentExists = true, files } = {}) {
   const root = mkdtempSync(join(tmpdir(), "karto-features-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  mkdirSync(join(root, "intents"));
+  mkdirSync(join(root, "kartograph"));
   if (intentExists) writeFileSync(join(root, INTENT), "# x\n");
   const cap = join(root, "features", "project-archiving");
   mkdirSync(cap, { recursive: true });
@@ -181,7 +181,7 @@ test("a well-formed tree passes", (t) => {
 });
 
 test("a feature's source intent must be listed in capability.md and must exist", (t) => {
-  const other = feature.replace(INTENT, "intents/2026-09-16-0900-restore.md");
+  const other = feature.replace(INTENT, "kartograph/2026-09-16-0900-restore.intent.md");
   const root = tree(t, { files: { "capability.md": capability, "archive-project.feature": other } });
   const { errors } = validateTree(join(root, "features"));
   assert.ok(errors.some((e) => /is not listed under '## Sources'/.test(e)));
@@ -269,7 +269,7 @@ test("a parent capability lists its sub-capabilities and may have no features of
 test("a nested tree validates, with full paths in the feature headers", (t) => {
   const root = mkdtempSync(join(tmpdir(), "karto-nested-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  mkdirSync(join(root, "intents"), { recursive: true }); writeFileSync(join(root, INTENT), "# intent\n");
+  mkdirSync(join(root, "kartograph"), { recursive: true }); writeFileSync(join(root, INTENT), "# intent\n");
   const sub = join(root, "features", "admin-console", "individual-accounts"); mkdirSync(sub, { recursive: true });
   writeFileSync(join(root, "features", "admin-console", "capability.md"), parentCapability);
   writeFileSync(join(sub, "capability.md"), capability.replace("# Capability: Project archiving", "# Capability: Individual accounts"));

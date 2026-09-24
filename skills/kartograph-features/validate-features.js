@@ -19,7 +19,7 @@ export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CAPABILITY_SECTIONS = ["Sources", "Purpose and outcome", "Scope and exclusions", "Constraints", "Features", "Capabilities", "Open questions"];
 // Features is required when the directory holds .feature files, Capabilities when it holds sub-capabilities.
 export const OPTIONAL_SECTIONS = new Set(["Constraints", "Features", "Capabilities"]);
-export const INTENT_PATH = /^intents\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
+export const INTENT_PATH = /^kartograph\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.intent\.md$/;
 const PLACEHOLDER = /<[A-Za-z][^>\n]*>/;
 
 // Gherkin keywords per dialect. A file starts with `# language: <code>` on line 1 to use
@@ -92,9 +92,9 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
     if (bad.length) err(`'## Sources' must be a bullet list; offending line: ${bad[0].trim()}`);
     for (const b of bullets(sources.lines)) {
       const m = /^- Intent: `([^`]+)`$/.exec(b);
-      if (m) { if (!INTENT_PATH.test(m[1])) err(`source intent path must look like intents/YYYY-MM-DD-HHMM-<slug>.md, got '${m[1]}'`); intents.push(m[1]); }
+      if (m) { if (!INTENT_PATH.test(m[1])) err(`source intent path must look like kartograph/YYYY-MM-DD-HHMM-<slug>.intent.md, got '${m[1]}'`); intents.push(m[1]); }
     }
-    if (!intents.length) err("'## Sources' needs at least one '- Intent: `intents/<file>.md`' line");
+    if (!intents.length) err("'## Sources' needs at least one '- Intent: `kartograph/<file>.intent.md`' line");
   }
 
   const listed = [];
@@ -158,10 +158,10 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
 
   while (i < lines.length && /^# Source intent: /.test(lines[i])) {
     const p = lines[i].slice("# Source intent: ".length).trim();
-    if (!INTENT_PATH.test(p)) err(`line ${i + 1}: source intent path must look like intents/YYYY-MM-DD-HHMM-<slug>.md, got '${p}'`);
+    if (!INTENT_PATH.test(p)) err(`line ${i + 1}: source intent path must look like kartograph/YYYY-MM-DD-HHMM-<slug>.intent.md, got '${p}'`);
     intents.push(p); i++;
   }
-  if (!intents.length) err(`line ${i + 1} must be '# Source intent: intents/<file>.md'`);
+  if (!intents.length) err(`line ${i + 1} must be '# Source intent: kartograph/<file>.intent.md'`);
   const cap = /^# Capability: (.*)$/.exec(lines[i] || "");
   if (!cap) err(`line ${i + 1} must be '# Capability: features/<capability>/capability.md'`);
   else {
@@ -266,7 +266,7 @@ export function validateCapabilityDir(dir, { projectRoot, relPath } = {}) {
     for (const p of r.intents) { allIntents.add(p); if (!capIntents.includes(p)) errors.push(`${rel(f)}: source intent '${p}' is not listed under '## Sources' in capability.md`); }
   }
   if (projectRoot) {
-    const intentsDir = join(projectRoot, "intents");
+    const intentsDir = join(projectRoot, "kartograph");
     for (const p of allIntents) {
       if (!existsSync(join(projectRoot, p))) {
         (existsSync(intentsDir) ? errors : warnings).push(`${rel("capability.md")}: source intent '${p}' does not exist`);
