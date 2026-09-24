@@ -1,0 +1,40 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
+
+const root = new URL("../", import.meta.url);
+const read = (p) => readFileSync(new URL(p, root), "utf8");
+const skills = readdirSync(new URL("skills/", root)).filter((d) => existsSync(new URL(`skills/${d}/SKILL.md`, root))).sort();
+
+test("twelve skills, explore retired", () => {
+  assert.deepEqual(skills, [
+    "kartograph-adapters", "kartograph-converse", "kartograph-deliver", "kartograph-domain",
+    "kartograph-features", "kartograph-intent", "kartograph-knowledge", "kartograph-map",
+    "kartograph-migrate", "kartograph-plan", "kartograph-screens", "kartograph-walk",
+  ]);
+  assert.ok(!existsSync(new URL("skills/kartograph-explore", root)));
+});
+
+test("each SKILL.md's name is its directory", () => {
+  for (const s of skills) assert.match(read(`skills/${s}/SKILL.md`), new RegExp(`^---\\nname: ${s}\\n`), s);
+});
+
+test("every skill but migrate carries the same version gate, right after Hard rules", () => {
+  const gate = (text) => /\n## 0\. Version gate\n([\s\S]*?)\n## /.exec(text)?.[1];
+  const gated = skills.filter((s) => s !== "kartograph-migrate");
+  const first = gate(read(`skills/${gated[0]}/SKILL.md`));
+  assert.ok(first, `${gated[0]} has no '## 0. Version gate'`);
+  for (const s of gated) {
+    const text = read(`skills/${s}/SKILL.md`);
+    assert.equal(gate(text), first, `${s}'s version gate differs`);
+    const heads = [...text.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+    assert.equal(heads[heads.indexOf("Hard rules") + 1], "0. Version gate", `${s}: the gate follows Hard rules`);
+  }
+});
+
+test("outside the version gate, no skill but migrate mentions intents/", () => {
+  for (const s of skills.filter((x) => x !== "kartograph-migrate")) {
+    const body = read(`skills/${s}/SKILL.md`).replace(/\n## 0\. Version gate\n[\s\S]*?\n(?=## )/, "\n");
+    assert.ok(!/(^|[^a-z])intents\//.test(body), `${s} still mentions intents/ outside its version gate`);
+  }
+});
