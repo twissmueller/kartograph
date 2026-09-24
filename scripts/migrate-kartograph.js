@@ -70,10 +70,17 @@ export function projectVersion(root) {
 
 function firstSentence(s) { const m = /^(.*?[.!?])(\s|$)/.exec(s); return m ? m[1] : s; }
 
-// Old flat values: 'none', one item, or a comma-separated list, items maybe in backticks.
+// Old flat values: 'none' (optionally followed by more text), one item, or a comma-
+// separated list of paths, URLs or backticked values — none of which has a space once its
+// backticks are stripped. Anything else is free text: splitting it on commas would invent
+// items that were never there, so it stays one item; a comma inside that item would still
+// break the flat list it goes into, so it becomes ' —' instead.
 function listOf(v) {
-  if (!v || /^none$/i.test(v.trim())) return [];
-  return v.split(/,\s*/).map((s) => s.replace(/[`[\]]/g, "").trim()).filter(Boolean);
+  if (!v || /^none\b/i.test(v.trim())) return [];
+  const parts = v.split(/,\s*/);
+  const looksLikeValue = (s) => !/\s/.test(s.replace(/`/g, "").trim());
+  if (parts.every(looksLikeValue)) return parts.map((s) => s.replace(/[`[\]]/g, "").trim()).filter(Boolean);
+  return [v.replace(/[[\]]/g, "").replace(/,/g, " —").trim()];
 }
 
 export function newName(oldFile) {
@@ -101,11 +108,13 @@ export function convertIntent(text) {
   ].join("\n") + body;
 }
 
-// Only provenance moves: the two header comments, capability.md's Sources lines, and the
-// knowledge bundle's relative links. A step that mentions a path is left alone.
+// Only provenance moves: the two header comments, capability.md's Sources lines, the
+// per-scenario '# Added by'/'# Changed by' comments, and the knowledge bundle's relative
+// links. A step or other line that merely mentions a path is left alone.
 export function rewriteProvenance(text) {
   return text
     .replace(/^(# Source intent: )intents\/([^\s`]+)\.md[ \t]*$/gm, "$1kartograph/$2.intent.md")
+    .replace(/^(\s*# (?:Added|Changed) by )intents\/([^\s`]+)\.md/gm, "$1kartograph/$2.intent.md")
     .replace(/^(- Intent: `)intents\/([^`]+)\.md`/gm, "$1kartograph/$2.intent.md`")
     .replace(/^(\s*resource: )\.\.\/intents\/([^\s]+)\.md[ \t]*$/gm, "$1../kartograph/$2.intent.md")
     .replace(/\]\(\.\.\/intents\/([^)\s]+)\.md\)/g, "](../kartograph/$1.intent.md)");
@@ -132,15 +141,36 @@ export function logEntry(log, date, line) {
   return `${head}\n\n${heading}\n${line}\n${rest ? `\n${rest}` : ""}`;
 }
 
+// Runs the same validators a finished migration checks itself with, so a rerun on a
+// project already at the newest layout still reports what is wrong instead of going quiet.
+function runValidators(root) {
+  const errors = [];
+  const kdir = join(root, "kartograph");
+  if (existsSync(kdir)) {
+    errors.push(...validateKartograph(kdir).errors.map((e) => `kartograph/${e}`));
+    for (const f of readdirSync(kdir).filter((e) => DOC.test(e) && e.endsWith(".intent.md")).sort()) {
+      errors.push(...validateIntent(readFileSync(join(kdir, f), "utf8"), { filename: f }).errors.map((e) => `kartograph/${f}: ${e}`));
+    }
+  }
+  if (existsSync(join(root, "features"))) errors.push(...validateTree(join(root, "features")).errors);
+  if (existsSync(join(root, "knowledge"))) errors.push(...validateBundle(join(root, "knowledge")).errors);
+  return errors;
+}
+
 export function migrateProject(root, { date, time, pluginRoot = PLUGIN_ROOT } = {}) {
   const now = new Date();
   date = date || now.toISOString().slice(0, 10);
   time = time || `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
   const to = layoutVersion(pluginRoot);
   const from = projectVersion(root);
-  const written = []; const removed = []; const errors = [];
-  if (from === null || compareVersions(from, to) >= 0) return { from, to, written, removed, errors };
+  const written = []; const removed = [];
+  // A new project has nothing to check. A project already on the newest layout has nothing
+  // to write, but a rerun still revalidates it — silently returning no errors would hide
+  // whatever is still wrong.
+  if (from === null) return { from, to, written, removed, errors: [] };
+  if (compareVersions(from, to) >= 0) return { from, to, written, removed, errors: runValidators(root) };
 
+  const errors = [];
   // 2.1.0 — a v0 features tree; migrate-features.js writes its intent into kartograph/ already.
   if (featuresAreV0(root)) {
     const r = migrateFeatures(root, { date, time });
@@ -155,9 +185,14 @@ export function migrateProject(root, { date, time, pluginRoot = PLUGIN_ROOT } = 
   if (existsSync(idir)) {
     for (const f of readdirSync(idir).filter((e) => OLD_INTENT.test(e)).sort()) {
       const name = newName(f);
-      writeFileSync(join(kdir, name), convertIntent(readFileSync(join(idir, f), "utf8")));
-      rmSync(join(idir, f));
-      written.push(`kartograph/${name}`); moved++;
+      try {
+        writeFileSync(join(kdir, name), convertIntent(readFileSync(join(idir, f), "utf8")));
+        rmSync(join(idir, f));
+        written.push(`kartograph/${name}`); moved++;
+      } catch (e) {
+        // Left in intents/ for hand fixing; the rest of the migration still runs.
+        errors.push(`intents/${f}: ${e.message}`);
+      }
     }
     if (!readdirSync(idir).length) { rmdirSync(idir); removed.push("intents"); }
   }
@@ -175,12 +210,7 @@ export function migrateProject(root, { date, time, pluginRoot = PLUGIN_ROOT } = 
   writeFileSync(logPath, logEntry(existsSync(logPath) ? readFileSync(logPath, "utf8") : "", date, `* **Migration**: ${from} → ${to} — ${moved} intents moved into kartograph/.`));
   written.push("kartograph/index.md", "kartograph/log.md");
 
-  errors.push(...validateKartograph(kdir).errors.map((e) => `kartograph/${e}`));
-  for (const d of docs.filter((x) => x.file.endsWith(".intent.md"))) {
-    errors.push(...validateIntent(readFileSync(join(kdir, d.file), "utf8"), { filename: d.file }).errors.map((e) => `kartograph/${d.file}: ${e}`));
-  }
-  if (existsSync(join(root, "features"))) errors.push(...validateTree(join(root, "features")).errors);
-  if (existsSync(join(root, "knowledge"))) errors.push(...validateBundle(join(root, "knowledge")).errors);
+  errors.push(...runValidators(root));
   return { from, to, written: [...new Set(written)], removed, errors };
 }
 
@@ -198,7 +228,11 @@ function main(argv) {
   }
   const r = migrateProject(root, { date: opt("--date"), time: opt("--time") });
   if (r.from === null) { console.log("new project: nothing to migrate"); return 0; }
-  if (!r.written.length) { console.log(`up to date: ${r.to}`); return 0; }
+  if (!r.written.length) {
+    console.log(`up to date: ${r.to}`);
+    for (const e of r.errors) console.log(`error: ${e}`);
+    return r.errors.length ? 1 : 0;
+  }
   for (const w of r.written) console.log(`wrote ${w}`);
   for (const d of r.removed) console.log(`removed ${d}`);
   for (const e of r.errors) console.log(`error: ${e}`);

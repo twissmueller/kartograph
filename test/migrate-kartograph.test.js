@@ -11,13 +11,13 @@ import { addHeader, capabilityMarkdown } from "../scripts/migrate-features.js";
 import { validateIntent } from "../skills/kartograph-intent/validate-intent.js";
 
 const OLD = "2026-09-15-1042-offline-watering";
-const oldIntent = (related = "none") => `---
+const oldIntent = (related = "none", sources = "https://example.org/issue/7") => `---
 title: Offline watering schedule
 date: 2026-09-15
 status: confirmed
 role: product owner
 language: English
-sources: https://example.org/issue/7
+sources: ${sources}
 related: ${related}
 ---
 
@@ -151,6 +151,24 @@ test("convertIntent produces a legacy intent the validator accepts", () => {
   assert.ok(freeText.some((e) => /related entry 'the Q3 roadmap'/.test(e)));
 });
 
+test("convertIntent splits a comma list of paths, URLs or backticked values, one item per entry", () => {
+  const out = convertIntent(oldIntent("none", "https://example.org/issue/7, https://example.org/pr/12, `notes.md`"));
+  assert.ok(out.includes("sources: [legacy-no-conversation, https://example.org/issue/7, https://example.org/pr/12, notes.md]\n"));
+});
+
+test("convertIntent keeps a free-text sources value as one item, its own commas replaced by ' —'", () => {
+  const out = convertIntent(oldIntent("none", `The owner's request "keep it offline", and the two decisions taken in that conversation`));
+  assert.ok(out.includes(`sources: [legacy-no-conversation, The owner's request "keep it offline" — and the two decisions taken in that conversation]\n`));
+  assert.deepEqual(validateIntent(out, { filename: `${OLD}.intent.md` }).errors, []);
+});
+
+test("convertIntent treats any 'none…' sources or related value as empty, not just an exact 'none'", () => {
+  const noSources = convertIntent(oldIntent("none", "none (nothing to link)"));
+  assert.ok(noSources.includes("sources: [legacy-no-conversation]\n"));
+  const noRelated = convertIntent(oldIntent("none (nothing else linked)"));
+  assert.ok(noRelated.includes("related: []\n"));
+});
+
 test("rewriteProvenance changes only provenance lines and is idempotent", () => {
   const f = `# Source intent: intents/${OLD}.md\n# Capability: features/a/capability.md\nFeature: X\n  Scenario: mentions intents/${OLD}.md in a step\n`;
   const once = rewriteProvenance(f);
@@ -159,6 +177,19 @@ test("rewriteProvenance changes only provenance lines and is idempotent", () => 
   assert.equal(rewriteProvenance(once), once);
   assert.equal(rewriteProvenance(`- Intent: \`intents/${OLD}.md\``), `- Intent: \`kartograph/${OLD}.intent.md\``);
   assert.equal(rewriteProvenance(`resource: ../intents/${OLD}.md`), `resource: ../kartograph/${OLD}.intent.md`);
+});
+
+test("rewriteProvenance also rewrites '# Added by' and '# Changed by' scenario comments, keeping what follows", () => {
+  const f = [
+    `  # Added by intents/${OLD}.md`,
+    `  # Changed by intents/${OLD}.md: reason`,
+    `  Scenario: mentions intents/${OLD}.md in a step`,
+  ].join("\n") + "\n";
+  const once = rewriteProvenance(f);
+  assert.ok(once.includes(`  # Added by kartograph/${OLD}.intent.md\n`));
+  assert.ok(once.includes(`  # Changed by kartograph/${OLD}.intent.md: reason\n`));
+  assert.ok(once.includes(`mentions intents/${OLD}.md in a step`));
+  assert.equal(rewriteProvenance(once), once);
 });
 
 test("logEntry adds under today's date, newest first", () => {
@@ -186,6 +217,37 @@ test("a 2.3 project migrates to 3.0.0 in one run, and a second run writes nothin
   const again = migrateProject(root, { date: "2026-09-25" });
   assert.deepEqual(again.written, []);
   assert.equal(again.from, "3.0.0");
+  assert.deepEqual(again.errors, []);
+});
+
+test("a bad intent (no frontmatter) is skipped with a per-file error; intents/ stays non-empty and the run continues", (t) => {
+  const root = project23(t);
+  const badStamp = "2026-09-16-0900-broken-intent";
+  writeFileSync(join(root, "intents", `${badStamp}.md`), "not an intent file, no frontmatter here\n");
+  const r = migrateProject(root, { date: "2026-09-24" });
+  assert.ok(r.errors.some((e) => e.startsWith(`intents/${badStamp}.md: `)));
+  assert.ok(existsSync(join(root, "intents")));
+  assert.ok(existsSync(join(root, "intents", `${badStamp}.md`)));
+  assert.ok(existsSync(join(root, "kartograph", `${OLD}.intent.md`)));
+  assert.ok(!existsSync(join(root, "kartograph", `${badStamp}.intent.md`)));
+});
+
+test("a rerun does not hide validation errors: it revalidates, reports them, and writes nothing", (t) => {
+  const root = project23(t);
+  // A scenario with no Then step is a structural error the validator always reports,
+  // migration or not — it stays broken across a rerun.
+  const capDir = join(root, "features", "watering");
+  const broken = "Feature: Water\n  Tick a task.\n\n  Scenario: Ticking a task\n    When I tick it\n";
+  writeFileSync(join(capDir, "water.feature"), addHeader(broken, { intent: `intents/${OLD}.md`, capabilityPath: "watering" }));
+
+  const first = migrateProject(root, { date: "2026-09-24" });
+  assert.equal(first.from, "2.3.0");
+  assert.ok(first.errors.some((e) => /has no Then step/.test(e)));
+
+  const second = migrateProject(root, { date: "2026-09-25" });
+  assert.deepEqual(second.written, []);
+  assert.equal(second.from, "3.0.0");
+  assert.ok(second.errors.some((e) => /has no Then step/.test(e)));
 });
 
 test("a v0 project goes to 3.0.0 directly: the migration intent lands in kartograph/, never in intents/", (t) => {
