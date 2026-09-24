@@ -1,17 +1,21 @@
 ---
+type: Intent
 title: <short name for what the person wants>
+description: <one sentence: what the person wants, and why>
+status: derived
 date: <YYYY-MM-DD>
-status: draft | confirmed
 role: <the role the person spoke from>
 language: <language of the conversation>
-sources: <issue, ticket, URL, or document the request came from — or none>
-related: <earlier intents/… files this one revisits or builds on — or none>
+sources: [<the conversation's file name: YYYY-MM-DD-HHMM-slug.conversation.md>]
+related: [<earlier kartograph/ documents the conversation follows up — or an empty list>]
 ---
 
 # <title>
 
 <!-- Section headings stay exactly as written here, in this order, whatever the language of
-     the content. validate-intent.js checks that, so no intent drifts from this shape. -->
+     the content. Every entry under Goals, Intended outcomes, Non-goals, Constraints and
+     Decisions ends with the person's block it comes from: [turn 3] or [turns 3, 5].
+     validate-intent.js checks both, so no intent drifts from this shape. -->
 
 ## Summary
 
@@ -26,20 +30,21 @@ stop here and know the intent.>
 
 ## Goals
 
-<Why the work exists. One bullet per goal, in the person's words where possible.>
+<Why the work exists. One bullet per goal, in the person's words where possible, each
+ending with its citation, like [turn 3].>
 
 ## Intended outcomes
 
-<What will observably be true when it is done. How the person said they would recognise
-success. One bullet each, concrete enough that someone could check it.>
+<What will observably be true when it is done. One observable statement per bullet, on
+one line, each ending with its citation. The mapping checks these one by one.>
 
 ## Non-goals
 
-<What is deliberately left out, each with the reason it was left out.>
+<What is deliberately left out, each with the reason it was left out, each ending with its citation.>
 
 ## Constraints
 
-<What cannot change: time, money, platform, law, existing systems, people.>
+<What cannot change: time, money, platform, law, existing systems, people, each ending with its citation.>
 
 ## Assumptions
 
@@ -47,9 +52,10 @@ success. One bullet each, concrete enough that someone could check it.>
 
 ## Decisions
 
-<One entry per choice made in the conversation.>
+<One entry per choice the person made — an option the AI recommended counts only when the
+person chose it.>
 
-- **<decision>** — because <reason>. Rejected: <alternative(s) and why>.
+- **<decision>** — because <reason>. Rejected: <alternative(s) and why>. [turn <n>]
 
 ## Open questions
 

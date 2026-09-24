@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { hasHeader, germanise, addHeader, declareGerman, featureInfo, capabilityMarkdown, migrationIntent, migrateProject } from "../scripts/migrate-features.js";
 import { validateCapability, validateFeature } from "../skills/kartograph-features/validate-features.js";
-import { validateIntent } from "../skills/kartograph-explore/validate-intent.js";
+import { validateIntent } from "../skills/kartograph-intent/validate-intent.js";
 
 const INTENT = "intents/2026-09-18-1200-migrated-feature-tree.md";
 
