@@ -7,7 +7,7 @@ import { hasHeader, germanise, addHeader, declareGerman, featureInfo, capability
 import { validateCapability, validateFeature } from "../skills/kartograph-features/validate-features.js";
 import { validateIntent } from "../skills/kartograph-intent/validate-intent.js";
 
-const INTENT = "intents/2026-09-18-1200-migrated-feature-tree.md";
+const INTENT = "kartograph/2026-09-18-1200-migrated-feature-tree.intent.md";
 
 const english = `@role:athlete
 Feature: Move session
@@ -84,7 +84,7 @@ test("capabilityMarkdown produces a capability.md the validator accepts", () => 
 
 test("migrationIntent passes validate-intent", () => {
   const text = migrationIntent({ project: "beatrep", date: "2026-09-18", time: "1200", sources: [".kartograph/kartograph.json"], contexts: ["scheduling", "training"] });
-  const r = validateIntent(text, { filename: "2026-09-18-1200-migrated-feature-tree.md" });
+  const r = validateIntent(text, { filename: "2026-09-18-1200-migrated-feature-tree.intent.md" });
   assert.deepEqual(r.errors, []);
 });
 
@@ -108,7 +108,8 @@ test("migrateProject turns a v0 tree into a passing v2 tree and is idempotent", 
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const r = migrateProject(root, { date: "2026-09-18", time: "1200" });
   assert.deepEqual(r.errors, []);
-  assert.equal(r.intent, "intents/2026-09-18-1200-migrated-feature-tree.md");
+  assert.equal(r.intent, "kartograph/2026-09-18-1200-migrated-feature-tree.intent.md");
+  assert.ok(!existsSync(join(root, "intents")));
   assert.ok(existsSync(join(root, r.intent)));
   assert.deepEqual(validateIntent(readFileSync(join(root, r.intent), "utf8"), { filename: join(root, r.intent) }).errors, []);
   assert.ok(existsSync(join(root, "docs", "features-README.md")) && !existsSync(join(root, "features", "README.md")));
@@ -136,13 +137,13 @@ test("migrateProject turns a v0 tree into a passing v2 tree and is idempotent", 
 test("an existing capability.md is never overwritten and gets the migration intent only when a feature there names it", (t) => {
   const root = v0Project();
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  const own = capabilityMarkdown({ name: "Kept", lead: "Kept lead.", intent: "intents/2026-09-01-0900-earlier.md", features: [{ file: "move-session.feature", title: "Move session", text: "kept" }], capabilities: [] });
+  const own = capabilityMarkdown({ name: "Kept", lead: "Kept lead.", intent: "kartograph/2026-09-01-0900-earlier.intent.md", features: [{ file: "move-session.feature", title: "Move session", text: "kept" }], capabilities: [] });
   writeFileSync(join(root, "features", "scheduling", "move-session", "capability.md"), own);
-  mkdirSync(join(root, "intents")); writeFileSync(join(root, "intents", "2026-09-01-0900-earlier.md"), "# earlier\n");
+  mkdirSync(join(root, "kartograph")); writeFileSync(join(root, "kartograph", "2026-09-01-0900-earlier.intent.md"), "# earlier\n");
   const r = migrateProject(root, { date: "2026-09-18", time: "1200" });
   const kept = readFileSync(join(root, "features", "scheduling", "move-session", "capability.md"), "utf8");
   assert.ok(kept.startsWith("# Capability: Kept\n"));
-  assert.ok(kept.includes("- Intent: `intents/2026-09-01-0900-earlier.md`\n- Intent: `intents/2026-09-18-1200-migrated-feature-tree.md`"));
+  assert.ok(kept.includes("- Intent: `kartograph/2026-09-01-0900-earlier.intent.md`\n- Intent: `kartograph/2026-09-18-1200-migrated-feature-tree.intent.md`"));
   assert.deepEqual(r.errors, []);
   // The parent lists the existing description by its own name and lead sentence.
   assert.ok(readFileSync(join(root, "features", "scheduling", "capability.md"), "utf8").includes("- [Kept](move-session/capability.md): Kept lead."));

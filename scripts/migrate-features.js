@@ -6,6 +6,7 @@
 // declare '# language: de'. It never changes a scenario, a step, a tag or a comment; the
 // only body edit is making a German file's block keywords German too, because the v0
 // files mixed 'Feature:'/'Scenario:' with German steps and were valid in no dialect.
+// The provenance intent is written to kartograph/ (the 3.0.0 layout).
 //
 //   node scripts/migrate-features.js <project-root> [--date YYYY-MM-DD] [--time HHMM]
 //
@@ -82,16 +83,18 @@ export function capabilityMarkdown({ name, lead, intent, features, capabilities 
 }
 
 export function migrationIntent({ project, date, time, sources, contexts }) {
-  const src = sources.length ? sources.map((s) => `\`${s}\``).join(", ") : "none";
+  const src = ["legacy-no-conversation", ...sources].join(", ");
   const grouping = contexts.length ? contexts.join(", ") : "none";
   return `---
+type: Intent
 title: Migrated feature tree
-date: ${date}
+description: The ${project} feature tree was moved onto the capability contract without changing a scenario.
 status: confirmed
+date: ${date}
 role: maintainer
 language: en
-sources: ${src}
-related: none
+sources: [${src}]
+related: []
 ---
 
 # Migrated feature tree
@@ -196,9 +199,11 @@ export function migrateProject(root, { date, time } = {}) {
   time = time || `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
   const written = [];
   const featuresDir = join(root, "features");
-  const intentsDir = join(root, "intents");
-  let intent = existsSync(intentsDir) ? readdirSync(intentsDir).filter((f) => /^\d{4}-\d{2}-\d{2}-\d{4}-migrated-feature-tree\.md$/.test(f)).sort().pop() : null;
-  intent = intent ? `intents/${intent}` : `intents/${date}-${time}-migrated-feature-tree.md`;
+  // The intent is written in the newest layout directly (kartograph/ since 3.0.0), never in
+  // an intermediate one a later migration would have to move again.
+  const intentsDir = join(root, "kartograph");
+  let intent = existsSync(intentsDir) ? readdirSync(intentsDir).filter((f) => /^\d{4}-\d{2}-\d{2}-\d{4}-migrated-feature-tree\.intent\.md$/.test(f)).sort().pop() : null;
+  intent = intent ? `kartograph/${intent}` : `kartograph/${date}-${time}-migrated-feature-tree.intent.md`;
   const map = readMap(root); const knowledge = readKnowledge(root);
   const sources = [".kartograph/kartograph.json", "features/README.md"].filter((s) => existsSync(join(root, s)));
   const contexts = readdirSync(featuresDir).filter((e) => !e.startsWith(".") && statSync(join(featuresDir, e)).isDirectory()).sort();
