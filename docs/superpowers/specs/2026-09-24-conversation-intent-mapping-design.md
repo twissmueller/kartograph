@@ -32,13 +32,17 @@ kartograph/
 - File name: `<YYYY-MM-DD-HHMM>-<slug>.<type>.md`, type lowercase. The intent and the
   mapping inherit the conversation's stamp and slug, so one chain sorts together.
 - The `type` frontmatter property and the file-name suffix must agree (validator error).
-- Every document carries `type`, `title`, `description`, `status`, `generated { by, at }`,
-  `sources[]` (OKF provenance, as in `knowledge/`). Provenance chain: intent → its
-  conversation; mapping → its intent plus the commits and feature files it cites.
+- Every document carries flat frontmatter: `type`, `title`, `description`, `status`,
+  `date`, then per type `role`/`language`, and `sources: [..]` / `related: [..]` as
+  one-line lists (flat, so the validators need no YAML parser). Provenance chain: intent →
+  its conversation (`sources`); mapping → its intent (`sources`), and the commits and
+  feature files it cites in its body.
 - A follow-up conversation (e.g. one resolving a mapping's contradictions) gets a new
   stamp and names the earlier documents under `related`.
-- `index.md` frontmatter: `okf_version: "0.2"` and `kartograph_version: <x.y.z>`, the
-  plugin version whose layout the project is on.
+- `index.md` frontmatter: `okf_version: "0.2"` and `kartograph_version`, the layout
+  version the project is on. The plugin's layout version is the highest version among
+  the files in `migrations/`; a release without a migration document leaves it unchanged.
+  Body: `# Kartograph` and one line per document, newest first.
 - Scope: only these three types move here. `knowledge/`, `features/`, `plans/`, `walks/`,
   `docs/code-design/` and `distribution/` stay where they are.
 
@@ -64,7 +68,9 @@ kartograph/
 - Writes, validates (`validate-conversation.js`), commits (`conversation: <title>`) and
   pushes only that file; updates `log.md` and creates `index.md` if missing.
 
-Turn shape (the template fixes it; the validator checks numbering and alternation):
+Block shape (the template fixes it; the validator checks it). Blocks are numbered
+sequentially from 1 and alternate between AI and Person, ending with the person, so a
+citation `[turn 8]` names exactly one block of the person's words:
 
 ```markdown
 ### 7 — AI
@@ -75,7 +81,7 @@ Reasoning (shortened): the intent phase may derive only from this file.
 - **A (recommended):** …
 - **B:** …
 
-### 7 — Person
+### 8 — Person
 A
 ```
 
@@ -130,6 +136,13 @@ One per version that changes a project's layout. Each has three sections:
 Written now: `migrations/2.1.0.md` (behind it `scripts/migrate-features.js`) and
 `migrations/3.0.0.md` (behind it the new `scripts/migrate-kartograph.js`).
 
+Migration scripts always write the **newest** layout: when a later version changes the
+layout, the earlier scripts are updated to write the new one directly (so
+`migrate-features.js` now writes its provenance intent to `kartograph/`). The
+`migrate-kartograph.js` script composes them in one run with `--check` reporting the
+project version, the layout version and the documents in between. This is how the merge
+happens mechanically; the skill merges any judgment steps the documents name.
+
 ### Project version
 
 `kartograph_version` in `kartograph/index.md`. Without it, the version is inferred from
@@ -142,7 +155,10 @@ before 2.1.0.
   between, and **merges them into the final target state**: it does only what is needed
   to reach the newest target, never replays each version step by step (a file moved by
   one version and renamed by the next is moved once, to its final name).
-- Runs all current validators on the result; anything it cannot derive is noted in
+- Runs all current validators on the result, including `validate-kartograph.js` (the
+  bundle's structure: only `index.md`, `log.md` and typed documents, no subdirectories,
+  file-name suffix agrees with `type`, every document listed in `index.md`, every
+  `sources` link resolves); anything it cannot derive is noted in
   `kartograph/log.md`, never invented.
 - Sets `kartograph_version`, commits once (`chore: migrate to kartograph <version>`),
   pushes, reports.
