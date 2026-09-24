@@ -282,7 +282,7 @@
   <text class="rowsub" x="30" y="686">has a validator</text>
 
   <!-- col 1 -->
-  <rect class="chip" x="150" y="632" width="220" height="20" rx="4"/><text class="chip-t" x="158" y="646">kartograph/&lt;stamp&gt;-&lt;slug&gt;.&lt;type&gt;.md</text>
+  <rect class="chip" x="150" y="632" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="646">kartograph/&lt;stamp&gt;-&lt;slug&gt;.&lt;type&gt;.md</text>
   <rect class="chip" x="150" y="658" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="672">Goals · Outcomes · Non-goals</text>
   <rect class="chip" x="150" y="684" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="698">Constraints · Assumptions · Decisions</text>
   <rect class="chip" x="150" y="710" width="162" height="20" rx="4"/><text class="chip-t" x="158" y="724">Open questions · Terms</text>

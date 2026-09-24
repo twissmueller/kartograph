@@ -369,7 +369,9 @@ tools named `kartograph_converse`, `kartograph_intent`, `kartograph_map`,
 
 OpenCode also reads skills straight from `~/.agents/skills/`, and Codex picks them up from
 the same place; a copy of a single `skills/kartograph-*` directory works for every skill
-except plan, which needs the plugin's `stacks/` directory beside it.
+except plan and deliver, which need the plugin's `stacks/` directory beside it, and
+migrate, which needs the plugin's `scripts/` and `migrations/` directories beside it.
+Every other skill's version gate simply skips when `migrations/` is not there.
 
 ### Any agent that reads `SKILL.md`
 

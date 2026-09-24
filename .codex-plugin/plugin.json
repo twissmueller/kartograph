@@ -36,7 +36,7 @@
   "interface": {
     "displayName": "Kartograph",
     "shortDescription": "Draw out what a person really wants before anything gets built",
-    "longDescription": "Kartograph has eight skills that build on each other through plain files. kartograph-explore runs one exploring conversation with you and writes intents/<date>-<slug>.md. kartograph-knowledge records every concept an intent introduces in an Open Knowledge Format bundle at knowledge/. kartograph-features derives capabilities and Gherkin features under features/. kartograph-plan detects the project's technology stack (Kotlin Multiplatform today; more stacks are directories) and writes a three-ring plan: screens, domain, adapters. kartograph-screens builds ring 1 on fakes with sample data so you can walk the flow first; kartograph-domain builds the real behaviour with a test per scenario; kartograph-adapters builds repositories, database, API client, platform capabilities and the server. kartograph-walk drives the running app scenario by scenario in front of you after any ring and records your verdicts under walks/.",
+    "longDescription": "Kartograph has twelve skills that build on each other through plain files. kartograph-converse runs one conversation with you and records it in kartograph/<date>-<slug>.conversation.md. kartograph-intent derives your goals, outcomes, non-goals, constraints and decisions from it into kartograph/<date>-<slug>.intent.md. kartograph-map holds that intent against features/ and the git history in kartograph/<date>-<slug>.mapping.md: done, partly done, new, or contradicts. kartograph-knowledge records every concept a mapped intent introduces in an Open Knowledge Format bundle at knowledge/. kartograph-features derives capabilities and Gherkin features under features/. kartograph-plan detects the project's technology stack (Kotlin Multiplatform today; more stacks are directories) and writes a three-ring plan: screens, domain, adapters. kartograph-screens builds ring 1 on fakes with sample data so you can walk the flow first; kartograph-domain builds the real behaviour with a test per scenario; kartograph-adapters builds repositories, database, API client, platform capabilities and the server. kartograph-walk drives the running app scenario by scenario in front of you after any ring and records your verdicts under walks/. kartograph-deliver gets what was built into a person's hands: locally, on a device, on the test tracks, or in the stores. kartograph-migrate brings a project's kartograph/ files onto the plugin's current layout in one commit.",
     "developerName": "Tobias Wissmüller",
     "category": "Engineering",
     "capabilities": [
@@ -45,7 +45,7 @@
     ],
     "websiteURL": "https://github.com/twissmueller/kartograph",
     "defaultPrompt": [
-      "Explore my intent for a new feature with kartograph-explore",
+      "Talk through a new feature with kartograph-converse",
       "Plan the project-archiving capability with kartograph-plan",
       "Build the screens for the newest plan with kartograph-screens",
       "Walk me through the project-archiving capability with kartograph-walk"
