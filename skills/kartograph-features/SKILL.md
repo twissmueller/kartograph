@@ -42,11 +42,10 @@ kartograph-migrate first." A project with none of these is new and passes.
 
 Take the intent the person named; otherwise the newest `kartograph/*.intent.md` that has a
 `.mapping.md` with the same stamp and slug. An intent without its mapping is not ready: say
-so and stop. Read the intent and its mapping. Read it in
-full: problem, actors, outcomes, rules, scope, exclusions, constraints, open questions.
-Read the project's instruction file, every `capability.md` and `.feature` under `features/`
-at any depth, and
-the `knowledge/` bundle if present. Use the bundle's canonical titles for every term; a
+so and stop. Read the intent in full (problem, actors, outcomes, rules, scope, exclusions,
+constraints, open questions) and its mapping. Read the project's instruction file, every
+`capability.md` and `.feature` under `features/` at any depth, and the `knowledge/` bundle
+if present. Use the bundle's canonical titles for every term; a
 word listed in any concept's `aliases_to_avoid` never appears in a feature or scenario.
 If the intent is already listed under *Sources* of every capability it touches and nothing
 it states is missing, report that and stop.
