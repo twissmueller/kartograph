@@ -29,10 +29,13 @@ Before anything else, check that the project is on this plugin's layout. The plu
 layout version is the highest version among the files named like `3.0.0.md` in the
 `migrations/` directory at the plugin root, two levels above this file's directory; if
 that directory is not there, skip this step. The project is behind when
-`kartograph/index.md` names a lower `kartograph_version`, or when `kartograph/index.md`
-does not exist but any of `intents/`, `knowledge/`, `features/`, `plans/` or `walks/`
-does. Then stop and say only: "This project is on an older Kartograph layout; run
-kartograph-migrate first." A project with none of these is new and passes.
+`kartograph/index.md` names a lower `kartograph_version` or names none, or when
+`kartograph/index.md` does not exist but the project holds Kartograph files from before:
+stamp-named files in `intents/`, a `capability.md` or a `# Source intent:` line under
+`features/`, a `knowledge/index.md` with `okf_version`, or a `.kartograph/` directory.
+Then stop and say only: "This project is on an older Kartograph layout; run
+kartograph-migrate first." A project with none of these is new and passes; a directory
+name alone, such as `features/` in a Cucumber project, is not a Kartograph file.
 
 ## 1. Orient, silently
 
@@ -91,7 +94,7 @@ Write immediately when the conversation ends, without asking, to
 started; slug: the topic, lowercase, hyphenated, at most five words). Frontmatter as in the
 template: `status: recorded`; `sources` lists the issue, ticket or URL the request came
 from, else `[]`; `related` lists the earlier `kartograph/` documents this conversation
-follows up, else `[]`. A follow-up is a new file, never an edit of an earlier one.
+follows up by file name, without the `kartograph/` prefix, else `[]`. A follow-up is a new file, never an edit of an earlier one.
 
 Update the bundle. If `kartograph/index.md` does not exist, create it with the frontmatter
 `okf_version: "0.2"` and `kartograph_version:` the plugin's layout version from step 0,
