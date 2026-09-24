@@ -28,6 +28,17 @@ nothing.** If no capability or feature was named, stop and say so.
 - **Write only the plan and, on first use, the stack declaration; commit only those.**
 - Re-running on unchanged input changes nothing; a re-plan supersedes the earlier plan.
 
+## 0. Version gate
+
+Before anything else, check that the project is on this plugin's layout. The plugin's
+layout version is the highest version among the files named like `3.0.0.md` in the
+`migrations/` directory at the plugin root, two levels above this file's directory; if
+that directory is not there, skip this step. The project is behind when
+`kartograph/index.md` names a lower `kartograph_version`, or when `kartograph/index.md`
+does not exist but any of `intents/`, `knowledge/`, `features/`, `plans/` or `walks/`
+does. Then stop and say only: "This project is on an older Kartograph layout; run
+kartograph-migrate first." A project with none of these is new and passes.
+
 ## 1. Stack
 
 If `docs/code-design/stack.md` exists, read its `stack` and use the documents beside it.

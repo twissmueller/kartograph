@@ -32,6 +32,17 @@ capability, feature or scenario was named, stop and say so.
   second button"). No files, selectors, endpoints or code.
 - **Write only the walk file, and commit only that.**
 
+## 0. Version gate
+
+Before anything else, check that the project is on this plugin's layout. The plugin's
+layout version is the highest version among the files named like `3.0.0.md` in the
+`migrations/` directory at the plugin root, two levels above this file's directory; if
+that directory is not there, skip this step. The project is behind when
+`kartograph/index.md` names a lower `kartograph_version`, or when `kartograph/index.md`
+does not exist but any of `intents/`, `knowledge/`, `features/`, `plans/` or `walks/`
+does. Then stop and say only: "This project is on an older Kartograph layout; run
+kartograph-migrate first." A project with none of these is new and passes.
+
 ## 1. Read and set up
 
 Read the named scope from `features/` (a capability directory, one `.feature`, or one

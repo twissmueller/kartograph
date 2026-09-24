@@ -5,10 +5,10 @@ description: <one sentence that defines it, in the intent's language>
 status: draft
 aliases_to_avoid: [<words people use for this that must not become new concepts>]
 tags: []
-generated: { by: kartograph-knowledge/2.1.0, at: <YYYY-MM-DDTHH:MM:SSZ> }
+generated: { by: kartograph-knowledge/3.0.0, at: <YYYY-MM-DDTHH:MM:SSZ> }
 sources:
   - id: <intent-file-slug>
-    resource: ../intents/<YYYY-MM-DD-HHMM-slug>.md
+    resource: ../kartograph/<YYYY-MM-DD-HHMM-slug>.intent.md
     title: <the intent's title>
 ---
 

@@ -16,7 +16,7 @@ upload, promote, submit or deploy without the person saying so, once, in chat.
 
 - **Write only `distribution/`** (the scripts, `config.sh`, the store JSON and the release
   notes the scripts create) and the `.gitignore` line for `distribution/build/`; commit only
-  those. Never `intents/`, `knowledge/`, `features/`, `plans/`, `walks/`, or the app's code.
+  those. Never `kartograph/`, `knowledge/`, `features/`, `plans/`, `walks/`, or the app's code.
 - **Never print a secret.** Key files are named by path; tokens, passwords and key contents
   never appear in chat or in a commit. `config.sh` holds identifiers and paths only.
 - **Anything that leaves the machine is confirmed by the person.** Uploading, promoting,
@@ -29,6 +29,17 @@ upload, promote, submit or deploy without the person saying so, once, in chat.
   is not shipped; do not invent a way around it.
 - The App Store Connect and Play APIs need the network; if the runtime's sandbox blocks
   them, say so and let the person run the printed command themselves.
+
+## 0. Version gate
+
+Before anything else, check that the project is on this plugin's layout. The plugin's
+layout version is the highest version among the files named like `3.0.0.md` in the
+`migrations/` directory at the plugin root, two levels above this file's directory; if
+that directory is not there, skip this step. The project is behind when
+`kartograph/index.md` names a lower `kartograph_version`, or when `kartograph/index.md`
+does not exist but any of `intents/`, `knowledge/`, `features/`, `plans/` or `walks/`
+does. Then stop and say only: "This project is on an older Kartograph layout; run
+kartograph-migrate first." A project with none of these is new and passes.
 
 ## 1. Set up, on first use
 
