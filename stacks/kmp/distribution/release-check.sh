@@ -73,11 +73,13 @@ print((".".join(parts) if parts else "-"), b["attributes"].get("version") or "-"
     live="$(printf '%s' "$versions" | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
-on_sale = {"READY_FOR_SALE", "READY_FOR_DISTRIBUTION"}
+# Every state of a version that has been on sale (ASC_SHIPPED_STATES in asc.sh): an app
+# removed from sale has had its first release, and the tested build must be newer still.
+shipped = {"READY_FOR_SALE", "READY_FOR_DISTRIBUTION", "DEVELOPER_REMOVED_FROM_SALE", "REMOVED_FROM_SALE", "REPLACED_WITH_NEW_VERSION"}
 found = []
 for v in d.get("data", []):
     a = v["attributes"]
-    if (a.get("appStoreState") or a.get("appVersionState")) not in on_sale:
+    if (a.get("appStoreState") or a.get("appVersionState")) not in shipped:
         continue
     parts = (a.get("versionString", "").split(".") + ["0", "0"])[:3]
     if all(p.isdigit() for p in parts):

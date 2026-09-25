@@ -339,6 +339,11 @@ print(json.dumps({"data": {"type": "betaBuildLocalizations",
 # case in which a new build is wanted. A list that knew only the first state left a
 # rejected version standing and resubmitted the very binary that had just been rejected.
 # WAITING_FOR_REVIEW is in here because its metadata is still patchable — the binary is not.
+# The states of a version that has been on sale at some point. An app removed from sale, or
+# a version replaced by a newer one, has had its first release: What's New is accepted
+# from then on, and the next version has to be newer than the highest of them.
+ASC_SHIPPED_STATES="READY_FOR_SALE READY_FOR_DISTRIBUTION DEVELOPER_REMOVED_FROM_SALE REMOVED_FROM_SALE REPLACED_WITH_NEW_VERSION"
+
 ASC_EDITABLE_STATES="PREPARE_FOR_SUBMISSION DEVELOPER_REJECTED REJECTED METADATA_REJECTED INVALID_BINARY WAITING_FOR_REVIEW"
 
 # asc_version_exists PLATFORM VERSION — true when a version in an editable state already
@@ -435,8 +440,9 @@ print(json.dumps({"data": {"type": "appStoreVersionLocalizations",
   log "what's new set for $locale"
 }
 
-# asc_version_on_sale PLATFORM — the highest versionString on sale on PLATFORM, or nothing
-# when no version ever went on sale: a first release. That is the case in which Apple
+# asc_version_on_sale PLATFORM — the highest versionString ever on sale on PLATFORM (a
+# state in ASC_SHIPPED_STATES), or nothing when no version ever went on sale: a first
+# release. Compared numerically, so the order of the response does not matter. That is the case in which Apple
 # refuses What's New (409, worded like a malformed request), because there is nothing for
 # it to be new against. Returns non-zero only when the versions cannot be read, so an
 # empty answer always means "first release", never "unknown".
@@ -444,18 +450,18 @@ asc_version_on_sale() {
   local platform="${1:?asc_version_on_sale PLATFORM}" app answer
   app="$(_asc_app)"
   answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 1
-  printf '%s' "$answer" | _asc_py '
+  printf '%s' "$answer" | _asc_py 'shipped = set(sys.argv[2].split())
 found = []
 for v in d.get("data", []):
     a = v["attributes"]
     # Older responses call it appStoreState, newer ones appVersionState.
-    if (a.get("appStoreState") or a.get("appVersionState")) not in ("READY_FOR_SALE", "READY_FOR_DISTRIBUTION"):
+    if (a.get("appStoreState") or a.get("appVersionState")) not in shipped:
         continue
     parts = (a.get("versionString", "").split(".") + ["0", "0"])[:3]
     if all(p.isdigit() for p in parts):
         found.append((tuple(int(p) for p in parts), a["versionString"]))
 if found:
-    print(max(found)[1])'
+    print(max(found)[1])' "$ASC_SHIPPED_STATES"
 }
 
 # ---------------------------------------------------------------------------
