@@ -19,6 +19,7 @@ distribution/
     asc.sh                  App Store Connect API: token, builds, TestFlight, versions, review
     play.sh                 Google Play: token, edits, bundles, tracks, promotion
     gradle.sh               Gradle: version fields, bundleRelease, installDebug, run tasks
+    kotlin-toolchain.sh     Kotlin Toolchain: version fields in module.yaml, package -f aab, kotlin run
     docker.sh               docker compose up/down/logs for a local backend and frontend
     asc_metadata.py         push store/apple/*.json to every editable version
     play_listing.py         push store/play/listing.json in one edit
@@ -33,18 +34,27 @@ distribution/
 
 ## Entry scripts per stack
 
-| script | kmp | apple-swift | android-compose | angular-kotlin | python-fastapi | does |
-|---|---|---|---|---|---|---|
-| `run-local.sh <lane>` | desktop, ios, android, docker | macos, ios | android | docker | docker | builds and starts the app on that lane for development |
-| `run-device.sh [udid]` | ios | ios | – | – | – | installs and launches the debug build on a paired iPhone or iPad over the cable |
-| `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags |
-| `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
-| `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
-| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots]` | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; creates the JSON templates when missing; states what only the web UI can do |
-| `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production; Apple: attaches the processed build to the editable version, sets What's New, submits for review |
-| `deploy.sh [backend\|frontend\|all]` | – | – | – | ✓ | – | backend to Fly, frontend to Vercel, each followed by a live health check |
+| script | kmp | kmp-toolchain | apple-swift | android-compose | angular-kotlin | python-fastapi | does |
+|---|---|---|---|---|---|---|---|
+| `run-local.sh <lane>` | desktop, ios, android, docker | desktop, ios, android, docker | macos, ios | android | docker | docker | builds and starts the app on that lane for development |
+| `run-device.sh [udid]` | ios | ios | ios | – | – | – | installs and launches the debug build on a paired iPhone or iPad over the cable |
+| `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags |
+| `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ios | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
+| `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
+| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; creates the JSON templates when missing; states what only the web UI can do |
+| `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production; Apple: attaches the processed build to the editable version, sets What's New, submits for review |
+| `deploy.sh [backend\|frontend\|all]` | – | – | – | – | ✓ | – | backend to Fly, frontend to Vercel, each followed by a live health check |
 
 A script whose lane the project does not ship (per `LANES` in `config.sh`) says so and exits 2.
+
+**One script, every stack.** A script with the same name is byte-identical in every stack
+that ships it. Where the build system matters (the Android and desktop lanes of
+`run-local.sh`, `prepare-release.sh`, `deploy-play-internal.sh`), the script calls
+`kotlin_build_lib`, which sources `kotlin-toolchain.sh` when `STACK="kmp-toolchain"` and
+`gradle.sh` otherwise, and then only the **Kotlin build interface** both libraries define:
+`android_version_read`, `android_version_write NAME CODE`, `android_bundle_release`,
+`emulator_run`, `desktop_run`. The iOS lanes are `xcode.sh` for every stack; on
+`kmp-toolchain` they run on the generated `iosApp/module.xcodeproj`.
 
 ## `config.sh`
 
@@ -54,7 +64,7 @@ live here: only paths to key files under the home directory.
 
 ```bash
 APP_NAME=""                      # display name, e.g. Longpath
-STACK=""                         # kmp | apple-swift | android-compose | angular-kotlin | python-fastapi
+STACK=""                         # kmp | kmp-toolchain | apple-swift | android-compose | angular-kotlin | python-fastapi
 LANES=""                         # space-separated subset of: ios mac android desktop web server backend frontend
 LOCALES="en-US"                  # store locales, space-separated
 
@@ -80,13 +90,14 @@ BETA_FEEDBACK_EMAIL=""
 # Android
 PLAY_PACKAGE_NAME=""
 PLAY_SERVICE_ACCOUNT="$HOME/.google-play/service-account.json"
-GRADLE_DIR=""                    # directory holding gradlew
-ANDROID_MODULE=":androidApp"
-ANDROID_BUILD_FILE=""            # build.gradle.kts holding versionCode and versionName
+GRADLE_DIR=""                    # directory holding gradlew (Gradle stacks)
+KOTLIN_DIR=""                    # directory holding the kotlin wrapper and project.yaml (kmp-toolchain)
+ANDROID_MODULE=":androidApp"     # a Gradle path; on kmp-toolchain the module name, androidApp
+ANDROID_BUILD_FILE=""            # the file holding versionCode and versionName: build.gradle.kts, or the Android module.yaml on kmp-toolchain
 KEYSTORE_PROPERTIES=""           # gitignored file with storeFile, storePassword, keyAlias, keyPassword
 EMULATOR=""                      # AVD name; empty → the first one listed
 
-# Desktop, web, server (KMP)
+# Desktop, web, server (KMP; module names without the colon on kmp-toolchain)
 DESKTOP_MODULE=":desktopApp"
 WEB_MODULE=":webApp"
 SERVER_MODULE=":server"
@@ -125,6 +136,7 @@ commits_since REF                      one line per commit subject since REF (or
 notes_write VERSION [REF]              write release-notes/vVERSION.md with Fixed / New / Changed sections seeded from commits
 notes_slice FILE lane [CAP]            print the lane's section (play_short, asc_short, web, desktop, server) or the whole file, truncated at CAP
 json_get FILE|- EXPR                   python3 one-liner: print value at dotted path
+kotlin_build_lib                       source kotlin-toolchain.sh when STACK=kmp-toolchain, else gradle.sh
 ```
 
 ### `xcode.sh`
@@ -190,7 +202,30 @@ gradle_bundle_release                  :module:bundleRelease with $KEYSTORE_PROP
 gradle_run TASK...                     ./gradlew in $GRADLE_DIR
 emulator_run                           start $EMULATOR (or the first AVD) if none is running, wait for boot, installDebug, launch the main activity
 desktop_run                            $DESKTOP_MODULE:run
+android_version_read                   the Kotlin build interface: gradle_version_read
+android_version_write NAME CODE        gradle_version_write
+android_bundle_release                 gradle_bundle_release
 ```
+
+### `kotlin-toolchain.sh`
+
+```
+toolchain_run ARGS...                  ./kotlin in $KOTLIN_DIR, output on stderr
+toolchain_version_read                 settings.android.versionName and versionCode from $ANDROID_BUILD_FILE (a module.yaml; prints "NAME CODE"); a missing key stops
+toolchain_version_write NAME CODE      rewrite both in place, the rest of the file byte-identical; a missing key is added under settings: android:
+toolchain_bundle_release               refuse unless module.yaml enables signing and $KEYSTORE_PROPERTIES exists; kotlin package -m $ANDROID_MODULE -f aab -v release;
+                                       the newest .aab under build/tasks, jarsigner -verify, copied to build/android/<App>-<name>-<code>.aab; prints that path
+toolchain_emulator_run                 boot $EMULATOR (or the first AVD) when nothing is attached, then kotlin run -m $ANDROID_MODULE -d <serial>
+toolchain_desktop_run                  kotlin run -m $DESKTOP_MODULE (Compose Hot Reload on by default)
+android_version_read                   the Kotlin build interface: toolchain_version_read
+android_version_write NAME CODE        toolchain_version_write
+android_bundle_release                 toolchain_bundle_release
+emulator_run                           toolchain_emulator_run
+desktop_run                            toolchain_desktop_run
+```
+
+For `kmp-toolchain`: the project's own `kotlin` wrapper in `$KOTLIN_DIR`, never one on PATH.
+The Kotlin Toolchain is Alpha; the file's header names the checks its facts came from.
 
 ### `docker.sh`
 

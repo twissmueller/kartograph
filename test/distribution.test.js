@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 
 const root = new URL("../", import.meta.url).pathname;
@@ -14,6 +15,7 @@ const all = [...common, ...Object.values(perStack).flat()];
 // The scripts each stack must ship, from the table in stacks/common/DISTRIBUTION.md.
 const REQUIRED = {
   kmp: ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-stores.sh"],
+  "kmp-toolchain": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-stores.sh"],
   "apple-swift": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "push-store-metadata.sh", "release-stores.sh"],
   "android-compose": ["run-local.sh", "prepare-release.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-stores.sh"],
   "angular-kotlin": ["run-local.sh", "prepare-release.sh", "deploy.sh"],
@@ -76,7 +78,7 @@ test("entry scripts keep the conventions: strict mode, common.sh, load_config, a
 test("the libraries load together and define every function the contract lists", () => {
   const contract = readFileSync(join(root, "stacks/common/DISTRIBUTION.md"), "utf8");
   const expected = new Set();
-  for (const m of contract.matchAll(/### `(\w+)\.sh`\n\n```\n([\s\S]*?)```/g)) {
+  for (const m of contract.matchAll(/### `([\w-]+)\.sh`\n\n```\n([\s\S]*?)```/g)) {
     for (const line of m[2].split("\n")) {
       // a function is the first token of a line; the log/warn/die line carries three, split by wide gaps
       const first = /^([a-z_]+)\s/.exec(line)?.[1];
@@ -85,7 +87,7 @@ test("the libraries load together and define every function the contract lists",
       else expected.add(first);
     }
   }
-  const libs = ["common.sh", "asc.sh", "xcode.sh", "play.sh", "gradle.sh", "docker.sh"].map((l) => join(root, "stacks/common/distribution/lib", l));
+  const libs = ["common.sh", "asc.sh", "xcode.sh", "play.sh", "gradle.sh", "kotlin-toolchain.sh", "docker.sh"].map((l) => join(root, "stacks/common/distribution/lib", l));
   for (const l of libs) assert.ok(existsSync(l), `missing ${l}`);
   const script = `set -euo pipefail; CONFIG_FILE=/dev/null; ${libs.map((l) => `. '${l}'`).join("; ")}; declare -F | sed 's/declare -f //'`;
   const defined = new Set(execFileSync("bash", ["-c", script], { encoding: "utf8" }).split("\n").filter(Boolean));
@@ -99,4 +101,95 @@ test("no literal identifier from the source projects leaks into the shipped scri
     const t = readFileSync(f, "utf8");
     for (const p of forbidden) assert.doesNotMatch(t, p, `${f} contains ${p}`);
   }
+});
+
+// The entry scripts are shared byte for byte, so none may call a build library directly:
+// the build is chosen by kotlin_build_lib from STACK, and they use only the interface.
+test("entry scripts reach the Android and desktop builds only through kotlin_build_lib", () => {
+  for (const files of Object.values(perStack)) {
+    for (const f of files) {
+      if (!f.endsWith(".sh")) continue;
+      const t = readFileSync(f, "utf8");
+      assert.doesNotMatch(t, /lib\/(gradle|kotlin-toolchain)\.sh/, `${f} sources a build library directly`);
+      assert.doesNotMatch(t, /\b(gradle|toolchain)_(run|version_read|version_write|bundle_release|emulator_run|desktop_run)\b/, `${f} calls a build library function directly`);
+    }
+  }
+});
+
+const lib = (name) => join(root, "stacks/common/distribution/lib", name);
+const sh = (script, env = {}) =>
+  spawnSync("bash", ["-c", `set -euo pipefail; CONFIG_FILE=/dev/null; . '${lib("common.sh")}'; ${script}`], {
+    encoding: "utf8",
+    env: { ...process.env, ...env },
+  });
+
+test("kotlin_build_lib picks kotlin-toolchain.sh for kmp-toolchain and gradle.sh otherwise", () => {
+  for (const [stack, own, other] of [["kmp-toolchain", "toolchain_run", "gradle_run"], ["kmp", "gradle_run", "toolchain_run"], ["android-compose", "gradle_run", "toolchain_run"]]) {
+    const r = sh(`STACK=${stack}; kotlin_build_lib; declare -F ${own} >/dev/null; ! declare -F ${other} >/dev/null; for f in android_version_read android_version_write android_bundle_release emulator_run desktop_run; do declare -F $f >/dev/null; done`);
+    assert.equal(r.status, 0, `${stack}: ${r.stderr}`);
+  }
+});
+
+test("kotlin-toolchain.sh reads and writes versionName and versionCode in a module.yaml, touching nothing else", () => {
+  const dir = mkdtempSync(join(tmpdir(), "kt-version-"));
+  const file = join(dir, "module.yaml");
+  const before = `product: android/app
+
+dependencies:
+  - //shared
+
+settings:
+  compose: enabled
+  android:
+    namespace: org.example.app
+    applicationId: org.example.app
+    versionCode: 41 # raised by deploy-play-internal.sh
+    versionName: "1.4.2"
+    signing:
+      enabled: true
+      propertiesFile: ../keystore.properties
+`;
+  writeFileSync(file, before);
+  const env = { ANDROID_BUILD_FILE: file };
+  const load = `. '${lib("kotlin-toolchain.sh")}';`;
+
+  let r = sh(`${load} toolchain_version_read`, env);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "1.4.2 41\n");
+
+  r = sh(`${load} android_version_write 1.5.0 42`, env);
+  assert.equal(r.status, 0, r.stderr);
+  const after = readFileSync(file, "utf8");
+  assert.equal(after, before.replace("versionCode: 41 #", "versionCode: 42 #").replace('versionName: "1.4.2"', 'versionName: "1.5.0"'));
+  assert.equal(sh(`${load} android_version_read`, env).stdout, "1.5.0 42\n");
+
+  // Unquoted values keep their shape.
+  writeFileSync(file, "settings:\n  android:\n    versionName: 2.0.0\n    versionCode: 7\n");
+  sh(`${load} toolchain_version_write 2.1.0 8`, env);
+  assert.equal(readFileSync(file, "utf8"), "settings:\n  android:\n    versionName: 2.1.0\n    versionCode: 8\n");
+
+  // The Toolchain's defaults are never a release: reading stops, writing adds the keys.
+  writeFileSync(file, "product: android/app\n\nsettings:\n  compose: enabled\n  android:\n    namespace: org.example.app\n");
+  r = sh(`${load} toolchain_version_read`, env);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /versionName and versionCode not set/);
+  r = sh(`${load} toolchain_version_write 1.0.0 1`, env);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(readFileSync(file, "utf8"), 'product: android/app\n\nsettings:\n  compose: enabled\n  android:\n    versionName: "1.0.0"\n    versionCode: 1\n    namespace: org.example.app\n');
+  assert.equal(sh(`${load} toolchain_version_read`, env).stdout, "1.0.0 1\n");
+});
+
+test("toolchain_bundle_release refuses before building when module.yaml does not enable signing", () => {
+  const dir = mkdtempSync(join(tmpdir(), "kt-bundle-"));
+  const file = join(dir, "module.yaml");
+  const props = join(dir, "keystore.properties");
+  writeFileSync(file, "settings:\n  android:\n    versionName: 1.0.0\n    versionCode: 1\n");
+  writeFileSync(props, "storeFile=x\n");
+  writeFileSync(join(dir, "kotlin"), "#!/bin/sh\necho ran >&2\nexit 1\n", { mode: 0o755 });
+  const r = sh(`. '${lib("kotlin-toolchain.sh")}'; toolchain_bundle_release`, {
+    ANDROID_BUILD_FILE: file, KEYSTORE_PROPERTIES: props, KOTLIN_DIR: dir, ANDROID_MODULE: "androidApp", APP_NAME: "Demo", BUILD_DIR: join(dir, "build"),
+  });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /signing is not enabled/);
+  assert.doesNotMatch(r.stderr, /\bran\b/);
 });

@@ -257,3 +257,11 @@ desktop_run() {
   require_var DESKTOP_MODULE
   gradle_run "$DESKTOP_MODULE:run"
 }
+
+# ---------- the Kotlin build interface (see DISTRIBUTION.md) ----------
+# The entry scripts call these through kotlin_build_lib; kotlin-toolchain.sh defines the
+# same five (emulator_run and desktop_run above are already two of them).
+
+android_version_read()   { gradle_version_read; }
+android_version_write()  { gradle_version_write "$@"; }
+android_bundle_release() { gradle_bundle_release; }

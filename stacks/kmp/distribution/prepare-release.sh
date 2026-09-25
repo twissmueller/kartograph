@@ -3,7 +3,8 @@
 #
 # Prepares one release across every lane the project ships:
 #   1. computes the next version from the current one (the Apple VERSION_FILE, else the
-#      Android build file) or takes X.Y.Z as given;
+#      Android build file: build.gradle.kts, or module.yaml on the Kotlin Toolchain) or
+#      takes X.Y.Z as given;
 #   2. writes distribution/release-notes/vX.Y.Z.md seeded from the commits since the last
 #      vX.Y.Z tag, with empty play_short and asc_short sections to fill;
 #   3. writes the version into every lane's file and raises the build numbers
@@ -26,12 +27,12 @@ apple=0; android=0
 { has_lane ios || has_lane mac; } && apple=1
 has_lane android && android=1
 [ "$apple" = 1 ] && . "$HERE/lib/xcode.sh"
-[ "$android" = 1 ] && . "$HERE/lib/gradle.sh"
+[ "$android" = 1 ] && kotlin_build_lib
 
 # 1. current version
 current=""
 if [ "$apple" = 1 ]; then require_var VERSION_FILE; current="$(version_read)"; fi
-if [ -z "$current" ] && [ "$android" = 1 ]; then require_var ANDROID_BUILD_FILE; current="$(gradle_version_read | cut -d' ' -f1)"; fi
+if [ -z "$current" ] && [ "$android" = 1 ]; then require_var ANDROID_BUILD_FILE; current="$(android_version_read | cut -d' ' -f1)"; fi
 if [ -z "$current" ]; then
   current="$(last_release_tag)"; current="${current#v}"
 fi
@@ -53,9 +54,9 @@ if [ "$apple" = 1 ]; then
   if [ "$bump_build" = 1 ]; then b="$(build_read)"; build_write $((b + 1)); log "CURRENT_PROJECT_VERSION $b → $((b + 1))"; fi
 fi
 if [ "$android" = 1 ]; then
-  read -r _name code <<<"$(gradle_version_read)"
+  read -r _name code <<<"$(android_version_read)"
   newcode="$code"; [ "$bump_build" = 1 ] && newcode=$((code + 1))
-  gradle_version_write "$next" "$newcode"; changed+=("$ANDROID_BUILD_FILE")
+  android_version_write "$next" "$newcode"; changed+=("$ANDROID_BUILD_FILE")
   log "versionName $next, versionCode $code → $newcode"
 fi
 if [ -f "$PROJECT_ROOT/package.json" ] && { has_lane frontend || has_lane web; }; then

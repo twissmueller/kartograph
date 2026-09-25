@@ -75,6 +75,20 @@ load_config() {
   mkdir -p "$BUILD_DIR"
 }
 
+# kotlin_build_lib: source the library that builds the Android and desktop apps and defines
+# the Kotlin build interface (android_version_read, android_version_write,
+# android_bundle_release, emulator_run, desktop_run): kotlin-toolchain.sh when STACK is
+# kmp-toolchain, gradle.sh for every other stack. The entry scripts are shared byte for byte
+# between stacks, so the choice is made here, from config.sh, never in a script.
+kotlin_build_lib() {
+  local lib_dir
+  lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  case "${STACK:-}" in
+    kmp-toolchain) . "$lib_dir/kotlin-toolchain.sh" ;;
+    *)             . "$lib_dir/gradle.sh" ;;
+  esac
+}
+
 # ---------- versions ----------
 
 semver_valid() { [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }

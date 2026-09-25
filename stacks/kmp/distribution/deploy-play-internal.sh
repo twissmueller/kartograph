@@ -23,15 +23,15 @@ while [ $# -gt 0 ]; do
   esac; shift
 done
 require_lane android
-. "$HERE/lib/gradle.sh"; . "$HERE/lib/play.sh"
-require_var PLAY_PACKAGE_NAME GRADLE_DIR ANDROID_BUILD_FILE KEYSTORE_PROPERTIES
+kotlin_build_lib; . "$HERE/lib/play.sh"
+require_var PLAY_PACKAGE_NAME ANDROID_BUILD_FILE KEYSTORE_PROPERTIES
 [ -f "$PLAY_SERVICE_ACCOUNT" ] || die "service account not found at $PLAY_SERVICE_ACCOUNT"
 
-read -r name current <<<"$(gradle_version_read)"
-if [ "$bump" = 1 ]; then code=$((current + 1)); gradle_version_write "$name" "$code"; log "versionCode $current → $code (written to $ANDROID_BUILD_FILE)"; fi
+read -r name current <<<"$(android_version_read)"
+if [ "$bump" = 1 ]; then code=$((current + 1)); android_version_write "$name" "$code"; log "versionCode $current → $code (written to $ANDROID_BUILD_FILE)"; fi
 [ -n "$code" ] || code="$current"
-[ "$code" = "$current" ] || [ "$bump" = 1 ] || { gradle_version_write "$name" "$code"; log "versionCode set to $code"; }
-aab="$(gradle_bundle_release)"
+[ "$code" = "$current" ] || [ "$bump" = 1 ] || { android_version_write "$name" "$code"; log "versionCode set to $code"; }
+aab="$(android_bundle_release)"
 log "bundle: $aab"
 confirm_typed upload "Upload $APP_NAME $name ($code) to the Play internal track? Type 'upload'"
 edit="$(play_edit_open)"

@@ -3,7 +3,8 @@
 #
 # Builds and starts the app for development on one lane:
 #   macos    the Mac app, Debug, opened from the build directory
-#   desktop  the JVM desktop app through Gradle
+#   desktop  the JVM desktop app through the project's build (Gradle, or the Kotlin
+#            Toolchain when STACK is kmp-toolchain)
 #   ios      the iOS app in the simulator named SIMULATOR in config.sh
 #   android  the Android app in a running emulator, started if none runs
 #   docker   the local stack from COMPOSE_FILE (server, web, database), waiting for
@@ -62,8 +63,8 @@ print_urls() {
 case "$lane" in
   macos)   require_lane mac;     . "$HERE/lib/xcode.sh";  mac_run ;;
   ios)     require_lane ios;     . "$HERE/lib/xcode.sh";  simulator_run ;;
-  desktop) require_lane desktop; . "$HERE/lib/gradle.sh"; desktop_run ;;
-  android) require_lane android; . "$HERE/lib/gradle.sh"; emulator_run ;;
+  desktop) require_lane desktop; kotlin_build_lib;        desktop_run ;;
+  android) require_lane android; kotlin_build_lib;        emulator_run ;;
   docker)  require_docker_lane; compose_up; print_urls ;;
   down)    require_docker_lane; compose_down ;;
   logs)    require_docker_lane; compose_logs "${2:-}" ;;

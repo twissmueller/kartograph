@@ -1,0 +1,44 @@
+# distribution/config.sh — the project's identifiers and paths for the delivery scripts.
+# Filled by kartograph-deliver on first use from what the build files reveal; edit freely.
+# Empty means not configured: a script that needs a key stops and names it. No secrets here,
+# only paths to key files under your home directory.
+
+APP_NAME=""                      # display name
+STACK="kmp-toolchain"            # makes the scripts build Android and desktop through lib/kotlin-toolchain.sh
+LANES="ios android desktop"      # subset of: ios android desktop web server
+LOCALES="en-US"                  # store locales, space-separated
+
+# Apple — the iOS app is the Toolchain's ios/app module; its Xcode project is iosApp/module.xcodeproj
+TEAM_ID=""                       # Apple Developer team id (10 characters)
+APPLE_BUNDLE_ID=""               # PRODUCT_BUNDLE_IDENTIFIER of the app target in module.xcodeproj
+ASC_APP_ID=""                    # numeric App Store Connect app id; the record is created in the web UI, never by API
+ASC_KEY_ID=""                    # App Store Connect API key id
+ASC_ISSUER_ID=""                 # its issuer id
+ASC_KEY_PATH="$HOME/.private_keys/AuthKey_${ASC_KEY_ID}.p8"
+IOS_PROJECT=""                   # the ios/app module's module.xcodeproj, relative to the project root (e.g. iosApp/module.xcodeproj)
+IOS_SCHEME="app"                 # the Toolchain generates one target and one scheme, named app
+MAC_PROJECT=""                   # unused: the desktop app is the JVM desktop lane, not a Mac app
+MAC_SCHEME=""
+VERSION_FILE=""                  # the .xcconfig holding MARKETING_VERSION and CURRENT_PROJECT_VERSION, set as the app target's base configuration (see the stack's STACK.md, Delivery)
+XCODEGEN="no"                    # the Toolchain owns module.xcodeproj; never xcodegen
+IOS_PROFILE_NAME=""              # empty → automatic signing; else manual signing with this App Store profile (created by the API when absent)
+MAC_PROFILE_NAME=""
+SIMULATOR="iPad Pro 13-inch (M4)"
+TESTFLIGHT_GROUP="Internal Testing"
+BETA_FEEDBACK_EMAIL=""
+
+# Android — the Android app is the Toolchain's android/app module
+PLAY_PACKAGE_NAME=""             # settings.android.applicationId in the Android module.yaml
+PLAY_SERVICE_ACCOUNT="$HOME/.google-play/service-account.json"
+KOTLIN_DIR=""                    # directory holding the kotlin wrapper and project.yaml, relative to the project root ("." or "code")
+ANDROID_MODULE="androidApp"      # the module name, as ./kotlin show modules prints it
+ANDROID_BUILD_FILE=""            # the Android module.yaml holding settings.android.versionCode and versionName
+KEYSTORE_PROPERTIES=""           # gitignored file with storeFile, storePassword, keyAlias, keyPassword; the one settings.android.signing.propertiesFile names
+EMULATOR=""                      # AVD name; empty → the first one listed
+
+# Desktop, web, server — module names, as ./kotlin show modules prints them
+DESKTOP_MODULE="desktopApp"
+WEB_MODULE="webApp"
+SERVER_MODULE="server"
+COMPOSE_FILE=""                  # docker compose file for the local server stack, when the project has one
+HEALTH_URL=""                    # health endpoint polled after compose up
