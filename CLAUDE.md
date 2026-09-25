@@ -133,7 +133,12 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   the build facts come from the Toolchain's documentation and a hands-on check on
   2026-09-25, and every line that check did not exercise (iOS archive and export, Android
   `kotlin run`, the server module) says so. Everything that is not the build is copied from
-  `stacks/kmp/`; each forced change is marked *Toolchain departure*. The Toolchain is
+  `stacks/kmp/`; each forced change is marked *Toolchain departure*. The owner's answers
+  of 2026-09-25 hold in its documents: projects start with `kotlin new`, no IDE appears
+  anywhere, P8 runs through `./kotlin compose-hot-reload-mcp-server` (verified, with
+  caveats), and the stack covers only a Compose-UI iOS app. A native SwiftUI iOS app
+  over an SPM-wrapped XCFramework with SKIE (I5) stays on `kmp` until the Toolchain
+  exports an XCFramework with full SKIE. The Toolchain is
   **Alpha**, so a Toolchain release can break a document: re-check before bumping the
   stack's `version`. Its delivery scripts are kmp's byte for byte; `STACK="kmp-toolchain"`
   makes `kotlin_build_lib` source `lib/kotlin-toolchain.sh` instead of `lib/gradle.sh`.

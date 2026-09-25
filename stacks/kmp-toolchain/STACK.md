@@ -25,6 +25,26 @@ Gradle projects stay on `kmp`. The Kotlin Toolchain is **Alpha**: its file forma
 commands may change between releases, and the wrapper pins the exact version a project
 builds with.
 
+**Scope: iOS shares the UI through Compose.** This stack is for projects whose iOS app is
+the Compose Multiplatform UI in an `ios/app` module. A project whose iOS app is native
+SwiftUI consuming the shared code through an SPM wrapper package with SKIE (the knowledge
+repo's I5) stays on Gradle and the `kmp` stack, until the Toolchain can export an
+XCFramework with full SKIE. The check of 2026-09-25 found no XCFramework product and no
+framework from a `kmp/lib` module: only a fixed-name `KotlinModules.framework` per slice
+from the `ios/app` module through an undocumented `./kotlin task`. SKIE also ran only
+partly, as a hand-wired compiler plugin (sealed classes to Swift enums, but no
+`suspend`/`Flow` bridging). This is a matter of scope, not of detection: the owner picks
+the stack before the project is created.
+
+**Created with `kotlin new`, worked without an IDE.** A new project starts with
+`./kotlin new --project-id=<id> --target-platform=android --target-platform=ios
+--target-platform=desktop --target-platform=web --target-platform=server <dir>` (the
+wizard is not the route; `code-design.md` § 2). The project is worked with command-line
+tools only: the `./kotlin` commands in `build-design.md` are the whole build interface,
+and the stack names no IDE, plugin or run configuration. The agent sees and drives the
+running desktop app through Compose Hot Reload's MCP server, which the Toolchain serves
+itself (P8; `build-design.md` § 9).
+
 ## Detection
 
 A project is this stack when **all three** hold:
@@ -56,14 +76,18 @@ with a `project.yaml`, so the Xcode project never makes this an Apple project.
 
 Derived from the user's KMP knowledge repository (`~/projects/knowledge/references/`,
 atoms A0–A11, C1, C2, C9–C12, P3, P4, P8, I1–I4) exactly as `kmp` is, plus atom **I11**
-(Kotlin Toolchain), which records the decision to build new projects with it. The two
+(Kotlin Toolchain), which records the decision to build new projects with it and the
+owner's answers of 2026-09-25 (`kotlin new`, no IDE, P8 through the Toolchain's MCP server,
+native-SwiftUI iOS stays on Gradle). The two
 departures `kmp` declares stay: the theme lives in `shared/` because `core` carries no
 Compose, and the server section of `build-design.md` is Kartograph's own minimal default.
 
 The build facts (file names, product types, `src@<platform>` folders, `module.yaml` keys,
 commands, flags, output paths) come from the Kotlin Toolchain documentation
 (`kotlin-toolchain.org/dev`, release 0.12.2) and a hands-on check on 2026-09-25 with the
-wrapper pinned at `0.13.0-dev-4435`. Every line the check did not exercise says so. Lines
+wrapper pinned at `0.13.0-dev-4435`, plus a second check the same day of the hot-reload
+MCP server and of iOS framework export with SKIE. Every line the checks did not exercise
+says so. Lines
 where the Toolchain forces a departure from `kmp` are marked *Toolchain departure*.
 
 ## Delivery
@@ -83,7 +107,9 @@ makes them build the Android and desktop apps through `lib/kotlin-toolchain.sh` 
   shrinks and signs the bundle; the scripts bump the two numbers in `module.yaml` first, so
   they land in the diff. Checked hands-on, up to a bundle `jarsigner` verifies; the Play
   upload itself is the shared, build-independent part.
-- **iOS.** The Toolchain keeps bundle id, team, `MARKETING_VERSION` and
+- **iOS.** Only the Compose-UI iOS app is in scope here (see *Scope* above). A native
+  SwiftUI app fed by an SPM-wrapped XCFramework is delivered by the `kmp` stack on Gradle.
+  The Toolchain keeps bundle id, team, `MARKETING_VERSION` and
   `CURRENT_PROJECT_VERSION` as ordinary target settings in `iosApp/module.xcodeproj`
   (there is no `ios` section in `module.yaml`). The scripts read and write the version in
   an `.xcconfig`, so on first use move those two settings (and `DEVELOPMENT_TEAM`) out of

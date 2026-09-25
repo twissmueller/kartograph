@@ -229,11 +229,47 @@ fail on its assertion, not on compilation.
    `androidApp` through a Gradle the Toolchain provisions and drives itself (checked
    hands-on); neither needs a build file of ours.
 4. Its `Then` is reachable through the UI, seen through Compose Hot Reload when a window
-   was connected, otherwise stated as compiled-only. `./kotlin run -m desktopApp` starts
-   the desktop app with Compose Hot Reload on by default (checked hands-on; the JetBrains
-   Runtime is provisioned, `--no-compose-hot-reload` turns it off), and `./kotlin
-   compose-hot-reload-mcp-server` serves the running window to an agent (listed by the
-   CLI's help, not exercised). Never start, restart or reset a window the person is
-   looking at.
+   was connected (the visual outer loop below), otherwise stated as compiled-only.
+   Never start, restart or reset a window the person is looking at.
 5. No fake in production code, no `Throwable` above the repository, no `List` in state,
    no raw colour or dp in composables, no word from `aliases_to_avoid` anywhere.
+
+**The visual outer loop (P8), VERIFIED on the Toolchain on 2026-09-25.** The person starts
+the desktop app with `./kotlin run -m desktopApp` (in `code/`, or `./code/kotlin run
+--project-dir code -m desktopApp`). Compose Hot Reload is on by default; the Toolchain runs
+it as `:desktopApp:hotRunJvm`, the same task P8 names for Gradle, and provisions the
+JetBrains Runtime. The agent reaches the running window through Compose Hot Reload's MCP
+server, which the Toolchain serves: `./kotlin compose-hot-reload-mcp-server` is the same
+server Gradle's `hotMcpServerJvm` starts (`compose-hot-reload` 1.2.0, stdio). It has the
+same 16 tools: `status`, `list_windows`, `get_semantic_tree`, `get_ui_error`, `get_logs`,
+`take_screenshot`, `click`, `long_click`, `type_text`, `scroll`, `scroll_to_index`,
+`resize_window`, `reload`, `await_reload`, `restart` and `reset_ui`. The check found that
+`reload` keeps state. The project's root `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "compose-hot-reload": {
+      "command": "./code/kotlin",
+      "args": ["compose-hot-reload-mcp-server", "--project-dir", "code"],
+      "env": { "KOTLIN_CLI_NO_WELCOME_BANNER": "1" }
+    }
+  }
+}
+```
+
+Neither side passes `--build-dir`: the server finds the app through
+`build/hot-reload-app.pid`. Caveats from the check:
+- The server's first stdout line is plain text (`Started MCP server with the pid: …`),
+  sent before the MCP traffic starts. Whether Claude Code tolerates it silently was not
+  tested.
+- The server needs up to about a second to attach, so the agent's first call is `status`,
+  repeated until it says `connected: true`.
+- The server outlives a closed stdin, so the host stops it with SIGTERM. A SIGKILL on the
+  wrapper orphans the server JVM.
+- `take_screenshot` captures the screen area of the window, so it shows whatever lies on
+  top of the window. Read the UI through `get_semantic_tree` first, and trust a screenshot
+  only when the app window is in front.
+
+The ring and walk skills keep the `kmp` rule: they never launch the app, and never call
+`reload`, `restart` or `reset_ui` on a window the person is looking at.

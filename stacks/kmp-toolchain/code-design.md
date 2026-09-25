@@ -52,6 +52,24 @@ folders are `src/`, `src@<platform>/`, `test/` and `test@<platform>/`, not
 `src/<sourceSet>/kotlin/`. The module taxonomy, the package layout and the dependency
 direction are the `kmp` stack's.
 
+A new project is created with the Toolchain's own generator, never the web wizard:
+
+```
+./kotlin new --project-id=<reverse-dns id> \
+  --target-platform=android --target-platform=ios --target-platform=desktop \
+  --target-platform=web --target-platform=server code
+```
+
+`--project-id` becomes the Kotlin package, the Android namespace and applicationId, and
+the iOS bundle id. The generator writes the wrappers, `project.yaml`, `libs.versions.toml`,
+`shared/` and one app module per target, with the iOS app as Compose UI in an `ios/app`
+module and its `module.xcodeproj` (checked hands-on for android, ios, desktop and web;
+`server` is listed by `--help` but was not generated in the check). The first `kotlin` to
+run it is the wrapper script downloaded into an empty directory (nothing installed
+globally). After that, add `core/` and the feature modules to `project.yaml` by hand as
+below. The project is worked from the command line only; no IDE, plugin or run
+configuration belongs to the stack.
+
 The project root (or `code/`, when the build lives there) holds the committed `kotlin` and
 `kotlin.bat` wrappers, `project.yaml`, `libs.versions.toml` and one directory per module:
 

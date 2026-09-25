@@ -197,7 +197,7 @@ The plugin ships the stacks under `stacks/`, one directory each:
 | stack | status | detected by |
 |---|---|---|
 | `kmp` | ready | `settings.gradle.kts` plus a `kotlin("multiplatform")` module, no Kotlin Toolchain |
-| `kmp-toolchain` | ready | a `project.yaml` beside the `kotlin` wrapper plus a `kmp/lib` module, no Gradle (the Kotlin Toolchain, Alpha) |
+| `kmp-toolchain` | ready | a `project.yaml` beside the `kotlin` wrapper plus a `kmp/lib` module, no Gradle (the Kotlin Toolchain, Alpha; iOS as Compose UI) |
 | `android-compose` | scaffold | an Android application module without multiplatform |
 | `apple-swift` | ready | `Package.swift`, an `.xcodeproj` or a `project.yml`, no Gradle or Kotlin Toolchain |
 | `angular-kotlin` | scaffold | `angular.json` beside a Kotlin server build |
@@ -210,7 +210,10 @@ Clean Architecture plus MVVM as the hexagon: screens are the driving adapter, us
 and ports the core, repositories, data sources and the Ktor server the driven adapters.
 `kmp-toolchain` is the same stack built with JetBrains' Kotlin Toolchain (`project.yaml`,
 one `module.yaml` per module, `./kotlin build|test|run`) instead of Gradle, for new
-projects; existing Gradle projects stay on `kmp`.
+projects created with `kotlin new` and worked without an IDE; the agent drives the running
+desktop app through the Toolchain's Compose Hot Reload MCP server. Existing Gradle
+projects, and projects whose iOS app is native SwiftUI over an SPM-wrapped XCFramework
+with SKIE, stay on `kmp`.
 
 ## `kartograph-screens` — ring 1, the flow before the behaviour
 
