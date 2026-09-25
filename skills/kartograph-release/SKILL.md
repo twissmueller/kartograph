@@ -18,10 +18,12 @@ commit, ask once, release, tag, report.
   notes, the text changes and the screenshots, one question. Nothing reaches the stores
   before the person's yes; the scripts get `--yes` only after it.
 - **Write only** `distribution/release-notes/v<X.Y.Z>.md`, `distribution/store/` (texts and
-  screenshots), `distribution/release-check.sh` when it is missing, the screenshot renderer
-  in the app's test code together with the one seam and the build-file lines the stack's
-  `screenshots.md` names, and the tag `v<X.Y.Z>`. Never `kartograph/`, `features/`,
-  `knowledge/`, `plans/`, `walks/`, `distribution/config.sh` or another delivery script.
+  screenshots), `distribution/release-check.sh` when it is missing,
+  `distribution/push-store-metadata.sh` and `distribution/lib/asc.sh` when they predate
+  `--version` (step 1), the screenshot renderer in the app's test code together with the
+  one seam and the build-file lines the stack's `screenshots.md` names, and the tag
+  `v<X.Y.Z>`. Never `kartograph/`, `features/`, `knowledge/`, `plans/`, `walks/`,
+  `distribution/config.sh` or another delivery script.
 - **Positive and factual.** Say what is new and what works better, as the person using the
   app notices it. A fix is what now works ("Syncing resumes after the connection returns"),
   never "a bad bug has been fixed". No superlatives, nothing the commits and features do not
@@ -56,11 +58,18 @@ say that `kartograph-deliver` sets up delivery first, and stop. If
 `distribution/release-check.sh` is missing, copy it from
 `stacks/<STACK>/distribution/release-check.sh` at the plugin root (`STACK` from
 `distribution/config.sh`), keeping it executable; it needs only library functions every
-project's `distribution/lib/` already has.
+project's `distribution/lib/` already has. When the project's delivery scripts predate
+`--version` — the option parsing of `distribution/push-store-metadata.sh` has no
+`--version)` case, or `distribution/lib/asc.sh` defines no `asc_version_exists` — copy
+`stacks/<STACK>/distribution/push-store-metadata.sh` and
+`stacks/common/distribution/lib/asc.sh` from the plugin root over both, keeping the script
+executable, and say in the report that they were refreshed; step 6 needs `--version`.
 
 Run `distribution/release-check.sh` from the project root. Exit 2: the project ships no
-store lane; say so and stop. Exit 1: show its lines and stop with "The tested build is not
-newer than the store; a new build on TestFlight or Play internal comes first." Exit 0: the
+store lane; say so and stop. Exit 3: a store could not be read; show its last lines and
+stop with the error, never with "a new build comes first" — nothing is known about the
+build. Exit 1: show its lines and stop with "The tested build is not newer than the store;
+a new build on TestFlight or Play internal comes first." Exit 0: the
 version to release is the `release X.Y.Z` line; a project with only a Play lane takes it
 from `versionName` in the file `ANDROID_BUILD_FILE` names. A lane whose line says `on sale
 none` (Apple) or `production none` (Play) is a first release: its app record and store
@@ -119,16 +128,17 @@ its style and in that locale's language; the rest of the text stays as it is. Ap
 change and keeps as much of its current wording as still fits. Never write `whatsNew`:
 `release-stores.sh` sets it from the notes. Keywords, names and subtitles stay.
 
-Then run `distribution/push-store-metadata.sh --dry-run`. It checks every length and
-refuses other-platform words and dead URLs before any upload; fix the texts until it
-passes.
+Then run `distribution/push-store-metadata.sh --dry-run --version <X.Y.Z>`. It checks
+every length and refuses other-platform words and dead URLs before any upload, and says
+for each Apple platform that it would create the version `X.Y.Z` the texts land on; fix
+the texts until it passes.
 
 ## 5. Screenshots
 
 A screen changed when a commit in the range touched its files, or a revision or feature in
-the range changed a scenario it serves (the plans' screens tables name each screen, its
-scenarios and its files); a new screen counts as changed. No screen changed: skip this
-step and say so.
+the range changed a scenario it serves; a new screen counts as changed. The plans' screens
+tables name each screen, its feature and the scenarios it serves; its files are in the
+plan's `## Files` and in its ring-1 task. No screen changed: skip this step and say so.
 
 Find the project's renderer (`StoreScreenshotRenderer` in its test code). None: build it
 once from `stacks/<STACK>/screenshots.md` at the plugin root, sections 1 to 3, with one
@@ -150,7 +160,8 @@ and `distribution/store/play/screenshots/<locale>/tenInchScreenshots/` (the
 ## 6. Commit, ask once, release
 
 Stage the release notes, `distribution/store/`, `distribution/release-check.sh` if you
-copied it, and the renderer's files; commit as `release: v<X.Y.Z> notes, store texts,
+copied it, `distribution/push-store-metadata.sh` and `distribution/lib/asc.sh` if you
+refreshed them, and the renderer's files; commit as `release: v<X.Y.Z> notes, store texts,
 screenshots`; push to the branch's upstream (no git or no upstream: skip and say so).
 
 Then show one summary: per lane the version and build from step 1 and where it goes (App
@@ -162,20 +173,29 @@ removed. Ask once: "Release v<X.Y.Z> to the stores now?" — **A (recommended):*
 
 On yes, run from the project root, in this order, stopping at the first failure:
 
-1. `distribution/push-store-metadata.sh --screenshots --version <X.Y.Z> --yes` (`--version`
-   makes sure the editable App Store version exists first, so the texts and screenshots
-   above land on it rather than being skipped as "nothing was changed")
+1. When the project has an Apple lane:
+   `distribution/push-store-metadata.sh --apple --screenshots --version <X.Y.Z> --yes`
+   (`--version` makes sure the editable App Store version exists first, so the texts and
+   screenshots land on it rather than being skipped as "nothing was changed"; they go live
+   only with the version, after review)
 2. `distribution/release-stores.sh --notes distribution/release-notes/v<X.Y.Z>.md --version <X.Y.Z> --yes`
    (with `--rollout <fraction>` when the person named one)
+3. When the project has a Play lane:
+   `distribution/push-store-metadata.sh --play --screenshots --yes` — last, because Play's
+   listing and screenshots go live the moment its edit commits, so they must not describe a
+   version production does not have yet
 
-When both succeeded and no `v<X.Y.Z>` tag exists, tag the release commit
+When every step succeeded and no `v<X.Y.Z>` tag exists, tag the release commit
 `git tag -a v<X.Y.Z> -m "v<X.Y.Z>"` and push the tag; an existing tag stays where it is.
-A failure: show the script's last lines; nothing after it runs and nothing is tagged. On
-"not yet", stop: the commit stays, and the next run reuses the written files.
+A failure: show the script's last lines and say which parts already went out (the Apple
+texts and screenshots on the editable version, the release to review and production) and
+which did not; nothing after it runs and nothing is tagged. On "not yet", stop: the commit
+stays, and the next run reuses the written files.
 
 ## 7. Report
 
 What is where: per Apple platform the version in review, on Play the versionCode in
-production and its rollout, the tag. What the scripts said only the web UI can do (App
-Privacy, Data safety, a subscription's first review). Every screen whose screenshot was
-rendered from shared code only, or not rendered, and why. Then you are done.
+production and its rollout, the tag. The delivery scripts refreshed in step 1, if any.
+What the scripts said only the web UI can do (App Privacy, Data safety, a subscription's
+first review). Every screen whose screenshot was rendered from shared code only, or not
+rendered, and why. Then you are done.
