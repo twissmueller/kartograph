@@ -40,20 +40,118 @@ _toolchain_application_id() {
   printf '%s\n' "$id"
 }
 
-# ---------- version fields ----------
+# ---------- the Android module.yaml ----------
 
-# The two fields as "NAME CODE"; a python heredoc kept out of any command substitution,
-# because bash 3.2 balances quotes inside a heredoc that sits in $( ).
-_toolchain_version_fields() {
-  python3 - "$ANDROID_BUILD_FILE" <<'PY'
-import re, sys
-text = open(sys.argv[1], encoding="utf-8").read()
-name = re.search(r'^[ \t]*versionName[ \t]*:[ \t]*["\']?([^"\'#\s]+)["\']?[ \t]*(?:#.*)?$', text, re.M)
-code = re.search(r'^[ \t]*versionCode[ \t]*:[ \t]*(\d+)[ \t]*(?:#.*)?$', text, re.M)
-missing = [k for k, m in (("versionName", name), ("versionCode", code)) if not m]
-if missing:
-    sys.exit("%s not set under settings.android in %s" % (" and ".join(missing), sys.argv[1]))
-print("%s %s" % (name.group(1), code.group(1)))
+# _toolchain_android_yaml MODE [ARGS]: the one reader and writer of $ANDROID_BUILD_FILE.
+# Everything it touches sits in the `android:` block of the top-level `settings:` block,
+# never under `settings@android:` or anywhere else. Modes:
+#   read              print "NAME CODE"
+#   write NAME CODE   rewrite both values in place, the rest byte-identical (CRLF kept)
+#   signing           print the properties file signing reads, resolved against the
+#                     module's directory; exit 3 when signing is not enabled
+# A missing versionName or versionCode stops with the key and the file named. A python
+# heredoc inside a function, never inside $( ): bash 3.2 balances quotes in such a heredoc.
+_toolchain_android_yaml() {
+  python3 - "$ANDROID_BUILD_FILE" "$@" <<'PY'
+import os, re, sys
+
+path, mode, args = sys.argv[1], sys.argv[2], sys.argv[3:]
+raw = open(path, "rb").read().decode("utf-8")
+crlf = "\r\n" in raw
+lines = raw.replace("\r\n", "\n").split("\n")
+
+
+def indent(line):
+    return len(line) - len(line.lstrip(" \t"))
+
+
+def blank(line):
+    s = line.strip()
+    return not s or s.startswith("#")
+
+
+def block_end(i):
+    # The block opened by lines[i] ends at the first later line indented no deeper.
+    for j in range(i + 1, len(lines)):
+        if not blank(lines[j]) and indent(lines[j]) <= indent(lines[i]):
+            return j
+    return len(lines)
+
+
+def child(start, end, key):
+    # A direct child `key:` of the block lines[start:end], by the block's own indentation.
+    level = None
+    for i in range(start, end):
+        if blank(lines[i]):
+            continue
+        if level is None:
+            level = indent(lines[i])
+        if indent(lines[i]) == level and re.match(r"[ \t]*" + re.escape(key) + r"[ \t]*:", lines[i]):
+            return i
+    return None
+
+
+def top(key):
+    for i, line in enumerate(lines):
+        if re.match(re.escape(key) + r"[ \t]*:[ \t]*(#.*)?$", line):
+            return i
+    return None
+
+
+VALUE = re.compile(r"^(?P<head>[ \t]*[A-Za-z]+[ \t]*:[ \t]*)(?P<q>[\"']?)(?P<val>[^\"'#]*?)(?P=q)(?P<tail>[ \t]*(?:#.*)?)$")
+
+settings = top("settings")
+android = child(settings + 1, block_end(settings), "android") if settings is not None else None
+if android is None:
+    sys.exit("no android: block under settings: in %s" % path)
+a_start, a_end = android + 1, block_end(android)
+
+if mode in ("read", "write"):
+    found = {}
+    for key in ("versionName", "versionCode"):
+        i = child(a_start, a_end, key)
+        m = VALUE.match(lines[i]) if i is not None else None
+        if m is None or not m.group("val").strip():
+            sys.exit("%s not set under settings: android: in %s" % (key, path))
+        found[key] = (i, m)
+    if mode == "read":
+        print("%s %s" % (found["versionName"][1].group("val").strip(), found["versionCode"][1].group("val").strip()))
+        sys.exit(0)
+    for key, value in (("versionName", args[0]), ("versionCode", args[1])):
+        i, m = found[key]
+        lines[i] = m.group("head") + m.group("q") + value + m.group("q") + m.group("tail")
+    out = "\n".join(lines)
+    open(path, "wb").write((out.replace("\n", "\r\n") if crlf else out).encode("utf-8"))
+    print("wrote %s %s into %s" % (args[0], args[1], path), file=sys.stderr)
+    sys.exit(0)
+
+if mode == "signing":
+    enabled, props = False, "keystore.properties"
+    i = child(a_start, a_end, "signing")
+    if i is not None:
+        inline = re.sub(r"\s+#.*$", "", lines[i].split(":", 1)[1]).strip()
+        pairs = {}
+        if inline.startswith("{"):
+            # flow form: signing: { enabled: true, propertiesFile: ../keystore.properties }
+            for part in inline.strip("{} ").split(","):
+                if ":" in part:
+                    k, v = part.split(":", 1)
+                    pairs[k.strip()] = v.strip().strip("\"'")
+        elif inline:
+            pairs["enabled"] = "true" if inline == "enabled" else inline
+        else:
+            for j in range(i + 1, block_end(i)):
+                m = VALUE.match(lines[j])
+                if m and not blank(lines[j]):
+                    pairs[m.group("head").split(":")[0].strip()] = m.group("val").strip()
+        enabled = pairs.get("enabled", "false") == "true"
+        props = pairs.get("propertiesFile", props)
+    if not enabled:
+        sys.exit(3)
+    print(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(path)), props)))
+    sys.exit(0)
+
+sys.exit("unknown mode %s" % mode)
 PY
 }
 
@@ -65,7 +163,7 @@ toolchain_version_read() {
   require_cmd python3
   [ -f "$ANDROID_BUILD_FILE" ] || die "no module.yaml at $ANDROID_BUILD_FILE — check ANDROID_BUILD_FILE in ${CONFIG_FILE:-distribution/config.sh}"
   local out name code
-  out="$(_toolchain_version_fields)" || die "could not read versionName and versionCode from $ANDROID_BUILD_FILE — add both under settings: android: (versionCode: 1, versionName: \"1.0.0\")"
+  out="$(_toolchain_android_yaml read)" || die "add versionCode and versionName under settings: android: in $ANDROID_BUILD_FILE"
   read -r name code <<EOF
 $out
 EOF
@@ -74,79 +172,69 @@ EOF
 }
 
 # toolchain_version_write NAME CODE: rewrite the two values in place, leaving the file
-# otherwise byte-identical, so the bumped numbers land in the diff. A key that is missing
-# is added under the `android:` block of `settings:`.
+# otherwise byte-identical, so the bumped numbers land in the diff. Both keys must exist.
 toolchain_version_write() {
   local name="${1:-}" code="${2:-}"
   [ -n "$name" ] && [ -n "$code" ] || die "toolchain_version_write needs a versionName and a versionCode"
   require_var ANDROID_BUILD_FILE
   require_cmd python3
   [ -f "$ANDROID_BUILD_FILE" ] || die "no module.yaml at $ANDROID_BUILD_FILE"
-  python3 - "$ANDROID_BUILD_FILE" "$name" "$code" <<'PY' || die "could not write versionName $name and versionCode $code into $ANDROID_BUILD_FILE"
-import re, sys
-path, new_name, new_code = sys.argv[1:4]
-text = open(path, encoding="utf-8").read()
-
-
-def put(text, key, value):
-    pattern = re.compile(r'^(?P<head>[ \t]*' + key + r'[ \t]*:[ \t]*)(?P<q>["\']?)[^"\'#\n]*?(?P=q)(?P<tail>[ \t]*(?:#.*)?)$', re.M)
-    m = pattern.search(text)
-    if m:
-        q = m.group("q")  # keep the quoting the file already uses
-        line = m.group("head") + q + value + q + m.group("tail")
-        return text[:m.start()] + line + text[m.end():]
-    # Missing: insert as the first child of the android: block under settings:.
-    block = re.search(r'^settings:[ \t]*\n(?:(?:[ \t]+.*|[ \t]*)\n)*?(?P<indent>[ \t]+)android:[ \t]*\n', text, re.M)
-    if not block:
-        sys.exit("no settings: android: block in %s to hold %s" % (path, key))
-    indent = block.group("indent") * 2
-    rendered = '"%s"' % value if key == "versionName" else value
-    return text[:block.end()] + "%s%s: %s\n" % (indent, key, rendered) + text[block.end():]
-
-
-text = put(text, "versionCode", new_code)
-text = put(text, "versionName", new_name)
-open(path, "w", encoding="utf-8").write(text)
-print("wrote %s %s into %s" % (new_name, new_code, path), file=sys.stderr)
-PY
+  _toolchain_android_yaml write "$name" "$code" || die "could not write versionName $name and versionCode $code into $ANDROID_BUILD_FILE"
 }
 
 # ---------- the release bundle ----------
+
+# toolchain_release_check: everything a release build needs, checked before any script
+# writes a version: KOTLIN_DIR and its wrapper, signing enabled in the Android module.yaml,
+# and the properties file it names present. The Toolchain itself only WARNS when that file
+# is missing and then builds an unsigned bundle, so the check has to be ours.
+toolchain_release_check() {
+  require_var KOTLIN_DIR ANDROID_MODULE ANDROID_BUILD_FILE KEYSTORE_PROPERTIES
+  require_cmd python3
+  [ -x "$KOTLIN_DIR/kotlin" ] || die "no executable kotlin wrapper in $KOTLIN_DIR — check KOTLIN_DIR in ${CONFIG_FILE:-distribution/config.sh} (the directory holding project.yaml)"
+  [ -f "$ANDROID_BUILD_FILE" ] || die "no module.yaml at $ANDROID_BUILD_FILE — check ANDROID_BUILD_FILE in ${CONFIG_FILE:-distribution/config.sh}"
+  local props
+  props="$(_toolchain_android_yaml signing)" || die "signing is not enabled in $ANDROID_BUILD_FILE — add under settings: android: signing: { enabled: true, propertiesFile: <path to $KEYSTORE_PROPERTIES relative to the module> }"
+  [ -f "$props" ] || die "signing.propertiesFile in $ANDROID_BUILD_FILE resolves to $props, which does not exist — the Toolchain would build an unsigned bundle. Point it at $KEYSTORE_PROPERTIES (relative to the module directory)."
+  [ -f "$KEYSTORE_PROPERTIES" ] || die "no $KEYSTORE_PROPERTIES — the bundle would be unsigned and Play rejects that. The file is gitignored and holds storeFile, storePassword, keyAlias, keyPassword for the upload keystore (./kotlin tool generate-keystore writes one)."
+  local a b
+  a="$(cd "$(dirname "$props")" && pwd)/$(basename "$props")"
+  b="$(cd "$(dirname "$KEYSTORE_PROPERTIES")" && pwd)/$(basename "$KEYSTORE_PROPERTIES")"
+  [ "$a" = "$b" ] || warn "module.yaml signs with $props, config.sh names $KEYSTORE_PROPERTIES — the build uses the first"
+}
 
 # toolchain_bundle_release: `kotlin package -f aab -v release` (R8 and signing included),
 # verify the signature, archive it under $BUILD_DIR/android/<App>-<name>-<code>.aab and
 # print that path.
 toolchain_bundle_release() {
-  require_var KOTLIN_DIR ANDROID_MODULE ANDROID_BUILD_FILE KEYSTORE_PROPERTIES APP_NAME
-  require_cmd jarsigner python3
-  [ -f "$KEYSTORE_PROPERTIES" ] || die "no $KEYSTORE_PROPERTIES — the bundle would be unsigned and Play rejects that. The file is gitignored and holds storeFile, storePassword, keyAlias, keyPassword for the upload keystore (./kotlin tool generate-keystore writes one)."
-  # Signing is off by default in the Toolchain; without it `package` still succeeds and the
-  # failure would only surface at the upload. Refuse here, where it can be explained.
-  python3 - "$ANDROID_BUILD_FILE" <<'PY' || die "signing is not enabled in $ANDROID_BUILD_FILE — add under settings: android: signing: { enabled: true, propertiesFile: <path to $KEYSTORE_PROPERTIES relative to the module> }"
-import re, sys
-text = open(sys.argv[1], encoding="utf-8").read()
-ok = re.search(r'^[ \t]*signing[ \t]*:[ \t]*enabled[ \t]*(?:#.*)?$', text, re.M) or \
-     re.search(r'^[ \t]*signing[ \t]*:[ \t]*\n(?:[ \t]+.*\n)*?[ \t]+enabled[ \t]*:[ \t]*true\b', text, re.M)
-sys.exit(0 if ok else 1)
-PY
+  require_var APP_NAME
+  require_cmd jarsigner
+  toolchain_release_check
 
   local name code
   read -r name code <<EOF
 $(toolchain_version_read)
 EOF
 
-  # The output path is not documented; it was build/tasks/_<module>_bundleAndroid/ in the
-  # check. Take the newest .aab under build/tasks written by this run, whatever it is called.
-  local marker found aab="" dest app
+  # The output path is not documented; in the check it was build/tasks/_<module>_bundleAndroid/.
+  # That directory first; else the newest .aab this run wrote under build/tasks, never one
+  # under intermediates/ (the Toolchain's Gradle leaves an unsigned intermediary-bundle.aab).
+  local marker found aab="" dest app verify
   mkdir -p "$BUILD_DIR/android"
   marker="$BUILD_DIR/android/.package-start"
   : >"$marker"
   toolchain_run package -m "$ANDROID_MODULE" -f aab -v release
-  found="$(find "$KOTLIN_DIR/build/tasks" -name '*.aab' -newer "$marker" 2>/dev/null || true)"
+  found="$(find "$KOTLIN_DIR/build/tasks/_${ANDROID_MODULE}_bundleAndroid" -maxdepth 1 -name '*.aab' -newer "$marker" 2>/dev/null || true)"
+  [ -n "$found" ] || found="$(find "$KOTLIN_DIR/build/tasks" -name '*.aab' -newer "$marker" -not -path '*/intermediates/*' 2>/dev/null || true)"
   rm -f "$marker"
   [ -n "$found" ] && aab="$(printf '%s\n' "$found" | python3 -c 'import os, sys; print(max((l.rstrip("\n") for l in sys.stdin if l.strip()), key=os.path.getmtime))')"
   [ -n "$aab" ] || die "no .aab under $KOTLIN_DIR/build/tasks after kotlin package -m $ANDROID_MODULE — see the output above"
-  jarsigner -verify "$aab" >/dev/null 2>&1 || die "$aab is not signed — check signing in $ANDROID_BUILD_FILE and the credentials in $KEYSTORE_PROPERTIES"
+  # jarsigner -verify exits 0 on an unsigned jar ("jar is unsigned."); only "jar verified." is proof.
+  verify="$(jarsigner -verify "$aab" 2>&1 || true)"
+  case "$verify" in
+    *"jar verified."*) ;;
+    *) die "$aab is not signed (jarsigner: $(printf '%s\n' "$verify" | head -1)) — check signing in $ANDROID_BUILD_FILE and the credentials in $KEYSTORE_PROPERTIES" ;;
+  esac
 
   app="$(printf '%s' "$APP_NAME" | tr -d ' ')"
   dest="$BUILD_DIR/android/$app-$name-$code.aab"
@@ -201,8 +289,9 @@ toolchain_desktop_run() {
 }
 
 # ---------- the Kotlin build interface (see DISTRIBUTION.md) ----------
-# The entry scripts call these five through kotlin_build_lib; gradle.sh defines the same.
+# The entry scripts call these six through kotlin_build_lib; gradle.sh defines the same.
 
+android_release_check()  { toolchain_release_check; }
 android_version_read()   { toolchain_version_read; }
 android_version_write()  { toolchain_version_write "$@"; }
 android_bundle_release() { toolchain_bundle_release; }

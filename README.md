@@ -196,7 +196,7 @@ The plugin ships the stacks under `stacks/`, one directory each:
 
 | stack | status | detected by |
 |---|---|---|
-| `kmp` | ready | `settings.gradle.kts` plus a `kotlin("multiplatform")` module |
+| `kmp` | ready | `settings.gradle.kts` plus a `kotlin("multiplatform")` module, no Kotlin Toolchain |
 | `kmp-toolchain` | ready | a `project.yaml` beside the `kotlin` wrapper plus a `kmp/lib` module, no Gradle (the Kotlin Toolchain, Alpha) |
 | `android-compose` | scaffold | an Android application module without multiplatform |
 | `apple-swift` | ready | `Package.swift`, an `.xcodeproj` or a `project.yml`, no Gradle or Kotlin Toolchain |

@@ -33,9 +33,11 @@ A project is this stack when **all three** hold:
   wrapper script beside it;
 - at least one `module.yaml` listed by it declares the product type `kmp/lib`
   (`product:` → `type: kmp/lib`);
-- **no** `settings.gradle.kts` exists at the project root or under `code/` (that is the
-  `kmp` stack; a project holding both is mid-migration and matches neither until one build
-  is removed).
+- **no** `settings.gradle.kts` and no `code/settings.gradle.kts` (that is the `kmp` stack,
+  which in turn excludes a `project.yaml` with a `kotlin` wrapper, so a project holding
+  both is mid-migration and matches neither until one build is removed). Never search
+  under `build/`: the Toolchain's own output carries a generated
+  `build/tasks/*/gradle-project/settings.gradle.kts`.
 
 A single-module Toolchain project (a root `module.yaml` and no `project.yaml`) is not this
 stack: the module layout below needs one module per feature. The Kotlin Toolchain

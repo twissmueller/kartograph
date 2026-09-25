@@ -16,11 +16,15 @@ repositories, data sources and the server are the driven adapters.
 
 ## Detection
 
-A project is this stack when **both** hold:
+A project is this stack when **all three** hold:
 
-- `settings.gradle.kts` exists at the project root or under `code/`;
+- `settings.gradle.kts` or `code/settings.gradle.kts` exists (never search under a `build/`
+  directory: the Kotlin Toolchain's build output carries a generated
+  `build/tasks/*/gradle-project/settings.gradle.kts`);
 - at least one `build.gradle.kts` applies `kotlin("multiplatform")`,
-  `alias(libs.plugins.kotlinMultiplatform)` or `id("org.jetbrains.kotlin.multiplatform")`.
+  `alias(libs.plugins.kotlinMultiplatform)` or `id("org.jetbrains.kotlin.multiplatform")`;
+- **no** `project.yaml` or `module.yaml` with a `kotlin` wrapper beside it at the project
+  root or under `code/` (that is `kmp-toolchain`).
 
 An Android application module alone, without a multiplatform module, is not this stack
 (see `android-compose`).

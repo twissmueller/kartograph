@@ -11,10 +11,16 @@ set -euo pipefail
 # Gradle's own output goes to stderr, so that the stdout of a function that calls this one
 # carries only its result — gradle_bundle_release prints a path a caller captures.
 gradle_run() {
-  require_var GRADLE_DIR
-  [ -x "$GRADLE_DIR/gradlew" ] || die "no executable gradlew in $GRADLE_DIR — check GRADLE_DIR in ${CONFIG_FILE:-distribution/config.sh}"
+  gradle_release_check
   log "gradle $*"
   ( cd "$GRADLE_DIR" && ./gradlew --console=plain "$@" ) >&2
+}
+
+# gradle_release_check: GRADLE_DIR set and its gradlew executable — checked before a script
+# writes a version, so a configuration that cannot build never bumps a number.
+gradle_release_check() {
+  require_var GRADLE_DIR
+  [ -x "$GRADLE_DIR/gradlew" ] || die "no executable gradlew in $GRADLE_DIR — check GRADLE_DIR in ${CONFIG_FILE:-distribution/config.sh}"
 }
 
 # The module's directory: ":app:androidApp" → $GRADLE_DIR/app/androidApp.
@@ -202,7 +208,13 @@ EOF
   # projects but the module name is the project's, not ours.
   aab="$(ls -t "$out_dir"/*.aab 2>/dev/null | head -1 || true)"
   [ -n "$aab" ] || die "no .aab under $out_dir"
-  jarsigner -verify "$aab" >/dev/null 2>&1 || die "$aab is not signed — check the credentials in $KEYSTORE_PROPERTIES"
+  # jarsigner -verify exits 0 on an unsigned jar ("jar is unsigned."); only "jar verified." is proof.
+  local verify
+  verify="$(jarsigner -verify "$aab" 2>&1 || true)"
+  case "$verify" in
+    *"jar verified."*) ;;
+    *) die "$aab is not signed — check the credentials in $KEYSTORE_PROPERTIES" ;;
+  esac
 
   app="$(printf '%s' "$APP_NAME" | tr -d ' ')"
   mkdir -p "$BUILD_DIR/android"
@@ -260,8 +272,9 @@ desktop_run() {
 
 # ---------- the Kotlin build interface (see DISTRIBUTION.md) ----------
 # The entry scripts call these through kotlin_build_lib; kotlin-toolchain.sh defines the
-# same five (emulator_run and desktop_run above are already two of them).
+# same six (emulator_run and desktop_run above are already two of them).
 
+android_release_check()  { gradle_release_check; }
 android_version_read()   { gradle_version_read; }
 android_version_write()  { gradle_version_write "$@"; }
 android_bundle_release() { gradle_bundle_release; }

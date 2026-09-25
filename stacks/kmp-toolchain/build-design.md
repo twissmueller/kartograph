@@ -216,7 +216,8 @@ defaults (`fun aWateringTask(id: String = "t1", …)`). `kotlin.test`, Turbine a
 the wasmJs tests in a headless Chromium; the first run provisions Node.js and Chrome for
 Testing itself (checked hands-on, about 170 MB). Never a bare `./kotlin test` over the whole
 project in a loop: it is slow and says nothing a module run does not. A red test makes the
-command fail, which is the plan's `Expected: FAIL`; a scenario test that is red first must
+command fail (checked hands-on: exit 1, "JVM tests failed for module …"), which is the
+plan's `Expected: FAIL`; a scenario test that is red first must
 fail on its assertion, not on compilation.
 
 ## 9. Definition of done, per scenario

@@ -26,6 +26,7 @@ require_lane android
 kotlin_build_lib; . "$HERE/lib/play.sh"
 require_var PLAY_PACKAGE_NAME ANDROID_BUILD_FILE KEYSTORE_PROPERTIES
 [ -f "$PLAY_SERVICE_ACCOUNT" ] || die "service account not found at $PLAY_SERVICE_ACCOUNT"
+android_release_check   # the build can run and sign, before a versionCode is written
 
 read -r name current <<<"$(android_version_read)"
 if [ "$bump" = 1 ]; then code=$((current + 1)); android_version_write "$name" "$code"; log "versionCode $current → $code (written to $ANDROID_BUILD_FILE)"; fi

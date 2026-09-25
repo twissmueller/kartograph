@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, existsSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 
@@ -125,18 +125,24 @@ const sh = (script, env = {}) =>
 
 test("kotlin_build_lib picks kotlin-toolchain.sh for kmp-toolchain and gradle.sh otherwise", () => {
   for (const [stack, own, other] of [["kmp-toolchain", "toolchain_run", "gradle_run"], ["kmp", "gradle_run", "toolchain_run"], ["android-compose", "gradle_run", "toolchain_run"]]) {
-    const r = sh(`STACK=${stack}; kotlin_build_lib; declare -F ${own} >/dev/null; ! declare -F ${other} >/dev/null; for f in android_version_read android_version_write android_bundle_release emulator_run desktop_run; do declare -F $f >/dev/null; done`);
+    const r = sh(`STACK=${stack}; kotlin_build_lib; declare -F ${own} >/dev/null; ! declare -F ${other} >/dev/null; for f in android_release_check android_version_read android_version_write android_bundle_release emulator_run desktop_run; do declare -F $f >/dev/null; done`);
     assert.equal(r.status, 0, `${stack}: ${r.stderr}`);
   }
 });
 
-test("kotlin-toolchain.sh reads and writes versionName and versionCode in a module.yaml, touching nothing else", () => {
-  const dir = mkdtempSync(join(tmpdir(), "kt-version-"));
+const toolchain = `. '${lib("kotlin-toolchain.sh")}';`;
+const tmp = (prefix) => mkdtempSync(join(tmpdir(), prefix));
+const zip = (path, entries) =>
+  spawnSync("python3", ["-c", "import sys, zipfile\nz = zipfile.ZipFile(sys.argv[1], 'w')\nfor n in sys.argv[2:]: z.writestr(n, 'x')\nz.close()", path, ...entries]);
+
+test("kotlin-toolchain.sh reads and writes versionName and versionCode under settings: android:, touching nothing else", () => {
+  const dir = tmp("kt-version-");
   const file = join(dir, "module.yaml");
   const before = `product: android/app
 
-dependencies:
-  - //shared
+settings@android:
+  android:
+    versionCode: 999
 
 settings:
   compose: enabled
@@ -147,49 +153,174 @@ settings:
     versionName: "1.4.2"
     signing:
       enabled: true
-      propertiesFile: ../keystore.properties
 `;
   writeFileSync(file, before);
   const env = { ANDROID_BUILD_FILE: file };
-  const load = `. '${lib("kotlin-toolchain.sh")}';`;
 
-  let r = sh(`${load} toolchain_version_read`, env);
+  let r = sh(`${toolchain} toolchain_version_read`, env);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(r.stdout, "1.4.2 41\n");
 
-  r = sh(`${load} android_version_write 1.5.0 42`, env);
+  r = sh(`${toolchain} android_version_write 1.5.0 42`, env);
   assert.equal(r.status, 0, r.stderr);
-  const after = readFileSync(file, "utf8");
-  assert.equal(after, before.replace("versionCode: 41 #", "versionCode: 42 #").replace('versionName: "1.4.2"', 'versionName: "1.5.0"'));
-  assert.equal(sh(`${load} android_version_read`, env).stdout, "1.5.0 42\n");
+  assert.equal(readFileSync(file, "utf8"), before.replace("versionCode: 41 #", "versionCode: 42 #").replace('versionName: "1.4.2"', 'versionName: "1.5.0"'));
+  assert.equal(sh(`${toolchain} android_version_read`, env).stdout, "1.5.0 42\n");
 
-  // Unquoted values keep their shape.
-  writeFileSync(file, "settings:\n  android:\n    versionName: 2.0.0\n    versionCode: 7\n");
-  sh(`${load} toolchain_version_write 2.1.0 8`, env);
-  assert.equal(readFileSync(file, "utf8"), "settings:\n  android:\n    versionName: 2.1.0\n    versionCode: 8\n");
+  // Unquoted values keep their shape; CRLF files stay CRLF.
+  writeFileSync(file, "settings:\r\n  android:\r\n    versionName: 2.0.0\r\n    versionCode: 7\r\n");
+  r = sh(`${toolchain} toolchain_version_write 2.1.0 8`, env);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(readFileSync(file, "utf8"), "settings:\r\n  android:\r\n    versionName: 2.1.0\r\n    versionCode: 8\r\n");
+  assert.equal(sh(`${toolchain} toolchain_version_read`, env).stdout, "2.1.0 8\n");
 
-  // The Toolchain's defaults are never a release: reading stops, writing adds the keys.
-  writeFileSync(file, "product: android/app\n\nsettings:\n  compose: enabled\n  android:\n    namespace: org.example.app\n");
-  r = sh(`${load} toolchain_version_read`, env);
+  // The Toolchain's defaults are never a release: both reading and writing stop, naming the key.
+  const bare = "product: android/app\n\nsettings:\n  compose: enabled\n  android:\n    namespace: org.example.app\n    versionName: 1.0.0\n";
+  writeFileSync(file, bare);
+  r = sh(`${toolchain} toolchain_version_read`, env);
   assert.notEqual(r.status, 0);
-  assert.match(r.stderr, /versionName and versionCode not set/);
-  r = sh(`${load} toolchain_version_write 1.0.0 1`, env);
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(readFileSync(file, "utf8"), 'product: android/app\n\nsettings:\n  compose: enabled\n  android:\n    versionName: "1.0.0"\n    versionCode: 1\n    namespace: org.example.app\n');
-  assert.equal(sh(`${load} toolchain_version_read`, env).stdout, "1.0.0 1\n");
+  assert.match(r.stderr, /versionCode not set under settings: android: in .*module\.yaml/);
+  r = sh(`${toolchain} toolchain_version_write 1.0.0 1`, env);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /versionCode not set under settings: android: in .*module\.yaml/);
+  assert.equal(readFileSync(file, "utf8"), bare);
 });
 
-test("toolchain_bundle_release refuses before building when module.yaml does not enable signing", () => {
-  const dir = mkdtempSync(join(tmpdir(), "kt-bundle-"));
-  const file = join(dir, "module.yaml");
-  const props = join(dir, "keystore.properties");
-  writeFileSync(file, "settings:\n  android:\n    versionName: 1.0.0\n    versionCode: 1\n");
-  writeFileSync(props, "storeFile=x\n");
+// A project with a stub wrapper: the check must pass or fail before the wrapper ever runs.
+const toolchainProject = (signing, { props = true } = {}) => {
+  const dir = tmp("kt-check-");
+  const mod = join(dir, "androidApp");
+  mkdirSync(mod);
+  writeFileSync(join(mod, "module.yaml"), `product: android/app\n\nsettings:\n  android:\n    versionCode: 1\n    versionName: "1.0.0"\n${signing}\n`);
+  if (props) writeFileSync(join(dir, "keystore.properties"), "storeFile=x\n");
   writeFileSync(join(dir, "kotlin"), "#!/bin/sh\necho ran >&2\nexit 1\n", { mode: 0o755 });
-  const r = sh(`. '${lib("kotlin-toolchain.sh")}'; toolchain_bundle_release`, {
-    ANDROID_BUILD_FILE: file, KEYSTORE_PROPERTIES: props, KOTLIN_DIR: dir, ANDROID_MODULE: "androidApp", APP_NAME: "Demo", BUILD_DIR: join(dir, "build"),
+  return {
+    dir,
+    env: { KOTLIN_DIR: dir, ANDROID_MODULE: "androidApp", ANDROID_BUILD_FILE: join(mod, "module.yaml"), KEYSTORE_PROPERTIES: join(dir, "keystore.properties"), APP_NAME: "Demo", BUILD_DIR: join(dir, "out") },
+  };
+};
+
+test("android_release_check on the Toolchain: the wrapper, signing enabled in module.yaml, and the properties file it names", () => {
+  const ok = [
+    "    signing: { enabled: true, propertiesFile: ../keystore.properties }",
+    "    signing:\n      enabled: true\n      propertiesFile: ../keystore.properties",
+  ];
+  for (const s of ok) {
+    const p = toolchainProject(s);
+    const r = sh(`${toolchain} android_release_check`, p.env);
+    assert.equal(r.status, 0, `${s}: ${r.stderr}`);
+  }
+  // `signing: enabled` reads keystore.properties beside module.yaml.
+  const scalar = toolchainProject("    signing: enabled");
+  writeFileSync(join(scalar.dir, "androidApp", "keystore.properties"), "storeFile=x\n");
+  assert.equal(sh(`${toolchain} android_release_check`, scalar.env).status, 0);
+
+  const notEnabled = [
+    "    signing:\n      enabled: false\n    lint:\n      enabled: true",
+    "    signing: { enabled: false }",
+    "    namespace: org.example.app",
+  ];
+  for (const s of notEnabled) {
+    const p = toolchainProject(s);
+    const r = sh(`${toolchain} android_release_check`, p.env);
+    assert.notEqual(r.status, 0, s);
+    assert.match(r.stderr, /signing is not enabled/, s);
+    assert.doesNotMatch(r.stderr, /\bran\b/);
+  }
+  // The Toolchain only warns when the properties file is missing and builds unsigned.
+  const missing = toolchainProject("    signing: { enabled: true, propertiesFile: ../nowhere.properties }");
+  let r = sh(`${toolchain} android_release_check`, missing.env);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /nowhere\.properties.*does not exist/);
+
+  const noDir = toolchainProject("    signing: enabled");
+  r = sh(`${toolchain} android_release_check`, { ...noDir.env, KOTLIN_DIR: "" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /KOTLIN_DIR is empty/);
+});
+
+test("toolchain_bundle_release ships only a bundle jarsigner calls verified, never an intermediate", () => {
+  const work = tmp("kt-sign-");
+  const unsigned = join(work, "unsigned.aab");
+  const signed = join(work, "signed.aab");
+  zip(unsigned, ["base/manifest/AndroidManifest.xml"]);
+  zip(signed, ["base/manifest/AndroidManifest.xml"]);
+  const ks = join(work, "k.jks");
+  execFileSync("keytool", ["-genkeypair", "-keystore", ks, "-storepass", "secret1", "-keypass", "secret1", "-alias", "k", "-keyalg", "RSA", "-dname", "CN=Test", "-validity", "2"], { stdio: "ignore" });
+  execFileSync("jarsigner", ["-keystore", ks, "-storepass", "secret1", signed, "k"], { stdio: "ignore" });
+
+  const wrapper = (bundle) =>
+    `#!/bin/sh\nout=build/tasks/_androidApp_bundleAndroid\nmkdir -p $out/gradle-project/intermediates\ncp '${bundle}' $out/gradle-project-release.aab\nsleep 1\ncp '${unsigned}' $out/gradle-project/intermediates/intermediary-bundle.aab\n`;
+
+  const bad = toolchainProject("    signing: { enabled: true, propertiesFile: ../keystore.properties }");
+  writeFileSync(join(bad.dir, "kotlin"), wrapper(unsigned), { mode: 0o755 });
+  let r = sh(`mkdir -p "$BUILD_DIR"; ${toolchain} toolchain_bundle_release`, bad.env);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /is not signed/);
+  assert.doesNotMatch(r.stderr, /signed bundle/);
+
+  const good = toolchainProject("    signing: { enabled: true, propertiesFile: ../keystore.properties }");
+  writeFileSync(join(good.dir, "kotlin"), wrapper(signed), { mode: 0o755 });
+  r = sh(`mkdir -p "$BUILD_DIR"; ${toolchain} toolchain_bundle_release`, good.env);
+  assert.equal(r.status, 0, r.stderr);
+  const dest = r.stdout.trim();
+  assert.match(dest, /Demo-1\.0\.0-1\.aab$/);
+  assert.match(execFileSync("jarsigner", ["-verify", dest], { encoding: "utf8" }), /jar verified\./);
+});
+
+test("gradle_bundle_release refuses a bundle jarsigner calls unsigned", () => {
+  const dir = tmp("gr-sign-");
+  const mod = join(dir, "androidApp");
+  mkdirSync(mod);
+  writeFileSync(join(mod, "build.gradle.kts"), 'android {\n    defaultConfig {\n        versionCode = 3\n        versionName = "1.0.0"\n    }\n}\n');
+  writeFileSync(join(dir, "keystore.properties"), "storeFile=x\n");
+  const unsigned = join(dir, "unsigned.aab");
+  zip(unsigned, ["base/manifest/AndroidManifest.xml"]);
+  writeFileSync(join(dir, "gradlew"), `#!/bin/sh\nmkdir -p androidApp/build/outputs/bundle/release\ncp '${unsigned}' androidApp/build/outputs/bundle/release/androidApp-release.aab\n`, { mode: 0o755 });
+  const r = sh(`. '${lib("gradle.sh")}'; mkdir -p "$BUILD_DIR"; gradle_bundle_release`, {
+    GRADLE_DIR: dir, ANDROID_MODULE: ":androidApp", ANDROID_BUILD_FILE: join(mod, "build.gradle.kts"), KEYSTORE_PROPERTIES: join(dir, "keystore.properties"), APP_NAME: "Demo", BUILD_DIR: join(dir, "out"),
   });
   assert.notEqual(r.status, 0);
-  assert.match(r.stderr, /signing is not enabled/);
-  assert.doesNotMatch(r.stderr, /\bran\b/);
+  assert.match(r.stderr, /is not signed/);
+  assert.doesNotMatch(r.stderr, /signed bundle/);
+});
+
+// deploy-play-internal.sh bumps the versionCode; a configuration it cannot build with must
+// stop it before that write, or every retry bumps again.
+const deployProject = (stack, config) => {
+  const dir = tmp("deploy-");
+  const dist = join(dir, "distribution");
+  mkdirSync(join(dist, "lib"), { recursive: true });
+  for (const f of readdirSync(join(root, "stacks/common/distribution/lib"))) {
+    if (f.endsWith(".sh") || f.endsWith(".py")) writeFileSync(join(dist, "lib", f), readFileSync(lib(f)));
+  }
+  writeFileSync(join(dist, "deploy-play-internal.sh"), readFileSync(join(root, "stacks", stack, "distribution/deploy-play-internal.sh")), { mode: 0o755 });
+  writeFileSync(join(dir, "sa.json"), "{}");
+  writeFileSync(join(dir, "keystore.properties"), "storeFile=x\n");
+  writeFileSync(join(dist, "config.sh"), `APP_NAME="Demo"\nSTACK="${stack}"\nLANES="android"\nPLAY_PACKAGE_NAME="org.example.demo"\nPLAY_SERVICE_ACCOUNT="${join(dir, "sa.json")}"\nKEYSTORE_PROPERTIES="${join(dir, "keystore.properties")}"\n${config(dir)}\n`);
+  return { dir, run: () => spawnSync("bash", [join(dist, "deploy-play-internal.sh"), "--yes"], { encoding: "utf8", cwd: dir }) };
+};
+
+test("deploy-play-internal.sh checks the build configuration before it bumps the versionCode", () => {
+  const moduleYaml = 'settings:\n  android:\n    versionCode: 5\n    versionName: "1.0.0"\n    signing: { enabled: true, propertiesFile: ../keystore.properties }\n';
+  const tc = deployProject("kmp-toolchain", (dir) => {
+    mkdirSync(join(dir, "androidApp"));
+    writeFileSync(join(dir, "androidApp", "module.yaml"), moduleYaml);
+    return `KOTLIN_DIR=""\nANDROID_MODULE="androidApp"\nANDROID_BUILD_FILE="${join(dir, "androidApp", "module.yaml")}"`;
+  });
+  let r = tc.run();
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /KOTLIN_DIR is empty/);
+  assert.equal(readFileSync(join(tc.dir, "androidApp", "module.yaml"), "utf8"), moduleYaml);
+
+  const gradleFile = 'android {\n    defaultConfig {\n        versionCode = 5\n        versionName = "1.0.0"\n    }\n}\n';
+  const gr = deployProject("kmp", (dir) => {
+    mkdirSync(join(dir, "androidApp"));
+    writeFileSync(join(dir, "androidApp", "build.gradle.kts"), gradleFile);
+    return `GRADLE_DIR=""\nANDROID_MODULE=":androidApp"\nANDROID_BUILD_FILE="${join(dir, "androidApp", "build.gradle.kts")}"`;
+  });
+  r = gr.run();
+  assert.notEqual(r.status, 0);
+  assert.equal(r.stderr.trim().split("\n").length, 1, r.stderr);
+  assert.match(r.stderr, /GRADLE_DIR is empty/);
+  assert.equal(readFileSync(join(gr.dir, "androidApp", "build.gradle.kts"), "utf8"), gradleFile);
 });

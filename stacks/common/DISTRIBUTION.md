@@ -52,8 +52,11 @@ that ships it. Where the build system matters (the Android and desktop lanes of
 `run-local.sh`, `prepare-release.sh`, `deploy-play-internal.sh`), the script calls
 `kotlin_build_lib`, which sources `kotlin-toolchain.sh` when `STACK="kmp-toolchain"` and
 `gradle.sh` otherwise, and then only the **Kotlin build interface** both libraries define:
-`android_version_read`, `android_version_write NAME CODE`, `android_bundle_release`,
-`emulator_run`, `desktop_run`. The iOS lanes are `xcode.sh` for every stack; on
+`android_release_check`, `android_version_read`, `android_version_write NAME CODE`,
+`android_bundle_release`, `emulator_run`, `desktop_run`. `android_release_check` runs
+before any version is written, so a configuration that cannot build never bumps a number.
+A bundle counts as signed only when `jarsigner -verify` prints `jar verified.`: it exits 0
+on an unsigned jar too. The iOS lanes are `xcode.sh` for every stack; on
 `kmp-toolchain` they run on the generated `iosApp/module.xcodeproj`.
 
 ## `config.sh`
@@ -198,11 +201,13 @@ play_verify TRACK VERSION_CODE         second edit that reads the track back and
 ```
 gradle_version_read                    versionName and versionCode from $ANDROID_BUILD_FILE (prints "NAME CODE")
 gradle_version_write NAME CODE
-gradle_bundle_release                  :module:bundleRelease with $KEYSTORE_PROPERTIES present, prints the AAB path, jarsigner -verify
+gradle_bundle_release                  :module:bundleRelease with $KEYSTORE_PROPERTIES present, prints the AAB path; jarsigner must say "jar verified."
 gradle_run TASK...                     ./gradlew in $GRADLE_DIR
+gradle_release_check                   GRADLE_DIR set and its gradlew executable
 emulator_run                           start $EMULATOR (or the first AVD) if none is running, wait for boot, installDebug, launch the main activity
 desktop_run                            $DESKTOP_MODULE:run
-android_version_read                   the Kotlin build interface: gradle_version_read
+android_release_check                  the Kotlin build interface: gradle_release_check
+android_version_read                   gradle_version_read
 android_version_write NAME CODE        gradle_version_write
 android_bundle_release                 gradle_bundle_release
 ```
@@ -211,13 +216,18 @@ android_bundle_release                 gradle_bundle_release
 
 ```
 toolchain_run ARGS...                  ./kotlin in $KOTLIN_DIR, output on stderr
-toolchain_version_read                 settings.android.versionName and versionCode from $ANDROID_BUILD_FILE (a module.yaml; prints "NAME CODE"); a missing key stops
-toolchain_version_write NAME CODE      rewrite both in place, the rest of the file byte-identical; a missing key is added under settings: android:
-toolchain_bundle_release               refuse unless module.yaml enables signing and $KEYSTORE_PROPERTIES exists; kotlin package -m $ANDROID_MODULE -f aab -v release;
-                                       the newest .aab under build/tasks, jarsigner -verify, copied to build/android/<App>-<name>-<code>.aab; prints that path
-toolchain_emulator_run                 boot $EMULATOR (or the first AVD) when nothing is attached, then kotlin run -m $ANDROID_MODULE -d <serial>
+toolchain_release_check                KOTLIN_DIR and an executable wrapper; signing enabled in the Android module.yaml (flow, block or scalar form)
+                                       and its propertiesFile, resolved against the module directory, present; $KEYSTORE_PROPERTIES present
+toolchain_version_read                 versionName and versionCode from the android: block of settings: in $ANDROID_BUILD_FILE (prints "NAME CODE")
+toolchain_version_write NAME CODE      rewrite both in place, the rest of the file byte-identical, CRLF kept; a missing key stops, naming it and the file
+toolchain_bundle_release               toolchain_release_check; kotlin package -m $ANDROID_MODULE -f aab -v release; the .aab in
+                                       build/tasks/_<module>_bundleAndroid/ (else the newest this run wrote under build/tasks, never under intermediates/);
+                                       jarsigner must say "jar verified."; copied to build/android/<App>-<name>-<code>.aab; prints that path
+toolchain_emulator_run                 boot $EMULATOR (or the first AVD) when nothing is attached, then kotlin run -m $ANDROID_MODULE -d <serial>:
+                                       the FIRST attached device only (-d takes one id), where gradle's installDebug installs on every attached device
 toolchain_desktop_run                  kotlin run -m $DESKTOP_MODULE (Compose Hot Reload on by default)
-android_version_read                   the Kotlin build interface: toolchain_version_read
+android_release_check                  the Kotlin build interface: toolchain_release_check
+android_version_read                   toolchain_version_read
 android_version_write NAME CODE        toolchain_version_write
 android_bundle_release                 toolchain_bundle_release
 emulator_run                           toolchain_emulator_run
