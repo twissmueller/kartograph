@@ -126,7 +126,8 @@ Only when a change gives a term a new meaning, introduces a term, or retires one
 skip this step and say so. Reconcile and write by the rules of
 `skills/kartograph-knowledge/SKILL.md` at the plugin root (§ 3 and § 4), with the revision
 as an extra source of every concept it touches: a `sources` entry with `id` the revision's
-slug, `resource: ../kartograph/<file>.revision.md` and `title` the revision's title, and
+file name without `.revision.md` (`<YYYY-MM-DD-HHMM>-<slug>`, the form an intent's entry
+takes), `resource: ../kartograph/<file>.revision.md` and `title` the revision's title, and
 the person's words quoted under `# From the intent`, footnoted to that id. An existing
 definition is never rewritten: a changed meaning is recorded under `# Collision`. Prepend
 to `knowledge/log.md` under today's date: `* **Revision**: processed
@@ -149,16 +150,19 @@ Start from the old plan, as it stands with its ticks, in
 `revision: kartograph/<file>.revision.md` follows it; `features` lists the feature files
 as they are now. Then, change by change:
 
-- **Changed scenario:** its ring-2 task is rewritten for the new steps. The ring-1 task
-  of the screen serving it is rewritten when what the screen shows or offers changes, and
-  a ring-3 task only when a port's signature changes.
-- **Added scenario:** a new ring-2 task; a new ring-1 task for a new screen, or the
-  serving screen's task rewritten for a new control; a new ring-3 task for a new port.
-- **Removed scenario:** its ring-2 task, its layer-map row and its place in the screens
-  table go; drop its name from the serving screen's `**Scenarios:**` line, which alone
-  keeps that task's ticks (validate-plan.js rejects a name the layer map no longer has);
-  the task is rewritten, `**Revised:** changed` and unticked, only when a control goes
-  with it.
+- **Changed scenario:** its ring-2 task is rewritten for the new steps. A scenario the old
+  plan covered only by a `## Friction` entry (typically "already built") has no ring-2
+  task to rewrite: it gets a new one, `**Revised:** added`, and its friction entry goes.
+  The ring-1 task of the screen serving it is rewritten when what the screen shows or
+  offers changes, and a ring-3 task only when a port's signature changes.
+- **Added scenario:** a new ring-2 task, never a friction entry; a new ring-1 task for a
+  new screen, or the serving screen's task rewritten for a new control; a new ring-3 task
+  for a new port.
+- **Removed scenario:** its ring-2 task or its friction entry, its layer-map row and its
+  place in the screens table go; drop its name from the serving screen's `**Scenarios:**`
+  line, which alone keeps that task's ticks (validate-plan.js rejects a name the layer
+  map no longer has); the task is rewritten, `**Revised:** changed` and unticked, only
+  when a control goes with it.
 
 Every rewritten task carries `**Revised:** changed`, every new one `**Revised:** added`,
 on its own line below the task's first field lines, and all its checkboxes are unticked.
@@ -166,9 +170,10 @@ Every other task stays byte for byte with its ticks. Renumber tasks so each ring
 from 1; update the screens table, the layer map, ports and adapters and the files list to
 match. Set the old plan's `status` to `superseded`. Run
 `node <plugin root>/skills/kartograph-plan/validate-plan.js plans/<new file>` until it
-prints `ok`; it also checks that no task built under the old plan lost its ticks. Stage
-both plans; commit as `plan: <capability> (revision)` — do not push; step 6 pushes every
-commit of this run once.
+prints `ok`; it also checks that no task built under the old plan lost its ticks, and
+that every scenario the revision changed or added has a `**Revised:**` ring-2 task and no
+friction entry. Stage both plans; commit as `plan: <capability> (revision)` — do not push;
+step 6 pushes every commit of this run once.
 
 ## 5. Code
 
