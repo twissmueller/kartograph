@@ -3,9 +3,9 @@
 // OpenCode plugins register tools, not skills, so this module exposes each skill as a
 // tool: calling it hands the model the same SKILL.md and supporting files that Claude Code
 // and Codex read from `skills/<name>/`. Nothing is duplicated — the files are read from
-// this package at call time. The plan and deliver tools also name the `stacks/` directory,
-// since those two skills read it; migrate names the plugin root, since it runs `scripts/`
-// and reads `migrations/`.
+// this package at call time. The plan, deliver and release tools also name the `stacks/`
+// directory, since those skills read it; migrate, revise and release name the plugin root,
+// since they run scripts or read other skills' files from it.
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tool } from "@opencode-ai/plugin";
@@ -150,6 +150,18 @@ export const KartographPlugin = async () => ({
       args: { target: tool.schema.string().describe("The capability directory, feature file, or scenario name to walk.") },
       opening: (a) => `The capability, feature or scenario to walk: ${a.target}\n\n`,
     }),
+    kartograph_revise: skillTool({
+      skill: "kartograph-revise",
+      files: ["revision-template.md"],
+      description:
+        "Use when a person has looked at what was built — in a walk, in the running app, or " +
+        "anywhere else — and says what should be different, and that change has not been recorded " +
+        "under kartograph/ yet. Also use when a walk recorded failed scenarios whose behaviour the " +
+        "person now wants changed. Returns the instructions to follow for the rest of the conversation.",
+      args: { change: tool.schema.string().optional().describe("What the person wants changed, in their words, if already said.") },
+      opening: (a) => (a.change ? `What the person wants changed, in their words: ${a.change}\n\n` : ""),
+      extraNote: `\nThe plugin root the instructions refer to is: ${pluginRoot}`,
+    }),
     kartograph_deliver: skillTool({
       skill: "kartograph-deliver",
       files: [],
@@ -163,6 +175,18 @@ export const KartographPlugin = async () => ({
       args: { action: tool.schema.string().describe("What to deliver and where, in the person's words.") },
       opening: (a) => `What the person wants delivered: ${a.action}\n\n`,
       extraNote: `\nThe stacks/ directory the instructions refer to is: ${stacksDir}`,
+    }),
+    kartograph_release: skillTool({
+      skill: "kartograph-release",
+      files: [],
+      description:
+        "Use when a build that was tested on TestFlight or on Play internal testing should go to " +
+        "the App Store and Google Play, and its release notes, store texts and screenshots have to " +
+        "say what is new. Not for building or uploading a new build. Returns the instructions to " +
+        "follow for the rest of the conversation.",
+      args: {},
+      opening: () => "",
+      extraNote: `\nThe plugin root the instructions refer to is: ${pluginRoot}\nThe stacks/ directory the instructions refer to is: ${stacksDir}`,
     }),
     kartograph_migrate: skillTool({
       skill: "kartograph-migrate",

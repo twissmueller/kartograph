@@ -44,7 +44,9 @@
     "./skills/kartograph-domain",
     "./skills/kartograph-adapters",
     "./skills/kartograph-walk",
+    "./skills/kartograph-revise",
     "./skills/kartograph-deliver",
+    "./skills/kartograph-release",
     "./skills/kartograph-migrate"
   ]
 }
