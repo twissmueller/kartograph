@@ -451,3 +451,72 @@ test("the template's note on revision plans leaves a filled plan valid", () => {
   assert.ok(note, "plan-template.md explains the revision line and the Revised marks");
   assert.deepEqual(validatePlan(valid.replace("---\n\n# Plan:", `---\n\n${note}\n\n# Plan:`), { filename: FILE }).errors, []);
 });
+
+test("a superseded plan is not cross-checked against feature files that changed after it", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "karto-plan-superseded-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, "features", "project-archiving"), { recursive: true });
+  mkdirSync(join(root, "docs", "code-design"), { recursive: true }); mkdirSync(join(root, "plans"));
+  writeFileSync(join(root, "docs", "code-design", "stack.md"), "---\nstack: kmp\n---\n");
+  // The scenarios were renamed after the plan was written.
+  writeFileSync(join(root, "features", "project-archiving", "archive-project.feature"), `Feature: Archive a project\n  Scenario: An owner archives a project\n    Given a\n    When b\n    Then c\n`);
+  const path = join(root, FILE);
+  writeFileSync(path, valid);
+  assert.ok(validatePlanFile(path).errors.some((e) => /ring-2 task scenario '.*' is not in the listed feature files/.test(e)), "a planned plan is still cross-checked");
+  writeFileSync(path, valid.replace("status: planned", "status: superseded"));
+  assert.deepEqual(validatePlanFile(path).errors, []);
+  writeFileSync(path, valid.replace("status: planned", "status: superseded").replace("features: [archive-project.feature]", "features: [archive-project.feature, retired.feature]"));
+  assert.deepEqual(validatePlanFile(path).errors, [], "a feature file retired after the plan does not fail it");
+});
+
+test("every scenario a revision changes or adds has a revised ring-2 task, never only a friction entry", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "karto-plan-revision-friction-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const cap = join(root, "features", "project-archiving");
+  mkdirSync(cap, { recursive: true }); mkdirSync(join(root, "docs", "code-design"), { recursive: true });
+  mkdirSync(join(root, "plans")); mkdirSync(join(root, "kartograph"));
+  writeFileSync(join(root, "docs", "code-design", "stack.md"), "---\nstack: kmp\n---\n");
+  const S3 = "An archived project can be restored";
+  const scen = (name, mark = "") => `${mark}  Scenario: ${name}\n    Given a\n    When b\n    Then c\n`;
+  const MARK = `  # Changed by ${REVISION}\n`;
+  const FRICTION_S2 = `## Friction\n\n- **${S2}** — already built and unchanged: its test passes.\n`;
+  // The old plan built everything; S2 was covered only by a friction entry.
+  const old = tick(valid).replace(`${tick(domainTask(2, S2))}`, "").replace("## Friction\n\nNone\n", FRICTION_S2).replace("status: planned", "status: superseded");
+  writeFileSync(join(root, OLD), old);
+  const revisionFile = (changes) => `---\ntype: Revision\n---\n\n# Archive undo\n\n## Changes\n\n${changes}\n\n## Open questions\n\nNone identified.\n`;
+  const newPlan = (text) => text.replace("date: 2026-09-18\nsupersedes: none", `date: 2026-09-25\nsupersedes: ${OLD}\nrevision: ${REVISION}`).replace("status: superseded", "status: planned");
+  const path = join(root, NEW_FILE);
+
+  // Changed: S2 changed, the plan keeps it in friction only.
+  writeFileSync(join(cap, "archive-project.feature"), `Feature: Archive a project\n${scen(S1)}${scen(S2, MARK)}`);
+  writeFileSync(join(root, REVISION), revisionFile(`- **Changed:** \`features/project-archiving/archive-project.feature › ${S2}\` — a note is asked for [turn 1]`));
+  const revisedScreen = (text) => text.replace(tick(screenTask), screenTask.replace(`**Scenarios:** ${S1}; ${S2}\n`, `**Scenarios:** ${S1}; ${S2}\n**Revised:** changed\n`));
+  writeFileSync(path, revisedScreen(newPlan(old)));
+  let errs = validatePlanFile(path).errors;
+  assert.ok(errs.some((e) => new RegExp(`scenario '${S2}' is changed or added by the revision but has no ring-2 task marked '\\*\\*Revised:\\*\\*'`).test(e)), errs.join("\n"));
+  // A new ring-2 task marked added, friction entry removed: accepted.
+  const withTask = (text) => text.replace("## Ring 3: Adapters", `${domainTask(2, S2).replace("**Layers:**", "**Revised:** added\n**Layers:**")}\n## Ring 3: Adapters`);
+  const good = withTask(newPlan(old)).replace(FRICTION_S2, "## Friction\n\nNone\n");
+  writeFileSync(path, good);
+  assert.deepEqual(validatePlanFile(path).errors, []);
+  // The friction entry must go once the scenario has a revised task.
+  writeFileSync(path, withTask(newPlan(old)));
+  errs = validatePlanFile(path).errors;
+  assert.ok(errs.some((e) => new RegExp(`scenario '${S2}' has a revised ring-2 task and still a friction entry`).test(e)), errs.join("\n"));
+  // An unrevised ring-2 task for a changed scenario is not enough either.
+  writeFileSync(join(root, REVISION), revisionFile(`- **Changed:** \`features/project-archiving/archive-project.feature › ${S1}\` — a note is asked for [turn 1]\n- **Changed:** \`features/project-archiving/archive-project.feature › ${S2}\` — a note is asked for [turn 1]`));
+  errs = validatePlanFile(path).errors;
+  assert.ok(errs.some((e) => new RegExp(`scenario '${S1}' is changed or added by the revision but has no ring-2 task marked`).test(e)), errs.join("\n"));
+
+  // Added: a new scenario marked with this revision, covered only by a friction entry.
+  writeFileSync(join(cap, "archive-project.feature"), `Feature: Archive a project\n${scen(S1)}${scen(S2)}${scen(S3, MARK)}`);
+  writeFileSync(join(root, REVISION), revisionFile(`- **Added:** \`features/project-archiving/archive-project.feature\` — restoring an archived project [turn 1]`));
+  const addedFriction = revisedScreen(newPlan(old)).replace(FRICTION_S2, `${FRICTION_S2}- **${S3}** — already built: restoring works.\n`);
+  writeFileSync(path, addedFriction);
+  errs = validatePlanFile(path).errors;
+  assert.ok(errs.some((e) => new RegExp(`scenario '${S3}' is changed or added by the revision but has no ring-2 task marked`).test(e)), errs.join("\n"));
+  // A scenario another revision marked earlier does not count for this one.
+  writeFileSync(join(cap, "archive-project.feature"), `Feature: Archive a project\n${scen(S1)}${scen(S2)}${scen(S3, "  # Changed by kartograph/2026-09-20-0900-restore.revision.md\n")}`);
+  errs = validatePlanFile(path).errors;
+  assert.ok(!errs.some((e) => /is changed or added by the revision/.test(e)), errs.join("\n"));
+});

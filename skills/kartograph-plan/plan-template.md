@@ -11,7 +11,9 @@ supersedes: <plans/<earlier file>.md, or none>
      revision: kartograph/YYYY-MM-DD-HHMM-slug.revision.md, and marks every task the
      revision rewrote or added with a line **Revised:** changed or **Revised:** added
      below the task's first field lines, all its checkboxes unticked. Every other task
-     keeps the checkboxes it had in the superseded plan. validate-plan.js checks that. -->
+     keeps the checkboxes it had in the superseded plan. Every scenario the revision
+     changed or added has a ring-2 task marked **Revised:**, and no friction entry.
+     validate-plan.js checks that. -->
 
 # Plan: <capability title>
 

@@ -277,22 +277,66 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
       const found = resolveCapabilityDir(join(projectRoot, "features"), fm.capability);
       if (found.ambiguous) err(`capability '${fm.capability}' is ambiguous (${found.ambiguous.join(", ")}); use the slash-joined path`);
       else if (found.missing) warnings.push(`features/${fm.capability}/ does not exist in the project`);
-      else {
+      // A superseded plan describes the feature files as they were; they may have changed since.
+      else if (fm.status !== "superseded") {
         const capDir = found.dir; const capRel = found.rel;
-        const knownScen = new Set();
+        const knownScen = new Set(); const markedScen = new Set();
         for (const f of features || []) {
           const fp = join(capDir, f);
           if (!existsSync(fp)) { err(`features/${capRel}/${f} does not exist`); continue; }
-          for (const m of readFileSync(fp, "utf8").matchAll(/^\s*(?:Scenario Outline|Scenario): (.*)$/gm)) knownScen.add(m[1].trim());
+          const text = readFileSync(fp, "utf8");
+          for (const m of text.matchAll(/^\s*(?:Scenario Outline|Scenario): (.*)$/gm)) knownScen.add(m[1].trim());
+          if (fm.revision !== undefined) for (const s of scenariosMarkedBy(text, fm.revision)) markedScen.add(s);
         }
         if (knownScen.size) {
           for (const s of domainScenarios) if (!knownScen.has(s)) err(`ring-2 task scenario '${s}' is not in the listed feature files`);
           for (const s of knownScen) if (!domainScenarios.includes(s) && !frictionNames.includes(s)) err(`scenario '${s}' from the feature files has neither a ring-2 task nor a friction entry`);
         }
+        // What the revision changed or added is built again: a revised ring-2 task, never a
+        // friction entry saying it was already built.
+        const revisionPath = fm.revision !== undefined && REVISION_PATH.test(fm.revision) ? join(projectRoot, fm.revision) : null;
+        if (revisionPath && existsSync(revisionPath)) {
+          const listed = new Set((features || []).map((f) => `features/${capRel}/${f}`));
+          for (const c of revisionChanges(readFileSync(revisionPath, "utf8"))) if (c.kind === "Changed" && c.scenario && listed.has(c.file) && knownScen.has(c.scenario)) markedScen.add(c.scenario);
+          for (const s of markedScen) {
+            const task = rings[2].find((r) => r.name === s);
+            if (!task || task.fields.Revised === undefined) err(`scenario '${s}' is changed or added by the revision but has no ring-2 task marked '**Revised:**'`);
+            else if (frictionNames.includes(s)) err(`scenario '${s}' has a revised ring-2 task and still a friction entry; remove the entry`);
+          }
+        }
       }
     }
   }
   return { errors, warnings, rings: { 1: rings[1].every((r) => r.done) && rings[1].length > 0, 2: rings[2].every((r) => r.done) && rings[2].length > 0, 3: rings[3].every((r) => r.done) && rings[3].length > 0 } };
+}
+
+// The scenarios of a feature file carrying `# Changed by <revision>` in the comment and tag
+// lines directly above them.
+function scenariosMarkedBy(text, revision) {
+  const out = []; let marked = false;
+  for (const line of text.split(/\r?\n/)) {
+    const t = line.trim();
+    const m = /^(?:Scenario Outline|Scenario): (.*)$/.exec(t);
+    if (m) { if (marked) out.push(m[1].trim()); marked = false; continue; }
+    if (t.startsWith("#")) { if (/^#\s*Changed by\s+(\S+)\s*$/.exec(t)?.[1] === revision) marked = true; continue; }
+    if (t.startsWith("@")) continue;
+    marked = false;
+  }
+  return out;
+}
+
+// The Changed and Added lines of a revision's `## Changes`: the feature file and, for a
+// scenario, its name.
+function revisionChanges(text) {
+  const out = []; let inChanges = false;
+  for (const line of text.split(/\r?\n/)) {
+    if (/^## /.test(line)) { inChanges = line.trim() === "## Changes"; continue; }
+    if (!inChanges) continue;
+    const m = /^- \*\*(Changed|Added|Removed):\*\* `([^`]+)`/.exec(line); if (!m) continue;
+    const [file, scenario] = m[2].split(" › ");
+    out.push({ kind: m[1], file: file.trim(), scenario: scenario?.trim() });
+  }
+  return out;
 }
 
 // The tasks of a plan, per ring, with whether all their steps are ticked. Used to compare a
