@@ -30,7 +30,7 @@ Each run starts from a fresh context. What one skill knows, it knows from the fi
 previous one wrote, so everything worth keeping is in your repo, versioned, and readable
 by you, a colleague, or a later AI session.
 
-![The eight phases and twelve skills: who does what, which files result, and when a phase hands over](docs/phases.svg)
+![The eight phases and fourteen skills: who does what, which files result, and when a phase hands over](docs/phases.svg)
 
 ## Why
 
@@ -402,8 +402,9 @@ available in the IDE extension.
 OpenCode plugins register tools rather than skills, so the plugin exposes the skills as
 tools named `kartograph_converse`, `kartograph_intent`, `kartograph_map`,
 `kartograph_knowledge`, `kartograph_features`, `kartograph_plan`, `kartograph_screens`,
-`kartograph_domain`, `kartograph_adapters`, `kartograph_walk`, `kartograph_deliver` and
-`kartograph_migrate` that hand the model the same `SKILL.md`. Add the npm package to
+`kartograph_domain`, `kartograph_adapters`, `kartograph_walk`, `kartograph_revise`,
+`kartograph_deliver`, `kartograph_release` and `kartograph_migrate` that hand the model
+the same `SKILL.md`. Add the npm package to
 `opencode.json`:
 
 ```json

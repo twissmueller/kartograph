@@ -35,7 +35,7 @@
 
   <!-- Header -->
   <text class="eyebrow" x="20" y="28">KARTOGRAPH · CAPABILITY-CENTRED AI-NATIVE SDL · STATUS v3.0.0</text>
-  <text class="h1" x="20" y="60">Eight phases, twelve skills. Two planned human–AI sessions. Three rings, one stack.</text>
+  <text class="h1" x="20" y="60">Eight phases, fourteen skills. Two planned human–AI sessions. Three rings, one stack.</text>
   <text class="sub" x="20" y="82">Every phase is a skill, starts from a fresh context and reads only the files the previous phase wrote. The stack's design documents are pulled in at planning and read by every ring. Three runtimes, one source.</text>
 
   <!-- columns: x = 140, 331, 522, 713, 904, 1095, 1286, 1477 · width 182 · text x = +10 · centre = +95 · chip text = +18 -->
@@ -417,5 +417,5 @@
   <rect x="150" y="1088" width="10" height="10" fill="#0f766e"/><text class="foot" x="166" y="1097" fill="#1f2937">Autonomous, rule-based</text>
   <rect x="320" y="1088" width="10" height="10" fill="#b45309"/><text class="foot" x="336" y="1097" fill="#1f2937">Human only when a decision is needed, later</text>
   <text class="foot" x="20" y="1124">End-to-end linkage: intent file → sources / # Source intent → capability.md → plans/ (stack: docs/code-design/) → feature-&lt;capability&gt;/ (+ core/, server/) → walks/. Status: Kartograph v3.0.0, 2026-09-24.</text>
-  <text class="foot" x="20" y="1142">Skills: converse (interactive) · intent · map · knowledge · features · plan · screens · domain · adapters (fully automated, separately triggered) · walk (interactive, once per scenario) · deliver · migrate – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
+  <text class="foot" x="20" y="1142">Skills: converse (interactive) · intent · map · knowledge · features · plan · screens · domain · adapters (fully automated, separately triggered) · walk (interactive, once per scenario) · revise · deliver · release · migrate – Claude Code, Codex/ChatGPT and OpenCode from one source.</text>
 </svg>

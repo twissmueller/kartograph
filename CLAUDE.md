@@ -356,13 +356,21 @@ Rules for editing them:
   marks the rest `**Revised:** changed|added`, unticked; `validate-plan.js` checks both
   against the superseded plan. Revise builds only rings that were fully built, by the ring
   skills' own `SKILL.md`, never reloading the app; the ring skills skip ticked tasks.
-- **Release ships the tested build.** `release-check.sh` decides; a first release is out
+- **Release ships the tested build.** `release-check.sh` decides (exit 1: a new build
+  first; exit 3: a store could not be read, never read as exit 1); a first release is out
   of scope. The notes live only in `distribution/release-notes/v<X.Y.Z>.md` (REL5, AV8),
   positive and factual, never naming another platform (ASC32); store texts gain only
   what is new; screenshots are renders from the project's renderer (ASC13, MAS10, ASC14,
   GP5), committed under `distribution/store/`, only for changed screens.
-- **Release asks once**, then `push-store-metadata.sh --screenshots` and
-  `release-stores.sh --yes`, then the tag `v<X.Y.Z>` unless it exists.
+- **Release asks once**, then, stopping at the first failure:
+  `push-store-metadata.sh --apple --screenshots --version <X.Y.Z> --yes`, then
+  `release-stores.sh --notes … --version <X.Y.Z> --yes`, then
+  `push-store-metadata.sh --play --screenshots --yes` last (Play's listing goes live when
+  its edit commits), then the tag `v<X.Y.Z>` unless it exists. A project whose copied
+  `push-store-metadata.sh` or `lib/asc.sh` predates `--version` gets both refreshed first.
+- **A revision plan rebuilds what the revision touched**: every scenario it changed or
+  added has a `**Revised:**` ring-2 task, never only a friction entry; `validate-plan.js`
+  checks it, and skips the features cross-check for a `superseded` plan.
 
 ## Migrations
 
