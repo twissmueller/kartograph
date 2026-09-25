@@ -178,12 +178,13 @@ export const KartographPlugin = async () => ({
     }),
     kartograph_release: skillTool({
       skill: "kartograph-release",
-      files: [],
+      files: ["first-release-template.md"],
       description:
         "Use when a build that was tested on TestFlight or on Play internal testing should go to " +
-        "the App Store and Google Play, and its release notes, store texts and screenshots have to " +
-        "say what is new. Not for building or uploading a new build. Returns the instructions to " +
-        "follow for the rest of the conversation.",
+        "the App Store and Google Play, whether as the app's first store release or as an update, " +
+        "and its release notes, store texts and screenshots have to say what the app is or what is " +
+        "new. Not for building or uploading a new build. Returns the instructions to follow for " +
+        "the rest of the conversation.",
       args: {},
       opening: () => "",
       extraNote: `\nThe plugin root the instructions refer to is: ${pluginRoot}\nThe stacks/ directory the instructions refer to is: ${stacksDir}`,
