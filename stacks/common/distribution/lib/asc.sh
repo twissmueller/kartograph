@@ -435,6 +435,29 @@ print(json.dumps({"data": {"type": "appStoreVersionLocalizations",
   log "what's new set for $locale"
 }
 
+# asc_version_on_sale PLATFORM — the highest versionString on sale on PLATFORM, or nothing
+# when no version ever went on sale: a first release. That is the case in which Apple
+# refuses What's New (409, worded like a malformed request), because there is nothing for
+# it to be new against. Returns non-zero only when the versions cannot be read, so an
+# empty answer always means "first release", never "unknown".
+asc_version_on_sale() {
+  local platform="${1:?asc_version_on_sale PLATFORM}" app answer
+  app="$(_asc_app)"
+  answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 1
+  printf '%s' "$answer" | _asc_py '
+found = []
+for v in d.get("data", []):
+    a = v["attributes"]
+    # Older responses call it appStoreState, newer ones appVersionState.
+    if (a.get("appStoreState") or a.get("appVersionState")) not in ("READY_FOR_SALE", "READY_FOR_DISTRIBUTION"):
+        continue
+    parts = (a.get("versionString", "").split(".") + ["0", "0"])[:3]
+    if all(p.isdigit() for p in parts):
+        found.append((tuple(int(p) for p in parts), a["versionString"]))
+if found:
+    print(max(found)[1])'
+}
+
 # ---------------------------------------------------------------------------
 # Review submission
 # ---------------------------------------------------------------------------

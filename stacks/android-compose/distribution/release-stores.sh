@@ -8,7 +8,11 @@
 #   apple  finds the newest processed build for the version, attaches it to the editable
 #          App Store version (created when absent, released after approval), sets What's
 #          New from the notes file's asc_short section per locale, and submits for review.
+#          On a first release (nothing on sale on that platform yet) What's New is left
+#          out: Apple refuses it there, since there is nothing for it to be new against.
 #          Refuses while a subscription waits at READY_TO_SUBMIT unattached (Guideline 2.1(b)).
+#   play   on an app that was never published, Play accepts only a draft production
+#          release; it is staged, and sent for review from the Play Console.
 # Nothing is rebuilt: the artefact that was tested is the artefact that ships.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -55,12 +59,18 @@ if [ "$apple" = 1 ]; then
     case "$platform" in IOS) has_lane ios || continue ;; MAC_OS) has_lane mac || continue ;; esac
     build_id="$(asc_build_latest "$platform" "$version")"
     [ -n "$build_id" ] || die "no processed $platform build for $version — run deploy-testflight.sh first"
+    on_sale="$(asc_version_on_sale "$platform")" \
+      || die "could not read the $platform App Store versions — nothing was changed"
     version_id="$(asc_version_editable "$platform" "$version")"
     asc_version_attach "$version_id" "$build_id"
-    for locale in $LOCALES; do
-      asc_version_whats_new "$version_id" "$locale" "$(notes_slice "$notes" asc_short 4000)"
-    done
-    log "App Store ($platform): $APP_NAME $version has its build and What's New"
+    if [ -n "$on_sale" ]; then
+      for locale in $LOCALES; do
+        asc_version_whats_new "$version_id" "$locale" "$(notes_slice "$notes" asc_short 4000)"
+      done
+      log "App Store ($platform): $APP_NAME $version has its build and What's New"
+    else
+      log "App Store ($platform): $APP_NAME $version has its build; first release, so no What's New (Apple refuses it before a version is on sale)"
+    fi
     confirm_typed submit "Submit $APP_NAME $version ($platform) for App Review? Type 'submit'"
     asc_review_submit "$platform"
   done

@@ -490,3 +490,70 @@ test("push-store-metadata.sh's ensure_apple_version creates the missing App Stor
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stderr, /CREATE IOS 1\.2\.0/);
 });
+
+// --- a first store release: Apple refuses What's New before a version is on sale (ASC10).
+// asc_version_on_sale tells a first release from a follow-up; release-stores.sh skips What's
+// New on the first and sets it, exactly as before, on every later one.
+
+test("asc_version_on_sale prints the highest version on sale, nothing on a first release, and fails only when the versions cannot be read", () => {
+  const versions = (list) => JSON.stringify({ data: list.map(([versionString, state], i) => ({ id: `v${i}`, attributes: { platform: "IOS", versionString, [i % 2 ? "appVersionState" : "appStoreState"]: state } })) });
+  const stub = (json) => `asc_get() { printf '%s' '${json}'; }`;
+
+  let r = sh(`${asc} ${stub(versions([["1.9.0", "READY_FOR_SALE"], ["1.10.0", "READY_FOR_DISTRIBUTION"], ["2.0.0", "PREPARE_FOR_SUBMISSION"]]))}; ASC_APP_ID=1 asc_version_on_sale IOS`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "1.10.0\n");
+
+  r = sh(`${asc} ${stub(versions([["1.0", "PREPARE_FOR_SUBMISSION"]]))}; ASC_APP_ID=1 asc_version_on_sale IOS`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "");
+
+  r = sh(`${asc} asc_get() { echo "HTTP 500" >&2; return 1; }; ASC_APP_ID=1 asc_version_on_sale IOS`);
+  assert.notEqual(r.status, 0);
+});
+
+// release-stores.sh against stubbed libraries: every store call is a function that logs what
+// it was asked to do, so the order and the What's New decision are visible without an API.
+const releaseStores = (stack = "kmp") => {
+  const dir = tmp("release-stores-");
+  const dist = join(dir, "distribution");
+  mkdirSync(dist);
+  execFileSync("cp", ["-R", join(root, "stacks/common/distribution/lib"), join(dist, "lib")]);
+  execFileSync("cp", [join(root, "stacks", stack, "distribution/release-stores.sh"), join(dist, "/")]);
+  writeFileSync(join(dist, "config.sh"), 'APP_NAME="Demo"\nLANES="ios"\nLOCALES="en-US de-DE"\nASC_APP_ID=1\nASC_KEY_ID=k\nASC_ISSUER_ID=i\n');
+  writeFileSync(join(dist, "lib/xcode.sh"), "version_read() { echo 1.3.0; }\n");
+  writeFileSync(join(dist, "lib/asc.sh"), `asc_build_latest() { echo "BUILD $1 $2" >&2; echo build-1; }
+asc_version_on_sale() { [ "\${ON_SALE_FAIL:-}" = 1 ] && { echo "HTTP 500" >&2; return 1; }; printf '%s\\n' "\${ON_SALE:-}"; }
+asc_version_editable() { echo "EDITABLE $1 $2" >&2; echo version-1; }
+asc_version_attach() { echo "ATTACH $1 $2" >&2; }
+asc_version_whats_new() { echo "WHATSNEW $1 $2 $3" >&2; }
+asc_review_submit() { echo "SUBMIT $1" >&2; }
+`);
+  writeFileSync(join(dist, "notes.md"), "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n");
+  return (env = {}) => spawnSync("bash", [join(dist, "release-stores.sh"), "--apple", "--notes", join(dist, "notes.md"), "--version", "1.3.0", "--yes"], { encoding: "utf8", env: { ...process.env, ...env } });
+};
+
+test("release-stores.sh on a follow-up release sets What's New per locale, then submits, as before", () => {
+  const r = releaseStores()({ ON_SALE: "1.2.0" });
+  assert.equal(r.status, 0, r.stderr);
+  const calls = r.stderr.split("\n").filter((l) => /^(BUILD|EDITABLE|ATTACH|WHATSNEW|SUBMIT) /.test(l));
+  assert.deepEqual(calls, ["BUILD IOS 1.3.0", "EDITABLE IOS 1.3.0", "ATTACH version-1 build-1", "WHATSNEW version-1 en-US Apple text.", "WHATSNEW version-1 de-DE Apple text.", "SUBMIT IOS"]);
+  assert.match(r.stderr, /has its build and What's New/);
+});
+
+test("release-stores.sh on a first release sets no What's New, which Apple refuses, and still submits", () => {
+  for (const stack of ["kmp", "kmp-toolchain", "apple-swift"]) {
+    const r = releaseStores(stack)({ ON_SALE: "" });
+    assert.equal(r.status, 0, `${stack}: ${r.stderr}`);
+    assert.doesNotMatch(r.stderr, /WHATSNEW/, stack);
+    assert.match(r.stderr, /ATTACH version-1 build-1/, stack);
+    assert.match(r.stderr, /first release.*no What's New/i, stack);
+    assert.match(r.stderr, /SUBMIT IOS/, stack);
+  }
+});
+
+test("release-stores.sh stops before touching the version when it cannot read what is on sale", () => {
+  const r = releaseStores()({ ON_SALE_FAIL: "1" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /could not read/);
+  assert.doesNotMatch(r.stderr, /EDITABLE|ATTACH|WHATSNEW|SUBMIT/);
+});
