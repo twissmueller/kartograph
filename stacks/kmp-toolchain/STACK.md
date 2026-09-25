@@ -95,7 +95,7 @@ where the Toolchain forces a departure from `kmp` are marked *Toolchain departur
 `distribution/` beside this file holds the entry scripts `kartograph-deliver` copies into a
 project on first use, over the shared libraries from `stacks/common/distribution/lib/`:
 run-local.sh (desktop, ios, android, docker), run-device.sh, prepare-release.sh,
-deploy-testflight.sh, deploy-play-internal.sh, push-store-metadata.sh, release-stores.sh.
+deploy-testflight.sh, deploy-play-internal.sh, push-store-metadata.sh, release-check.sh, release-stores.sh.
 They are the `kmp` scripts byte for byte; `config.sh` sets `STACK="kmp-toolchain"`, which
 makes them build the Android and desktop apps through `lib/kotlin-toolchain.sh` instead of
 `lib/gradle.sh`. Their contract is `stacks/common/DISTRIBUTION.md`.

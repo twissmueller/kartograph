@@ -14,10 +14,10 @@ const all = [...common, ...Object.values(perStack).flat()];
 
 // The scripts each stack must ship, from the table in stacks/common/DISTRIBUTION.md.
 const REQUIRED = {
-  kmp: ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-stores.sh"],
-  "kmp-toolchain": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-stores.sh"],
-  "apple-swift": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "push-store-metadata.sh", "release-stores.sh"],
-  "android-compose": ["run-local.sh", "prepare-release.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-stores.sh"],
+  kmp: ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
+  "kmp-toolchain": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
+  "apple-swift": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
+  "android-compose": ["run-local.sh", "prepare-release.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
   "angular-kotlin": ["run-local.sh", "prepare-release.sh", "deploy.sh"],
   "python-fastapi": ["run-local.sh", "prepare-release.sh"],
 };
@@ -323,4 +323,31 @@ test("deploy-play-internal.sh checks the build configuration before it bumps the
   assert.equal(r.stderr.trim().split("\n").length, 1, r.stderr);
   assert.match(r.stderr, /GRADLE_DIR is empty/);
   assert.equal(readFileSync(join(gr.dir, "androidApp", "build.gradle.kts"), "utf8"), gradleFile);
+});
+
+// --- release-check.sh and the screenshot documents kartograph-release reads -------
+
+test("release-check.sh prints its usage, and exits 2 with a sentence when no store lane ships", () => {
+  const dir = tmp("release-check-");
+  mkdirSync(join(dir, "distribution"));
+  execFileSync("cp", ["-R", join(root, "stacks/common/distribution/lib"), join(dir, "distribution/lib")]);
+  execFileSync("cp", [join(root, "stacks/kmp/distribution/release-check.sh"), join(dir, "distribution/")]);
+  writeFileSync(join(dir, "distribution/config.sh"), 'LANES="docker"\n');
+  const help = spawnSync("bash", [join(dir, "distribution/release-check.sh"), "--help"], { encoding: "utf8" });
+  assert.equal(help.status, 0);
+  assert.match(help.stderr, /release-check\.sh \[--apple\] \[--play\]/);
+  const none = spawnSync("bash", [join(dir, "distribution/release-check.sh")], { encoding: "utf8" });
+  assert.equal(none.status, 2);
+  assert.match(none.stderr, /ships neither an Apple nor a Play lane/);
+});
+
+test("release-check.sh compares versions numerically; nothing on sale is older than any version", () => {
+  const script = join(root, "stacks/kmp/distribution/release-check.sh");
+  const newer = (a, b) => spawnSync("bash", ["-c", `eval "$(sed -n '/^newer() {/,/^}/p' '${script}')"; newer '${a}' '${b}'`]).status === 0;
+  assert.ok(newer("1.10.0", "1.9.0"));
+  assert.ok(newer("2.0.0", "1.99.99"));
+  assert.ok(newer("1.0.0", ""));
+  assert.ok(!newer("1.2.0", "1.2.0"));
+  assert.ok(!newer("1.2.0", "1.3.0"));
+  assert.ok(!newer("", "1.0.0"));
 });

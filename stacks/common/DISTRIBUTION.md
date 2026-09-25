@@ -28,7 +28,8 @@ distribution/
   store/                    listing texts and screenshots, versioned with the project
     apple/app.json, apple/<locale>.json, apple/screenshots/<locale>/<displayType>/
     play/listing.json, play/screenshots/<locale>/<imageType>/
-  release-notes/vX.Y.Z.md   one file per release, written by prepare-release.sh
+  release-notes/vX.Y.Z.md   one file per release, the one place its notes live: written by prepare-release.sh
+                            (or notes_write), its store slices filled by kartograph-release
   build/                    archives, bundles, logs; gitignored
 ```
 
@@ -42,6 +43,7 @@ distribution/
 | `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ios | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
 | `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
 | `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; creates the JSON templates when missing; states what only the web UI can do |
+| `release-check.sh [--apple] [--play]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the newest processed TestFlight build per Apple platform against the version on sale, the internal track's highest versionCode against production's; prints one line per lane and `release X.Y.Z`; exit 0 when every lane is ahead, 1 when a new build is needed first |
 | `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production; Apple: attaches the processed build to the editable version, sets What's New, submits for review |
 | `deploy.sh [backend\|frontend\|all]` | – | – | – | – | ✓ | – | backend to Fly, frontend to Vercel, each followed by a live health check |
 
