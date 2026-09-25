@@ -1,6 +1,6 @@
 {
   "name": "opencode-kartograph",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "OpenCode plugin: Record a conversation with a person, derive their intent from it, and map that intent against what the project already has, all in one kartograph/ bundle; extract its concepts into an Open Knowledge Format bundle at knowledge/, derive capabilities and Gherkin features under features/, plan the implementation in three hexagonal rings for the project's technology stack, build the screens on sample data, then the domain, then the adapters, and walk the person through what was built.",
   "type": "module",
   "main": "opencode/index.js",
