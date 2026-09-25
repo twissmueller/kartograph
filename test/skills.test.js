@@ -6,11 +6,12 @@ const root = new URL("../", import.meta.url);
 const read = (p) => readFileSync(new URL(p, root), "utf8");
 const skills = readdirSync(new URL("skills/", root)).filter((d) => existsSync(new URL(`skills/${d}/SKILL.md`, root))).sort();
 
-test("twelve skills, explore retired", () => {
+test("fourteen skills, explore retired", () => {
   assert.deepEqual(skills, [
     "kartograph-adapters", "kartograph-converse", "kartograph-deliver", "kartograph-domain",
     "kartograph-features", "kartograph-intent", "kartograph-knowledge", "kartograph-map",
-    "kartograph-migrate", "kartograph-plan", "kartograph-screens", "kartograph-walk",
+    "kartograph-migrate", "kartograph-plan", "kartograph-release", "kartograph-revise",
+    "kartograph-screens", "kartograph-walk",
   ]);
   assert.ok(!existsSync(new URL("skills/kartograph-explore", root)));
 });
@@ -46,4 +47,12 @@ test("every skill is in the Claude Code manifest and has an OpenCode tool; npm s
   for (const s of skills) assert.ok(opencode.includes(`skill: "${s}"`), `opencode/index.js has no tool for ${s}`);
   const pkg = JSON.parse(read("package.json"));
   for (const f of ["migrations/", "scripts/"]) assert.ok(pkg.files.includes(f), `package.json files lacks ${f}`);
+});
+
+test("revise and release are stack-neutral: every stack word comes from the project's files", () => {
+  const stackWord = /\b(Koin|Gradle|gradlew|xcodebuild|SwiftUI|Compose|Room|SwiftData|ViewModel|AppEnvironment)\b/;
+  for (const s of ["kartograph-revise", "kartograph-release"]) {
+    const m = stackWord.exec(read(`skills/${s}/SKILL.md`));
+    assert.equal(m, null, `${s} names '${m?.[0]}'`);
+  }
 });
