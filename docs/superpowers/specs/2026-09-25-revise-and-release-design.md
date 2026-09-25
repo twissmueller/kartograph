@@ -350,7 +350,7 @@ on an older layout could still carry features without the provenance release rea
 
 ## Out of scope
 
-- A first store release; per-locale What's New; a staged rollout decided by the skill.
+- ~~A first store release~~ — superseded by the addendum below (v3.3.0); per-locale What's New; a staged rollout decided by the skill.
 - Framing screenshots with claims or device frames (Longpath's `frame-screenshots.py`).
 - Redrawing `docs/phases.svg`.
 - Changing `kartograph-deliver` or any existing delivery script.
@@ -386,3 +386,13 @@ clicks the web UI through, one question covers both). Follow-up releases are unc
 - **One question**: "The web steps in `distribution/store/first-release.md` are done, and
   vX.Y.Z goes out?" The script order stays: Apple metadata with `--version`,
   `release-stores.sh`, Play metadata, then the tag. The report lists every ✗ and ? left.
+- **Review fixes (same day).** After the yes, `first-release-check.sh` runs again and a ✗ on
+  a gate the push does not set (version, in-app purchases, subscriptions, price,
+  availability, EULA link) or an empty file-backed ✗ stops with nothing sent. Products
+  waiting for their first review are a hand-over, not a gate: `release-stores.sh
+  --no-submit` attaches the build and the person's Add for Review on the product's page
+  submits the version with them (ASC24). `push-store-metadata.sh --version` stops, dry run
+  included, when another editable version exists (the auto-created 1.0, ASC29).
+  `defaultLanguage` is never derived; the Play template leaves it empty (GP2). A version
+  ever on sale (`ASC_SHIPPED_STATES`, removed-from-sale included) ends first-release mode.
+  The EULA check accepts the owner's localized labels.

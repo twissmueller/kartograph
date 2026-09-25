@@ -318,7 +318,7 @@ typed word when run by hand.
 | `push-store-metadata.sh` | listing texts and screenshots from `distribution/store/`, templates created when missing |
 | `release-check.sh` | reads only: is the tested build on TestFlight and Play internal newer than what the stores sell? |
 | `first-release-check.sh` | reads only: which first-release gates the stores already hold (✓), lack (✗), or only show in the web UI (?) |
-| `release-stores.sh --notes …` | Play internal promoted to production (a draft on an app never published); the tested build attached, What's New set when a version is already on sale, submitted for review |
+| `release-stores.sh --notes …` | Play internal promoted to production (a draft on an app never published); the tested build attached, What's New set when a version was ever on sale, submitted for review (not with `--no-submit`) |
 | `deploy.sh` | backend to Fly, frontend to Vercel, each with a live health check (angular-kotlin) |
 
 The scripts consolidate the owner's delivery tooling from six shipped apps: one App Store
@@ -353,10 +353,13 @@ screen. What only the web UI can do (App Privacy, price and availability, Data s
 content rating, target audience, ads, app access, category) goes into
 `distribution/store/first-release.md` with the answers the code supports and where each
 came from, beside a ✓ or ✗ for everything the store APIs can read; what nothing shows is
-left for you, never guessed. You click the web steps through, answer the one question
-("the web steps are done, and it goes out?"), and it runs the same scripts in the same
-order. What's New is left out on Apple, which refuses it on a first release; Play stages a
-draft production release that you send for review from the console.
+left for you, never guessed, Play's default language included. You click the web steps
+through and answer the one question ("the web steps are done, and it goes out?"); it
+checks the gates once more, then runs the same scripts in the same order. What's New is
+left out on Apple, which refuses it on a first release. When in-app purchases wait for
+their first review, the build is attached but not submitted: your Add for Review on each
+product's page submits the version with them. Play stages a draft production release that
+you send for review from the console.
 
 ## `kartograph-migrate` — after every update
 

@@ -204,7 +204,10 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 - **`release-check.sh` and `first-release-check.sh` only read**, and use nothing but
   `asc_get`, `play_track_versions` and the Play edit functions (`play_edit_open`,
   `play_api`, `play_edit_delete`), so they work when copied alone into a project whose
-  library is older. Release ships the tested build; nothing bumps or rebuilds on the way to the stores.
+  library is older. The Play check opens an edit only to read it and deletes it, so no
+  change persists. Both count a version as shipped by the same states as
+  `ASC_SHIPPED_STATES` in `asc.sh` (an app removed from sale is no first release); the
+  test keeps the three lists equal. Release ships the tested build; nothing bumps or rebuilds on the way to the stores.
 - **Outward actions confirm.** Upload, promote, submit and deploy call `confirm_typed`;
   `--yes` skips it and the skill passes it only after the person agreed in chat. A step that
   fails deletes the edit or reservation it opened and says "nothing was published".
@@ -377,16 +380,21 @@ Rules for editing them:
   required, and every other lane runs exactly as a follow-up. Release then writes the whole
   listing per locale in `LOCALES` from `features/`, `kartograph/` and `knowledge/` (ASC1
   lengths, ASC26 every URL 200, ASC25 the EULA link when a subscription is sold, ASC32,
-  GP2 `defaultLanguage` explicit), notes that introduce the app, every key screen, and
+  GP2 `defaultLanguage` chosen by the person, never derived from `LOCALES`), notes that introduce the app, every key screen, and
   `distribution/store/first-release.md` in the shape of `first-release-template.md`: per
   store lane every gate ✓ / ✗ / ? from `first-release-check.sh` and the files, with the
   web-only answers (App Privacy published, ASC18; Data safety, IARC, target audience,
   ads, app access, category, GP6, GP8, GP11) derived from the code and naming their
   source, never guessed. The one question is "The web steps in
-  `distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?"; the script
-  order is unchanged. `release-stores.sh` sets no What's New where nothing is on sale
-  (ASC10); a project whose copy predates that gets it and `lib/asc.sh` refreshed first.
-  The report lists every ✗ and ? left and where it is done.
+  `distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?"; after the yes,
+  `first-release-check.sh` runs again and a ✗ on a gate the push does not set (version,
+  in-app purchases, subscriptions, price, availability, EULA link) or a file-backed ✗
+  still empty stops with nothing sent. The script order is unchanged. `release-stores.sh`
+  sets no What's New where nothing was ever on sale (ASC10), and when products wait for
+  their first review it runs with `--no-submit`: the build is attached and the person's
+  Add for Review on each product's page submits the version with them (ASC24). A project
+  whose copy predates either gets it and `lib/asc.sh` refreshed first. The report lists
+  every ✗ and ? left, the hand-over, and where each is done.
 - **A revision plan rebuilds what the revision touched**: every scenario it changed or
   added has a `**Revised:**` ring-2 task, never only a friction entry; `validate-plan.js`
   checks it, and skips the features cross-check for a `superseded` plan.
