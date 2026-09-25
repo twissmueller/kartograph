@@ -7,6 +7,12 @@ date: <YYYY-MM-DD>
 supersedes: <plans/<earlier file>.md, or none>
 ---
 
+<!-- A plan kartograph-revise writes adds one last frontmatter line after supersedes,
+     revision: kartograph/YYYY-MM-DD-HHMM-slug.revision.md, and marks every task the
+     revision rewrote or added with a line **Revised:** changed or **Revised:** added
+     below the task's first field lines, all its checkboxes unticked. Every other task
+     keeps the checkboxes it had in the superseded plan. validate-plan.js checks that. -->
+
 # Plan: <capability title>
 
 **Goal:** <One sentence: what is real when every ring is done.>

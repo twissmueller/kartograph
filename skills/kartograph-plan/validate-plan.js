@@ -2,6 +2,8 @@
 // Validates a three-ring implementation plan written by kartograph-plan, so every plan has
 // the structure of `plan-template.md`, carries no placeholders, and — inside a project —
 // names only scenarios that exist in features/ and a stack declared in docs/code-design/.
+// A plan kartograph-revise writes names its revision, marks each task the revision changed
+// or added, and keeps the ticks of every other task the superseded plan had built.
 //
 //   node validate-plan.js <plans/file.md> [...]     validate the given files
 //   node validate-plan.js                           validate every file in ./plans
@@ -15,7 +17,11 @@ import { fileURLToPath } from "node:url";
 export const FILENAME = /^(\d{4}-\d{2}-\d{2})-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
 // A capability name: its leaf slug, or the slash-joined path when the slug occurs twice under features/.
 const CAP_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
-export const FRONTMATTER_KEYS = ["capability", "features", "stack", "status", "date", "supersedes"];
+export const FRONTMATTER_KEYS = ["capability", "features", "stack", "status", "date", "supersedes", "revision"];
+// Only a plan written by kartograph-revise carries `revision`.
+export const OPTIONAL_KEYS = new Set(["revision"]);
+export const REVISED = ["changed", "added"];
+const REVISION_PATH = /^kartograph\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.revision\.md$/;
 export const STATUSES = ["planned", "superseded"];
 export const SECTIONS = ["Screens", "Layer map", "Reuse and new", "Ports and adapters", "Files", "Global constraints", "Ring 1: Screens", "Ring 2: Domain", "Ring 3: Adapters", "Friction", "Gaps"];
 export const RINGS = { "Ring 1: Screens": 1, "Ring 2: Domain": 2, "Ring 3: Adapters": 3 };
@@ -101,6 +107,7 @@ function checkTask(t, ring, err) {
     if (!/^Expected: PASS/m.test(txt)) err(`${label}: at least one run must be expected to PASS`);
     if (fences < 3) err(`${label}: every code step shows its code; found only ${fences} fenced blocks`);
   }
+  if (fields.Revised !== undefined && !REVISED.includes(fields.Revised)) err(`${label}: '**Revised:**' is ${REVISED.join(" or ")}, got '${fields.Revised}'`);
   return { name, fields, done: steps.length > 0 && steps.every((s) => /^- \[x\]/.test(s[0])), steps: steps.length };
 }
 
@@ -148,7 +155,7 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
     fm[e.key] = e.value;
   }
   const keys = frontmatter.filter((e) => e.key).map((e) => e.key);
-  for (const k of FRONTMATTER_KEYS) if (!(k in fm)) err(`frontmatter is missing '${k}'`);
+  for (const k of FRONTMATTER_KEYS) if (!OPTIONAL_KEYS.has(k) && !(k in fm)) err(`frontmatter is missing '${k}'`);
   for (const k of keys) if (!FRONTMATTER_KEYS.includes(k)) err(`frontmatter has unknown key '${k}'`);
   const known = keys.filter((k) => FRONTMATTER_KEYS.includes(k));
   if (known.join() !== FRONTMATTER_KEYS.filter((k) => known.includes(k)).join()) err(`frontmatter keys must be in the order ${FRONTMATTER_KEYS.join(", ")}`);
@@ -168,6 +175,10 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
   if (fm.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(fm.date)) err(`date must be YYYY-MM-DD, got '${fm.date}'`);
   if (fileDate && fm.date && fm.date !== fileDate) err(`date '${fm.date}' does not match the filename date '${fileDate}'`);
   if (fm.supersedes !== undefined && fm.supersedes !== "none" && !/^plans\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9-]+\.md$/.test(fm.supersedes)) err(`supersedes must be 'none' or a plans/<file>.md path, got '${fm.supersedes}'`);
+  if (fm.revision !== undefined) {
+    if (!REVISION_PATH.test(fm.revision)) err(`revision must be a kartograph/YYYY-MM-DD-HHMM-<slug>.revision.md path, got '${fm.revision}'`);
+    if (fm.supersedes === "none") err("a plan written for a revision supersedes the plan it revises; supersedes cannot be 'none'");
+  }
 
   const o = outline(body);
   if (o.h1.length !== 1) err(`exactly one '# Plan: <title>' heading expected, found ${o.h1.length}`);
@@ -229,6 +240,10 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
   for (const s of domainScenarios) { if (mapped.size && !mapped.has(s)) err(`ring-2 task '${s}' is not in the layer map`); if (screenScenarios.size && !screenScenarios.has(s)) err(`scenario '${s}' is served by no screen in '## Screens'`); }
   for (const s of mapped) if (!domainScenarios.includes(s) && !frictionNames.includes(s)) err(`layer map row '${s}' has neither a ring-2 task nor a friction entry`);
   const dup = domainScenarios.filter((s, i) => domainScenarios.indexOf(s) !== i); if (dup.length) err(`scenario '${dup[0]}' has more than one ring-2 task`);
+  // a revision plan marks what it revised, and only a revision plan does
+  const revised = [1, 2, 3].flatMap((n) => rings[n].filter((r) => r.fields.Revised !== undefined));
+  if (fm.revision !== undefined && !revised.length) err("the plan names a revision but marks no task '**Revised:** changed' or '**Revised:** added'");
+  if (fm.revision === undefined && revised.length) err(`'**Revised:**' marks task '${revised[0].name}', but the frontmatter names no revision`);
   // ring 3 ↔ ports table
   const adapterPorts = rings[3].map((r) => (r.fields.Port || "").replace(/`/g, "").split(/\s/)[0]);
   for (const p of ring3Ports) if (!adapterPorts.some((a) => a === p) && !frictionNames.some((f) => f.includes(p))) warnings.push(`port '${p}' is marked ring 3 in '## Ports and adapters' but has no ring-3 task`);
@@ -240,6 +255,20 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
   const tp = TEMPLATE_PLACEHOLDER.exec(prose);
   if (tp) err(`template placeholder left in the body: ${tp[0].trim()}`);
 
+  if (projectRoot && fm.revision !== undefined && REVISION_PATH.test(fm.revision)) {
+    if (!existsSync(join(projectRoot, fm.revision))) err(`revision '${fm.revision}' does not exist`);
+    const old = fm.supersedes && fm.supersedes !== "none" ? join(projectRoot, fm.supersedes) : null;
+    if (old && !existsSync(old)) err(`supersedes '${fm.supersedes}', which does not exist`);
+    else if (old) {
+      const before = tasksOf(readFileSync(old, "utf8"));
+      for (const n of [1, 2, 3]) for (const r of rings[n]) {
+        if (r.fields.Revised !== undefined) continue;
+        const was = before.find((b) => b.ring === n && b.name === r.name);
+        if (!was) err(`task '${r.name}' (ring ${n}) is not in the superseded plan; mark it '**Revised:** added'`);
+        else if (was.done && !r.done) err(`task '${r.name}' (ring ${n}) was built under the superseded plan and is not revised, so its checkboxes stay ticked`);
+      }
+    }
+  }
   if (projectRoot) {
     const stackFile = join(projectRoot, "docs", "code-design", "stack.md");
     if (!existsSync(stackFile)) warnings.push("docs/code-design/stack.md does not exist in the project");
@@ -264,6 +293,21 @@ export function validatePlan(text, { filename, projectRoot } = {}) {
     }
   }
   return { errors, warnings, rings: { 1: rings[1].every((r) => r.done) && rings[1].length > 0, 2: rings[2].every((r) => r.done) && rings[2].length > 0, 3: rings[3].every((r) => r.done) && rings[3].length > 0 } };
+}
+
+// The tasks of a plan, per ring, with whether all their steps are ticked. Used to compare a
+// revision plan with the plan it supersedes.
+export function tasksOf(text) {
+  const out = [];
+  for (const s of outline(splitFrontmatter(text).body).sections) {
+    const ring = RINGS[s.name]; if (!ring) continue;
+    for (const t of s.tasks) {
+      const m = /^Task \d+\.\d+: (.+)$/.exec(t.title); if (!m) continue;
+      const steps = [...t.lines.join("\n").matchAll(/^- \[([ x])\] \*\*Step \d+:/gm)];
+      out.push({ ring, name: m[1].trim(), done: steps.length > 0 && steps.every((x) => x[1] === "x") });
+    }
+  }
+  return out;
 }
 
 export function validatePlanFile(path, { projectRoot } = {}) {

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validatePlan, validatePlanFile } from "../skills/kartograph-plan/validate-plan.js";
@@ -400,4 +400,54 @@ test("the wiring step is stack-neutral: any binding or wiring word counts, Koin 
   const unwired = valid.replace("**Step 6: Koin binding, route, nav entry**", "**Step 6: Route and nav entry**").replace(/val projectsModule = module \{[^\n]*\n/, "val projectsRoute = ProjectsRoute\n").replace("koinViewModel()", "viewModel()");
   const errs = validatePlan(unwired, { filename: FILE }).errors;
   assert.ok(errs.some((e) => /Task 1\.1.*no composition-root binding or wiring step/.test(e)), errs.join("\n"));
+});
+
+// --- plans written by kartograph-revise ------------------------------------------
+
+const REVISION = "kartograph/2026-09-25-1000-archive-undo.revision.md";
+const OLD = "plans/2026-09-18-1100-project-archiving.md";
+const NEW_FILE = "plans/2026-09-25-1000-project-archiving.md";
+const tick = (text) => text.replace(/- \[ \] \*\*Step/g, "- [x] **Step");
+// The revision changed the screen; the two domain tasks and the adapter are untouched.
+const revisedPlan = valid
+  .replace("date: 2026-09-18\nsupersedes: none", `date: 2026-09-25\nsupersedes: ${OLD}\nrevision: ${REVISION}`)
+  .replace(`**Scenarios:** ${S1}; ${S2}\n`, `**Scenarios:** ${S1}; ${S2}\n**Revised:** changed\n`);
+
+test("a revision plan names its revision, supersedes a plan, and marks what it revised", () => {
+  assert.deepEqual(validatePlan(revisedPlan, { filename: NEW_FILE }).errors, []);
+  assert.ok(validatePlan(revisedPlan.replace(`supersedes: ${OLD}`, "supersedes: none"), { filename: NEW_FILE }).errors.some((e) => /supersedes cannot be 'none'/.test(e)));
+  assert.ok(validatePlan(revisedPlan.replace(REVISION, "kartograph/undo.md"), { filename: NEW_FILE }).errors.some((e) => /revision must be a kartograph\//.test(e)));
+  assert.ok(validatePlan(revisedPlan.replace("**Revised:** changed", "**Revised:** yes"), { filename: NEW_FILE }).errors.some((e) => /'\*\*Revised:\*\*' is changed or added, got 'yes'/.test(e)));
+  assert.ok(validatePlan(revisedPlan.replace("**Revised:** changed\n", ""), { filename: NEW_FILE }).errors.some((e) => /names a revision but marks no task/.test(e)));
+  assert.ok(validatePlan(revisedPlan.replace(`revision: ${REVISION}\n`, ""), { filename: NEW_FILE }).errors.some((e) => /the frontmatter names no revision/.test(e)));
+  assert.deepEqual(validatePlan(valid, { filename: FILE }).errors, [], "a plan without revision needs no revision key");
+});
+
+test("against the superseded plan, an unrevised task keeps its ticks and a new task is marked added", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "karto-plan-revision-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, "plans")); mkdirSync(join(root, "kartograph"));
+  // Rings 1 and 2 were built under the old plan.
+  const built = valid.replace(screenTask, tick(screenTask)).replace(domainTask(1, S1), tick(domainTask(1, S1))).replace(domainTask(2, S2), tick(domainTask(2, S2))).replace("status: planned", "status: superseded");
+  writeFileSync(join(root, OLD), built);
+  const path = join(root, NEW_FILE);
+  // The revised screen task is unticked, the untouched domain tasks keep their ticks.
+  const good = revisedPlan.replace(domainTask(1, S1), tick(domainTask(1, S1))).replace(domainTask(2, S2), tick(domainTask(2, S2)));
+  writeFileSync(path, good);
+  assert.ok(validatePlanFile(path).errors.some((e) => /revision 'kartograph\/2026-09-25-1000-archive-undo\.revision\.md' does not exist/.test(e)));
+  writeFileSync(join(root, REVISION), "---\ntype: Revision\n---\n");
+  assert.deepEqual(validatePlanFile(path).errors, []);
+  writeFileSync(path, revisedPlan);
+  assert.ok(validatePlanFile(path).errors.some((e) => new RegExp(`task '${S1}' \\(ring 2\\) was built under the superseded plan`).test(e)));
+  writeFileSync(path, good.replace(`### Task 3.1: ProjectRepository over Room`, "### Task 3.1: ProjectRepository over SQLite"));
+  assert.ok(validatePlanFile(path).errors.some((e) => /task 'ProjectRepository over SQLite' \(ring 3\) is not in the superseded plan; mark it '\*\*Revised:\*\* added'/.test(e)));
+  writeFileSync(path, good.replace(`supersedes: ${OLD}`, "supersedes: plans/2026-09-01-0900-project-archiving.md"));
+  assert.ok(validatePlanFile(path).errors.some((e) => /supersedes 'plans\/2026-09-01-0900-project-archiving\.md', which does not exist/.test(e)));
+});
+
+test("the template's note on revision plans leaves a filled plan valid", () => {
+  const tpl = readFileSync(new URL("../skills/kartograph-plan/plan-template.md", import.meta.url), "utf8");
+  const note = /<!-- A plan kartograph-revise writes[\s\S]*?-->/.exec(tpl)?.[0];
+  assert.ok(note, "plan-template.md explains the revision line and the Revised marks");
+  assert.deepEqual(validatePlan(valid.replace("---\n\n# Plan:", `---\n\n${note}\n\n# Plan:`), { filename: FILE }).errors, []);
 });
