@@ -368,3 +368,73 @@ test("every stack that releases to a store documents its screenshot renderer in 
     });
   }
 });
+
+// --- push-store-metadata.sh --version: the fix for a first push landing on no editable
+// App Store version. Everything below stubs the App Store Connect boundary (asc_get /
+// asc_version_exists / asc_version_editable); nothing calls a real API.
+
+const asc = `. '${lib("asc.sh")}';`;
+
+test("asc_version_exists is true only for an editable version whose versionString matches exactly", () => {
+  const answer = (state) => JSON.stringify({ data: [{ id: "v1", attributes: { platform: "IOS", versionString: "1.2.0", appStoreState: state } }] });
+  const stub = (json) => `asc_get() { printf '%s' '${json}'; }`;
+
+  let r = sh(`${asc} ${stub(answer("PREPARE_FOR_SUBMISSION"))}; ASC_APP_ID=1 asc_version_exists IOS 1.2.0`);
+  assert.equal(r.status, 0, r.stderr);
+
+  // a different version string, even in an editable state, is not a match
+  r = sh(`${asc} ${stub(answer("PREPARE_FOR_SUBMISSION"))}; ASC_APP_ID=1 asc_version_exists IOS 1.3.0`);
+  assert.notEqual(r.status, 0);
+
+  // the right version string, but a non-editable state (e.g. on sale), is not a match
+  r = sh(`${asc} ${stub(answer("READY_FOR_SALE"))}; ASC_APP_ID=1 asc_version_exists IOS 1.2.0`);
+  assert.notEqual(r.status, 0);
+
+  // nothing at all
+  r = sh(`${asc} ${stub(JSON.stringify({ data: [] }))}; ASC_APP_ID=1 asc_version_exists IOS 1.2.0`);
+  assert.notEqual(r.status, 0);
+});
+
+const ensureApplyVersionFn = () =>
+  spawnSync("bash", ["-c", `sed -n '/^ensure_apple_version() {/,/^}/p' '${join(root, "stacks/apple-swift/distribution/push-store-metadata.sh")}'`], { encoding: "utf8" }).stdout;
+
+test("push-store-metadata.sh's ensure_apple_version creates the missing App Store version only after confirming (or --yes), never touches one that already exists, and writes nothing on --dry-run", () => {
+  const fn = ensureApplyVersionFn();
+  assert.match(fn, /confirm_typed create/, "ensure_apple_version must confirm before creating (an outward action)");
+
+  const run = (env, input) => spawnSync("bash", ["-c", `
+    set -euo pipefail; CONFIG_FILE=/dev/null
+    . '${lib("common.sh")}'
+    asc_version_exists() { [ "\${EXISTS:-0}" = 1 ]; }
+    asc_version_editable() { echo "CREATE $1 $2" >&2; echo fake-id; }
+    ${fn}
+    ensure_apple_version IOS
+  `], { encoding: "utf8", input, env: { ...process.env, version: "1.2.0", dry: "", ...env } });
+
+  // already editable: nothing is created, nothing is confirmed
+  let r = run({ EXISTS: "1" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stderr, /CREATE/);
+
+  // missing, --dry-run: says what it would do, creates nothing, asks nothing
+  r = run({ EXISTS: "0", dry: "--dry-run" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stderr, /CREATE/);
+  assert.match(r.stderr, /would create/);
+
+  // missing, --yes (ASSUME_YES): creates without a prompt
+  r = run({ EXISTS: "0", ASSUME_YES: "1" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /CREATE IOS 1\.2\.0/);
+
+  // missing, no --yes, the wrong word typed: aborts, creates nothing
+  r = run({ EXISTS: "0" }, "no\n");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Aborted\. Nothing was published\./);
+  assert.doesNotMatch(r.stderr, /CREATE/);
+
+  // missing, no --yes, 'create' typed: creates
+  r = run({ EXISTS: "0" }, "create\n");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /CREATE IOS 1\.2\.0/);
+});

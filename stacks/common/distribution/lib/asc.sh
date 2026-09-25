@@ -341,6 +341,22 @@ print(json.dumps({"data": {"type": "betaBuildLocalizations",
 # WAITING_FOR_REVIEW is in here because its metadata is still patchable — the binary is not.
 ASC_EDITABLE_STATES="PREPARE_FOR_SUBMISSION DEVELOPER_REJECTED REJECTED METADATA_REJECTED INVALID_BINARY WAITING_FOR_REVIEW"
 
+# asc_version_exists PLATFORM VERSION — true when a version in an editable state already
+# carries exactly VERSION; never creates one, so callers can decide whether creating one
+# needs confirming before asc_version_editable does it.
+asc_version_exists() {
+  local platform="${1:?asc_version_exists PLATFORM VERSION}" version="${2:?asc_version_exists PLATFORM VERSION}" app answer id
+  app="$(_asc_app)"
+  answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 1
+  id="$(printf '%s' "$answer" | _asc_py 'want, states = sys.argv[2], set(sys.argv[3].split())
+for v in d.get("data", []):
+    a = v["attributes"]
+    state = a.get("appStoreState") or a.get("appVersionState")
+    if state in states and a.get("versionString") == want:
+        print(v["id"]); break' "$version" "$ASC_EDITABLE_STATES")"
+  [ -n "$id" ]
+}
+
 # asc_version_editable PLATFORM [X.Y.Z] — print the id of the version in an editable state,
 # creating it with releaseType AFTER_APPROVAL when none exists and a version string is given.
 # What is in review or on sale is never touched: a script that reroutes a running submission

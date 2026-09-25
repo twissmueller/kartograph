@@ -42,7 +42,7 @@ distribution/
 | `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags |
 | `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ios | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
 | `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
-| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; creates the JSON templates when missing; states what only the web UI can do |
+| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots] [--version X.Y.Z] [--yes]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; `--version` first makes sure that Apple version is editable, creating it (confirmed, unless `--yes`) when none is; creates the JSON templates when missing; states what only the web UI can do |
 | `release-check.sh [--apple] [--play]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the newest processed TestFlight build per Apple platform against the version on sale, the internal track's highest versionCode against production's; prints one line per lane and `release X.Y.Z`; exit 0 when every lane is ahead, 1 when a new build is needed first |
 | `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production; Apple: attaches the processed build to the editable version, sets What's New, submits for review |
 | `deploy.sh [backend\|frontend\|all]` | – | – | – | – | ✓ | – | backend to Fly, frontend to Vercel, each followed by a live health check |
@@ -176,6 +176,7 @@ asc_export_compliance BUILD_ID         usesNonExemptEncryption false
 asc_beta_group_ensure                  find or create $TESTFLIGHT_GROUP (internal)
 asc_beta_group_add BUILD_ID
 asc_beta_localization BUILD_ID LOCALE [DESCRIPTION] [WHATS_NEW]   app-level description and feedback email; the optional what's-new goes on the build
+asc_version_exists PLATFORM VERSION    true when an editable version already carries exactly VERSION; never creates
 asc_version_editable PLATFORM [X.Y.Z]  the version in an editable state, created with versionString when absent
 asc_version_attach VERSION_ID BUILD_ID
 asc_version_whats_new VERSION_ID LOCALE TEXT

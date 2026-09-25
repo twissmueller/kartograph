@@ -15,7 +15,7 @@ commit, ask once, release, tag, report.
   upload a binary. When the tested build is not newer than what the store sells, stop: a
   new build comes first, and that is `kartograph-deliver`'s.
 - **Ask exactly once**, after everything is written and committed: one summary of the
-  notes, the text changes and the screenshots, one question. Nothing leaves the machine
+  notes, the text changes and the screenshots, one question. Nothing reaches the stores
   before the person's yes; the scripts get `--yes` only after it.
 - **Write only** `distribution/release-notes/v<X.Y.Z>.md`, `distribution/store/` (texts and
   screenshots), `distribution/release-check.sh` when it is missing, the screenshot renderer
@@ -63,16 +63,25 @@ store lane; say so and stop. Exit 1: show its lines and stop with "The tested bu
 newer than the store; a new build on TestFlight or Play internal comes first." Exit 0: the
 version to release is the `release X.Y.Z` line; a project with only a Play lane takes it
 from `versionName` in the file `ANDROID_BUILD_FILE` names. A lane whose line says `on sale
-none` is a first release: its app record, App Privacy and review details are web-only and
-What's New is refused on a first release, so stop and say so.
+none` (Apple) or `production none` (Play) is a first release: its app record and store
+console setup happen once in the web UI (App Privacy and review details for Apple, Data
+safety and content rating for Play), and What's New is refused before that page exists, so
+stop and say so.
 
 The bump tier is the first part that differs between `X.Y.Z` and the version on sale:
-major, minor or patch.
+major, minor or patch. A Play-only project's `release-check.sh` line carries no version to
+compare, so take the tier from `X.Y.Z` against the previous release tag's version instead
+(step 2 finds it; when step 2 finds none, there is no tier either, and it already stops).
 
 ## 2. What changed
 
 The previous release is the newest `vA.B.C` tag below `vX.Y.Z` (`git tag --list 'v*.*.*'
 --sort=-v:refname`); a `vX.Y.Z` tag that `prepare-release.sh --tag` already set is not it.
+None below `vX.Y.Z`: a first store release is out of scope for this skill (step 1 already
+stops on one when the store itself says so), so an untagged history means only that this
+project's past releases were never tagged here — stop and say so, naming
+`prepare-release.sh --tag` as how the next release gets a tag to read from.
+
 The range ends at the last commit that changed the build number's file (`VERSION_FILE`,
 else `ANDROID_BUILD_FILE`): every upload writes its number there first, so later commits
 are not in the tested build. When that file has uncommitted changes, the range ends at
@@ -133,9 +142,10 @@ empty state, a "nothing today" banner or a first-run hint means the seed is wron
 seed and render again. Copy the images of the changed screens into
 `distribution/store/apple/screenshots/<locale>/<displayType>/`, replacing the file of the
 same name; remove the image of a screen the app no longer has. When `LANES` includes
-`android`, copy the same files into `distribution/store/play/screenshots/<locale>/`: the
-`APP_IPHONE_67` set as `phoneScreenshots`, the `APP_IPAD_PRO_3GEN_129` set as
-`tenInchScreenshots`.
+`android`, copy the same files into
+`distribution/store/play/screenshots/<locale>/phoneScreenshots/` (the `APP_IPHONE_67` set)
+and `distribution/store/play/screenshots/<locale>/tenInchScreenshots/` (the
+`APP_IPAD_PRO_3GEN_129` set).
 
 ## 6. Commit, ask once, release
 
@@ -152,7 +162,9 @@ removed. Ask once: "Release v<X.Y.Z> to the stores now?" — **A (recommended):*
 
 On yes, run from the project root, in this order, stopping at the first failure:
 
-1. `distribution/push-store-metadata.sh --screenshots`
+1. `distribution/push-store-metadata.sh --screenshots --version <X.Y.Z> --yes` (`--version`
+   makes sure the editable App Store version exists first, so the texts and screenshots
+   above land on it rather than being skipped as "nothing was changed")
 2. `distribution/release-stores.sh --notes distribution/release-notes/v<X.Y.Z>.md --version <X.Y.Z> --yes`
    (with `--rollout <fraction>` when the person named one)
 

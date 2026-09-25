@@ -60,7 +60,9 @@ below are under its `skills/`.
 Read `kartograph/index.md`, the walk the person refers to (else the newest file under
 `walks/`), every `capability.md` from the top level down, the `.feature` files of every
 capability the words touch, the newest `planned` plan of each such capability under
-`plans/` (its screens table names the screens), and the `knowledge/` bundle. Resolve every
+`plans/` (its screens table names the screens; note which of its rings are already built —
+every checkbox of every task of that ring is `- [x]` — for step 5), and the `knowledge/`
+bundle. Resolve every
 thing the person names to a capability, a feature, a scenario or a screen, in the bundle's
 canonical titles. When nothing under `features/` matches what they describe, say that
 `kartograph-converse` is the place for new ground and stop.
@@ -105,15 +107,18 @@ vocabulary, extend before create, never invent), with these marks:
   the scenario, above its tags. An earlier `# Changed by` line stays.
 - **Added:** a new scenario in the feature file the change names, under the rule it
   belongs to, with the same `# Changed by` line above it. A new feature file starts with
-  the two header comments, `# Source intent:` naming the first intent of the revision's
-  `sources`.
-- **Removed:** delete the scenario, and a rule or feature file left empty.
+  the two header comments, `# Source intent:` naming the capability's own first
+  `- Intent:` path from its `capability.md` (the `kartograph/` prefix included).
+- **Removed:** delete the scenario, and a rule or feature file left empty; drop a deleted
+  file's line from its `capability.md`'s `## Features` list.
 
 In every affected `capability.md`, add ``- Revision: `kartograph/<file>.revision.md` ``
-under `## Sources`, after the lines already there (none is ever removed), and add the
-revision's open questions under `## Open questions`. Run
+under `## Sources`, after the lines already there (none is ever removed); replace an
+`## Open questions` section that reads only `None` before adding the revision's open
+questions, else append them to what is already there. Run
 `node <plugin root>/skills/kartograph-features/validate-features.js features` until it
-prints `ok`. Stage `features/`; commit as `features: <revision title>`.
+prints `ok`. Stage `features/`; commit as `features: <revision title>` — do not push; step
+6 pushes every commit of this run once.
 
 ## 3. Knowledge
 
@@ -128,7 +133,8 @@ to `knowledge/log.md` under today's date: `* **Revision**: processed
 [title](../kartograph/<file>.revision.md) — n new, n extended, n aliased, n deprecated,
 n stubs, n collisions.` Run
 `node <plugin root>/skills/kartograph-knowledge/validate-knowledge.js knowledge` until it
-prints `ok`. Stage `knowledge/`; commit as `knowledge: <revision title>`.
+prints `ok`. Stage `knowledge/`; commit as `knowledge: <revision title>` — do not push;
+step 6 pushes every commit of this run once.
 
 ## 4. Plan
 
@@ -149,7 +155,10 @@ as they are now. Then, change by change:
 - **Added scenario:** a new ring-2 task; a new ring-1 task for a new screen, or the
   serving screen's task rewritten for a new control; a new ring-3 task for a new port.
 - **Removed scenario:** its ring-2 task, its layer-map row and its place in the screens
-  table go; the serving screen's task is rewritten when a control goes with it.
+  table go; drop its name from the serving screen's `**Scenarios:**` line, which alone
+  keeps that task's ticks (validate-plan.js rejects a name the layer map no longer has);
+  the task is rewritten, `**Revised:** changed` and unticked, only when a control goes
+  with it.
 
 Every rewritten task carries `**Revised:** changed`, every new one `**Revised:** added`,
 on its own line below the task's first field lines, and all its checkboxes are unticked.
@@ -158,13 +167,17 @@ from 1; update the screens table, the layer map, ports and adapters and the file
 match. Set the old plan's `status` to `superseded`. Run
 `node <plugin root>/skills/kartograph-plan/validate-plan.js plans/<new file>` until it
 prints `ok`; it also checks that no task built under the old plan lost its ticks. Stage
-both plans; commit as `plan: <capability> (revision)`.
+both plans; commit as `plan: <capability> (revision)` — do not push; step 6 pushes every
+commit of this run once.
 
 ## 5. Code
 
-A ring is **built** when every task of that ring was ticked in the superseded plan: run
-`node <plugin root>/skills/kartograph-plan/validate-plan.js plans/<old file>`, whose
-`rings done` line says which. For each capability, in ring order, for each built ring
+A ring is **built** when every checkbox of every task of that ring in the superseded plan
+is `- [x]`: read this directly from the plan file read in step 1, before step 2 changed
+anything under `features/` — do not decide it by running the plan's own validator on the
+superseded plan now, since step 2 may have left it failing its cross-check against the
+now-different feature files (expected, and the superseded plan is never edited over it).
+For each capability, in ring order, for each built ring
 only: execute the new plan's unticked tasks of that ring by the ring's own skill,
 `skills/kartograph-screens/SKILL.md` for ring 1, `skills/kartograph-domain/SKILL.md` for
 ring 2, `skills/kartograph-adapters/SKILL.md` for ring 3, all at the plugin root: its
