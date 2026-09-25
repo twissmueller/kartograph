@@ -102,7 +102,9 @@ fences carry the stack's language, and every `Run:` line is a command from
 
 Each task's *Interfaces* block names exactly what it consumes from earlier tasks and
 produces for later ones. If an earlier `planned` plan exists, set its `status` to
-`superseded` in the same commit.
+`superseded` in the same commit. A plan you write never carries a `revision:` line or a
+`**Revised:**` mark; those belong to the plans `kartograph-revise` writes, which keep the
+ticks of work already built.
 
 **Self-review** before validating: every scenario has a ring-2 task or a friction entry
 and appears in exactly one ring-1 screen; every port declared in ring 2 has a ring-3

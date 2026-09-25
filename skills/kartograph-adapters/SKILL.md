@@ -62,7 +62,8 @@ a port whose signature moved since the plan was written is a deviation to report
 
 ## 2. Execute ring 3, task by task
 
-Each ring-3 task is one port or endpoint. The failing adapter test as given, run and see
+A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise`
+wrote keeps the ticks of work already built. Each ring-3 task is one port or endpoint. The failing adapter test as given, run and see
 it fail, the data source and mapping and adapter as given, run and see it pass, refactor
 while green, each in the shape `build-design.md` prescribes. For persistence: the entity
 or record, the data access type, the schema version, a migration and its test when the

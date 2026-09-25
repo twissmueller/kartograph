@@ -18,6 +18,8 @@ write, commit, push, report. **Fully automated: ask nothing, wait for nothing.**
 - Never write `verified`. Trust is derived from who confirmed a concept; you are not a
   human reviewer.
 - Never delete a concept; retire it with `status: deprecated`.
+- Never drop a source. A `sources` entry pointing at `../kartograph/<file>.revision.md`
+  was added by `kartograph-revise`; it stays beside the intents.
 - Never rewrite an existing definition; a contradiction is recorded, not resolved.
 - No questions, no review, no confirmation. Run to the end and report.
 - The bundle is written in the intent's language.

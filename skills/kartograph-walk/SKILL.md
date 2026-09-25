@@ -136,4 +136,7 @@ platform-specific; a simulator or device proves that platform). Validate it with
 commit a file that does not pass. Stage only that file, commit as `walk: <capability>`,
 push to the branch's upstream; no git or no upstream, skip and say so. Report the counts,
 the failed scenarios with their reasons, and every scenario you could not drive with where
-it stopped. Then you are done.
+it stopped. When the person wants something to be different, a failed scenario or a
+change they named on the way, say in one line that `kartograph-revise` records the change
+and carries it through the features, the plan and the code; never start it yourself. Then
+you are done.

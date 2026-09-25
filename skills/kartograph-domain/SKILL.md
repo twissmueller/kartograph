@@ -60,7 +60,8 @@ it is now; a plan that no longer matches its scenarios is reported and not execu
 
 ## 2. Execute ring 2, task by task
 
-Each ring-2 task is one scenario. **Outer loop:** its Step 1 is the scenario's test at the
+A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise`
+wrote keeps the ticks of work already built. Each ring-2 task is one scenario. **Outer loop:** its Step 1 is the scenario's test at the
 presentation model against fakes behind the ports; write it as given, run it, confirm it
 fails for the reason the plan expects. A scenario that describes a rejection or an error
 asserts the error the stack's error type carries and its classification. **Inner loop:**

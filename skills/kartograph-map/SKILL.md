@@ -56,8 +56,10 @@ In this order, as deep as each outcome needs:
    `git log -- <path>` for the words and paths an outcome names; `git show --stat` where
    the subject alone does not tell what changed. Read code only to confirm what a commit
    claims.
-3. **The bundle.** Earlier intents, mappings and conversations in `kartograph/`, for what
-   was already asked for, decided, or found in conflict.
+3. **The bundle.** Earlier intents, mappings, conversations and revisions in
+   `kartograph/`, for what was already asked for, decided, changed, or found in conflict.
+   An applied revision's changes are already in `features/` and the history; cite those,
+   never the revision, as evidence.
 
 ## 3. Sort
 
