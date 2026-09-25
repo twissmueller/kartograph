@@ -317,7 +317,8 @@ typed word when run by hand.
 | `deploy-play-internal.sh` | signed bundle to the internal track in one edit, read back and verified |
 | `push-store-metadata.sh` | listing texts and screenshots from `distribution/store/`, templates created when missing |
 | `release-check.sh` | reads only: is the tested build on TestFlight and Play internal newer than what the stores sell? |
-| `release-stores.sh --notes …` | Play internal promoted to production; the tested build attached, What's New set, submitted for review |
+| `first-release-check.sh` | reads only: which first-release gates the stores already hold (✓), lack (✗), or only show in the web UI (?) |
+| `release-stores.sh --notes …` | Play internal promoted to production (a draft on an app never published); the tested build attached, What's New set when a version is already on sale, submitted for review |
 | `deploy.sh` | backend to Fly, frontend to Vercel, each with a live health check (angular-kotlin) |
 
 The scripts consolidate the owner's delivery tooling from six shipped apps: one App Store
@@ -342,6 +343,20 @@ and Play reuses the Apple images. Then it commits, shows you the notes, the text
 and the screenshots in one summary, and asks once. After your yes it pushes the listings
 and screenshots, submits the App Store version for review and promotes Play internal to
 production, tags the release, and says what is left for the web UI.
+
+The first release works the same way, prepared from scratch. When a store sells nothing
+yet, the build tested on TestFlight or Play internal is still required; the skill then
+writes the whole listing for every locale from the features, intents and knowledge
+(lengths checked, every URL fetched, no other platform named, the EULA link when a
+subscription is sold), release notes that introduce the app, and screenshots of every key
+screen. What only the web UI can do (App Privacy, price and availability, Data safety, the
+content rating, target audience, ads, app access, category) goes into
+`distribution/store/first-release.md` with the answers the code supports and where each
+came from, beside a ✓ or ✗ for everything the store APIs can read; what nothing shows is
+left for you, never guessed. You click the web steps through, answer the one question
+("the web steps are done, and it goes out?"), and it runs the same scripts in the same
+order. What's New is left out on Apple, which refuses it on a first release; Play stages a
+draft production release that you send for review from the console.
 
 ## `kartograph-migrate` — after every update
 

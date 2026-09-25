@@ -47,7 +47,9 @@ project tell it:
 - `kartograph-release` ships the build tested on TestFlight and Play internal: checks it is
   newer than the store, writes the release notes, adds the new features to the store texts,
   renders the changed screens' screenshots (building the renderer once from the stack's
-  `screenshots.md`), commits, asks once, then pushes the listings, releases and tags.
+  `screenshots.md`), commits, asks once, then pushes the listings, releases and tags. On a
+  lane with nothing on sale it prepares the first release: the whole listing, every key
+  screen, and `distribution/store/first-release.md` with the web-only steps and answers.
 - `kartograph-migrate` brings a project's Kartograph files onto this plugin's layout, in
   one step and one commit, whatever version the project comes from.
 
@@ -64,6 +66,7 @@ skills/kartograph-features/example.md         worked example (fictional) for fea
 skills/kartograph-plan/plan-template.md       skeleton of one three-ring plan
 skills/kartograph-walk/walk-template.md       skeleton of one walk record
 skills/kartograph-revise/revision-template.md skeleton of one revision
+skills/kartograph-release/first-release-template.md skeleton of the first-release checklist
 skills/<name>/validate-*.js                 the skill's structure validator (see below)
 migrations/<version>.md   what each layout change requires; the highest is the layout version
 scripts/migrate-*.js   the mechanical part of the migrations
@@ -129,8 +132,9 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   `docs/code-design/` and writes `stack.md` there. Screens, domain and adapters read the
   project's copies only, so they stay self-contained and the user's edits to the copies
   steer every later run. Deliver copies a stack's `distribution/`; release reads its
-  `screenshots.md` once, to build a project's renderer, and copies `release-check.sh` into
-  a project whose `distribution/` predates it. A store stack's `screenshots.md` has the
+  `screenshots.md` once, to build a project's renderer, and copies `release-check.sh` (and,
+  for a first release, `first-release-check.sh`) into a project whose `distribution/`
+  predates it. A store stack's `screenshots.md` has the
   five sections of `stacks/kmp/screenshots.md`; a scaffold's are `UNFILLED`.
 - **Adding a stack** is adding `stacks/<name>/` with `STACK.md` (frontmatter `name`,
   `title`, `status`, `version`, `targets`, `docs`; a *Detection* section; a table of what
@@ -197,9 +201,10 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 - **Bash 3.2, stdlib Python, curl, openssl.** No PyJWT, no fastlane, no Ruby, no gcloud.
   Identifiers (team, key ids, package names, hosts) come only from `config.sh`; the test
   rejects any literal from the source projects.
-- **`release-check.sh` only reads**, and uses nothing but `asc_get` and
-  `play_track_versions`, so it works when copied alone into a project whose library is
-  older. Release ships the tested build; nothing bumps or rebuilds on the way to the stores.
+- **`release-check.sh` and `first-release-check.sh` only read**, and use nothing but
+  `asc_get`, `play_track_versions` and the Play edit functions (`play_edit_open`,
+  `play_api`, `play_edit_delete`), so they work when copied alone into a project whose
+  library is older. Release ships the tested build; nothing bumps or rebuilds on the way to the stores.
 - **Outward actions confirm.** Upload, promote, submit and deploy call `confirm_typed`;
   `--yes` skips it and the skill passes it only after the person agreed in chat. A step that
   fails deletes the edit or reservation it opened and says "nothing was published".
@@ -357,8 +362,7 @@ Rules for editing them:
   against the superseded plan. Revise builds only rings that were fully built, by the ring
   skills' own `SKILL.md`, never reloading the app; the ring skills skip ticked tasks.
 - **Release ships the tested build.** `release-check.sh` decides (exit 1: a new build
-  first; exit 3: a store could not be read, never read as exit 1); a first release is out
-  of scope. The notes live only in `distribution/release-notes/v<X.Y.Z>.md` (REL5, AV8),
+  first; exit 3: a store could not be read, never read as exit 1). The notes live only in `distribution/release-notes/v<X.Y.Z>.md` (REL5, AV8),
   positive and factual, never naming another platform (ASC32); store texts gain only
   what is new; screenshots are renders from the project's renderer (ASC13, MAS10, ASC14,
   GP5), committed under `distribution/store/`, only for changed screens.
@@ -368,6 +372,21 @@ Rules for editing them:
   `push-store-metadata.sh --play --screenshots --yes` last (Play's listing goes live when
   its edit commits), then the tag `v<X.Y.Z>` unless it exists. A project whose copied
   `push-store-metadata.sh` or `lib/asc.sh` predates `--version` gets both refreshed first.
+- **A first release is prepared, not skipped.** A lane whose `release-check.sh` line says
+  `on sale none` or `production none` is a first release; the tested build is still
+  required, and every other lane runs exactly as a follow-up. Release then writes the whole
+  listing per locale in `LOCALES` from `features/`, `kartograph/` and `knowledge/` (ASC1
+  lengths, ASC26 every URL 200, ASC25 the EULA link when a subscription is sold, ASC32,
+  GP2 `defaultLanguage` explicit), notes that introduce the app, every key screen, and
+  `distribution/store/first-release.md` in the shape of `first-release-template.md`: per
+  store lane every gate ✓ / ✗ / ? from `first-release-check.sh` and the files, with the
+  web-only answers (App Privacy published, ASC18; Data safety, IARC, target audience,
+  ads, app access, category, GP6, GP8, GP11) derived from the code and naming their
+  source, never guessed. The one question is "The web steps in
+  `distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?"; the script
+  order is unchanged. `release-stores.sh` sets no What's New where nothing is on sale
+  (ASC10); a project whose copy predates that gets it and `lib/asc.sh` refreshed first.
+  The report lists every ✗ and ? left and where it is done.
 - **A revision plan rebuilds what the revision touched**: every scenario it changed or
   added has a `**Revised:**` ring-2 task, never only a friction entry; `validate-plan.js`
   checks it, and skips the features cross-check for a `superseded` plan.

@@ -355,3 +355,34 @@ on an older layout could still carry features without the provenance release rea
 - Redrawing `docs/phases.svg`.
 - Changing `kartograph-deliver` or any existing delivery script.
 - A revision for a capability that is not specified yet (that is `kartograph-converse`).
+
+## Addendum 2026-09-25: the first store release (v3.3.0)
+
+The owner moved the first store release into scope (option A: release prepares, the person
+clicks the web UI through, one question covers both). Follow-up releases are unchanged.
+
+- **Check.** `on sale none` / `production none` switches that lane into first-release mode
+  instead of stopping; the tested build on TestFlight / Play internal is still required,
+  and exit 3 still means a store could not be read. A new read-only entry script,
+  `first-release-check.sh [--apple] [--play] [--version X.Y.Z]` (kmp, kmp-toolchain,
+  apple-swift, android-compose; byte-identical), prints one `<lane> ✓|✗|? <gate>: <detail>`
+  line per gate: content rights, category, age rating, price, availability, the editable
+  version against the build's number (ASC29), in-app purchases and subscriptions waiting for
+  a first review (ASC23, ASC24), the EULA link when a subscription is sold (ASC25), App
+  Privacy and DAC7 as `?` (ASC18, ASC19); on Play defaultLanguage, contact, listings, and
+  the console-only gates as `?` (GP6, GP8, GP11).
+- **Content.** The whole listing per locale from `features/`, `kartograph/` and
+  `knowledge/`, templates created by `push-store-metadata.sh --dry-run` per lane; notes
+  that introduce the app over the whole history; every key screen rendered.
+- **No What's New on a first release.** `release-stores.sh` set it unconditionally and would
+  have died on Apple's 409 (ASC10). It now reads `asc_version_on_sale PLATFORM` (new in
+  `asc.sh`) and skips What's New when nothing is on sale; the follow-up path makes the same
+  calls as before, proven by a stubbed test.
+- **Checklist.** `distribution/store/first-release.md` in the shape of
+  `skills/kartograph-release/first-release-template.md`: per store lane, the web steps
+  before the yes, the gates the push sets, and Play's *After the release* (send the draft
+  production release for review). Answers derive from the code and name their source;
+  what nothing shows is left to the person.
+- **One question**: "The web steps in `distribution/store/first-release.md` are done, and
+  vX.Y.Z goes out?" The script order stays: Apple metadata with `--version`,
+  `release-stores.sh`, Play metadata, then the tag. The report lists every ✗ and ? left.
