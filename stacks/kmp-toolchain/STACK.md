@@ -99,6 +99,8 @@ deploy-testflight.sh, deploy-play-internal.sh, push-store-metadata.sh, release-c
 They are the `kmp` scripts byte for byte; `config.sh` sets `STACK="kmp-toolchain"`, which
 makes them build the Android and desktop apps through `lib/kotlin-toolchain.sh` instead of
 `lib/gradle.sh`. Their contract is `stacks/common/DISTRIBUTION.md`.
+`screenshots.md` beside this file is how `kartograph-release` builds the project's
+store-screenshot renderer the first time.
 
 - **Android.** `androidApp/module.yaml` carries `settings.android.versionCode`,
   `versionName` and `signing: { enabled: true, propertiesFile: … }`, the properties file

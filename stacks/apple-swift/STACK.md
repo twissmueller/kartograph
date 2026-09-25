@@ -52,3 +52,5 @@ catalogs) is cited where it confirms or sharpens a convention; it never replaces
 `distribution/` beside this file holds the entry scripts `kartograph-deliver` copies into a
 project on first use, over the shared libraries from `stacks/common/distribution/lib/`:
 run-local.sh (macos, ios), run-device.sh, prepare-release.sh, deploy-testflight.sh (ios or mac), push-store-metadata.sh, release-check.sh, release-stores.sh. Their contract is `stacks/common/DISTRIBUTION.md`.
+`screenshots.md` beside this file is how `kartograph-release` builds the project's
+store-screenshot renderer the first time.

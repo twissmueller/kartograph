@@ -351,3 +351,20 @@ test("release-check.sh compares versions numerically; nothing on sale is older t
   assert.ok(!newer("1.2.0", "1.3.0"));
   assert.ok(!newer("", "1.0.0"));
 });
+
+const SCREENSHOT_SECTIONS = ["1. Where the renderer lives", "2. Devices and sizes", "3. Seed", "4. Run", "5. Output"];
+
+test("every stack that releases to a store documents its screenshot renderer in screenshots.md", () => {
+  for (const stack of stacks) {
+    if (!existsSync(join(root, "stacks", stack, "distribution/release-stores.sh"))) continue;
+    const file = join(root, "stacks", stack, "screenshots.md");
+    assert.ok(existsSync(file), `${stack} lacks screenshots.md`);
+    const text = readFileSync(file, "utf8");
+    assert.deepEqual([...text.matchAll(/^## (.+)$/gm)].map((m) => m[1]), SCREENSHOT_SECTIONS, `${stack}/screenshots.md sections`);
+    const status = /^status: (\w+)$/m.exec(readFileSync(join(root, "stacks", stack, "STACK.md"), "utf8"))[1];
+    text.split(/^## .+$/m).slice(1).forEach((body, i) => {
+      if (status === "scaffold") assert.match(body, /UNFILLED/, `${stack}: '${SCREENSHOT_SECTIONS[i]}' needs an UNFILLED marker`);
+      else assert.doesNotMatch(body, /UNFILLED/, `${stack}: '${SCREENSHOT_SECTIONS[i]}' is unfilled in a ready stack`);
+    });
+  }
+});
