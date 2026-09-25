@@ -844,3 +844,16 @@ test("asc_review_submit makes the same calls as before: prepare, then the submit
   assert.deepEqual(r.writes.slice(0, 2), ["POST /reviewSubmissions", "POST /reviewSubmissionItems"]);
   assert.match(r.writes[2], /^PATCH \/reviewSubmissions\/submission-new .*"submitted":true/);
 });
+
+test("asc_review_prepare refuses, writing nothing, when the version already sits in a submission in review (a re-run after Add for Review)", () => {
+  for (const state of ["WAITING_FOR_REVIEW", "IN_REVIEW"]) {
+    const r = reviewCalls("asc_review_prepare", [{ id: "submission-sent", attributes: { state } }], [{ relationships: { appStoreVersion: { data: { id: "version-1" } } } }]);
+    assert.notEqual(r.status, 0, state);
+    assert.match(r.stderr, /already submitted; nothing to prepare/, state);
+    assert.deepEqual(r.writes, [], state);
+  }
+  // a submission in review that holds another version is no reason to stop
+  const other = reviewCalls("asc_review_prepare", [{ id: "submission-sent", attributes: { state: "IN_REVIEW" } }], [{ relationships: { appStoreVersion: { data: { id: "version-0" } } } }]);
+  assert.equal(other.status, 0, other.stderr);
+  assert.deepEqual(other.writes, ["POST /reviewSubmissions", "POST /reviewSubmissionItems"]);
+});

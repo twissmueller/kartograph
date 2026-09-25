@@ -533,7 +533,8 @@ asc_review_submit() {
 # the OPEN submission and submits it (ASC24) — so this is what a release leaves behind
 # when that click is the person's. An open submission is reused, and the version item is
 # added only when it is not there yet: a second submission for a version already in one
-# lingers as an undeletable draft (ASC31).
+# lingers as an undeletable draft (ASC31). A version already in a submission that is in
+# review is refused: already submitted, nothing to prepare.
 asc_review_prepare() {
   local platform="${1:?asc_review_prepare PLATFORM [X.Y.Z]}" version_string="${2:-}"
   local app version_id build answer submission items payload
@@ -549,6 +550,21 @@ asc_review_prepare() {
   log "$platform version carries build $build"
 
   answer="$(asc_get /reviewSubmissions "filter[app]=$app&filter[platform]=$platform&limit=20")" || return 1
+  # A version already in a submission that is in review — a re-run after the person's Add
+  # for Review, say — has nothing left to prepare, and a new draft beside it could never be
+  # canceled or deleted through the API (ASC31).
+  local sent
+  for sent in $(printf '%s' "$answer" | _asc_py '
+for s in d.get("data", []):
+    if s["attributes"].get("state") in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
+        print(s["id"])'); do
+    if asc_get "/reviewSubmissions/$sent/items" "limit=50" | _asc_py 'want = sys.argv[2]
+sys.exit(0 if any(((i.get("relationships", {}).get("appStoreVersion") or {}).get("data") or {}).get("id") == want
+                  for i in d.get("data", [])) else 1)' "$version_id"; then
+      warn "the $platform version is in submission $sent, already submitted; nothing to prepare"
+      return 1
+    fi
+  done
   submission="$(printf '%s' "$answer" | _asc_py '
 for s in d.get("data", []):
     if s["attributes"].get("state") in ("READY_FOR_REVIEW", "UNRESOLVED_ISSUES"):

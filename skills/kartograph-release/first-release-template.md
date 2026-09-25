@@ -9,7 +9,8 @@ Prepared by kartograph-release on <YYYY-MM-DD> from `distribution/first-release-
 
 Do every ✗ and every ? under *Before your yes*, then answer the one question. The steps
 under *After the release* come once the scripts have run. A failure is reported per store:
-when Play fails after the App Store version was submitted, you learn what each store has.
+Play is promoted before the App Store version is submitted, so you learn what each store
+already has.
 
 ## App Store — <platforms>
 

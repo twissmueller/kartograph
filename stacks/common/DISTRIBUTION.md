@@ -189,7 +189,8 @@ asc_version_on_sale PLATFORM           the highest versionString ever on sale on
                                        cannot be read. release-check.sh and first-release-check.sh inline the same states (they use only asc_get)
 asc_subscriptions_pending              subscriptions at READY_TO_SUBMIT not attached to a submission; non-empty blocks a review submission (Guideline 2.1(b))
 asc_review_prepare PLATFORM [X.Y.Z]    reuse the open review submission (READY_FOR_REVIEW, UNRESOLVED_ISSUES) or create one, add the version item unless it is
-                                       already there (ASC31); prints the submission id; never marks it submitted
+                                       already there (ASC31); refuses, writing nothing, when the version already sits in a submission
+                                       WAITING_FOR_REVIEW or IN_REVIEW ("already submitted; nothing to prepare"); prints the submission id; never marks it submitted
 asc_review_submit PLATFORM [X.Y.Z]     asc_review_prepare, then submit; refuses when asc_subscriptions_pending is non-empty
 ```
 

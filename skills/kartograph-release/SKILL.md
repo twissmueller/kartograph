@@ -209,8 +209,12 @@ for each Apple platform that it would create the version `X.Y.Z` the texts land 
 the texts until it passes. It also stops when an Apple platform already has an editable
 version with another number, such as the "1.0" App Store Connect creates with a new app:
 `X.Y.Z` cannot be created beside it (ASC29). That is no text fix; it becomes the ✗ of the
-version gate in the checklist, and the summary before the question says so. Only that
-finding and an empty `defaultLanguage` may stay when the dry run ends; fix every other.
+version gate in the checklist, and the summary before the question says so. That stop
+comes before any text is read, so then run `distribution/push-store-metadata.sh --apple
+--dry-run` (without `--version`) and `distribution/push-store-metadata.sh --play
+--dry-run`, one lane per run, to check the lengths, the other-platform words and the URLs
+of both stores anyway, and fix the texts until they pass. Only the other version and an
+empty `defaultLanguage` may stay when the dry runs end; fix every other finding.
 
 ## 5. Screenshots
 
@@ -339,15 +343,23 @@ an Apple platform with nothing on sale; with `--no-submit` it attaches the build
 prepares the open submission without submitting it, and the person's Add for Review
 submits it. Play accepts only a draft
 production release for an app never published: it is staged, and the person sends it for
-review from the console (the checklist's *After the release*). A failure on the Play lane
-after the Apple version was submitted is reported per lane: what Apple already has, and
-what Play has and has not.
+review from the console (the checklist's *After the release*).
 
 When every step succeeded and no `v<X.Y.Z>` tag exists, tag the release commit
 `git tag -a v<X.Y.Z> -m "v<X.Y.Z>"` and push the tag; an existing tag stays where it is.
-A failure: show the script's last lines and say which parts already went out (the Apple
-texts and screenshots on the editable version, the release to review and production) and
-which did not; nothing after it runs and nothing is tagged. On "not yet", stop: the commit
+A failure: show the script's last lines and say, per store, what already went out and
+what did not; nothing after it runs and nothing is tagged. Inside `release-stores.sh` Play
+is promoted before Apple is submitted, so by failure point:
+
+- step 1 (Apple texts): at most some Apple texts and screenshots on the editable version,
+  which nobody sees before review; nothing on Play.
+- step 2, while promoting on Play: the Apple texts and screenshots on the editable version;
+  Play unchanged (the edit is deleted).
+- step 2, on the Apple side: Play production already carries the build (a staged draft on
+  a first release), with the old listing; the Apple version may have its build, and
+  What's New or its prepared submission, but is not submitted.
+- step 3 (Play texts): both stores have the release; Play still shows the old listing and
+  screenshots, so run step 3 again once the cause is fixed. On "not yet", stop: the commit
 stays, and the next run reuses the written files.
 
 ## 7. Report
