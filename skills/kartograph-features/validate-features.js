@@ -22,6 +22,11 @@ export const CAPABILITY_SECTIONS = ["Sources", "Purpose and outcome", "Scope and
 export const OPTIONAL_SECTIONS = new Set(["Constraints", "Features", "Capabilities"]);
 export const INTENT_PATH = /^kartograph\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.intent\.md$/;
 export const REVISION_PATH = /^kartograph\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.revision\.md$/;
+// Pre-3.0 provenance comments, kept out of the strict rules below: 'intents/<file>.md' (the
+// pre-migration form) or 'kartograph/<file>.intent.md' (the post-migration form), each
+// optionally followed by ': <explanation>'. Never written by kartograph-revise; ignored like
+// any other comment.
+const LEGACY_CHANGED_BY = /^(?:intents\/\S+\.md|kartograph\/\S+\.intent\.md)(?::.*)?$/;
 const CHANGED_BY = /^# Changed by (.*)$/;
 const PLACEHOLDER = /<[A-Za-z][^>\n]*>/;
 
@@ -210,8 +215,10 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
     const cb = CHANGED_BY.exec(t);
     if (cb) {
       const p = cb[1].trim();
-      if (!REVISION_PATH.test(p)) err(`'# Changed by' must name kartograph/YYYY-MM-DD-HHMM-<slug>.revision.md, got '${p}'`);
-      revisions.push(p); changedBy = p; continue;
+      if (REVISION_PATH.test(p)) { revisions.push(p); changedBy = p; continue; }
+      if (LEGACY_CHANGED_BY.test(p)) continue;
+      err(`'# Changed by' must name kartograph/YYYY-MM-DD-HHMM-<slug>.revision.md, got '${p}'`);
+      continue;
     }
     if (t === "" || t.startsWith("#") || t.startsWith("@")) continue;
     if (changedBy !== null) {

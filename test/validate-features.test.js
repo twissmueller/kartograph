@@ -327,3 +327,18 @@ test("a feature's revision must be listed in capability.md and must exist", (t) 
   writeFileSync(join(listed, REVISION), "# x\n");
   assert.deepEqual(validateTree(join(listed, "features")).errors, []);
 });
+
+test("a legacy '# Changed by intents/<file>.md: text' or 'kartograph/<file>.intent.md: text' comment is ignored, not a revision mark", () => {
+  const LEGACY_INTENT = "intents/2026-09-23-0945-personal-enterprise-account-separation.md";
+  const legacyAboveScenario = feature.replace("    Scenario: An owner archives an active project", `    # Changed by ${LEGACY_INTENT}: only a user registered without an organization has an individual organization.\n    Scenario: An owner archives an active project`);
+  const r = validateFeature(legacyAboveScenario, FOPTS);
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.revisions, []);
+  const legacyAboveBackground = feature.replace("  Rule: Owners can archive their active projects", `  # Changed by ${LEGACY_INTENT}: explanation\n  Background:\n    Given the workspace "Acme" exists\n\n  Rule: Owners can archive their active projects`);
+  assert.deepEqual(validateFeature(legacyAboveBackground, FOPTS).errors, []);
+  const migratedForm = feature.replace("    Scenario: An owner archives an active project", `    # Changed by kartograph/2026-09-23-0945-personal-enterprise-account-separation.intent.md: explanation\n    Scenario: An owner archives an active project`);
+  assert.deepEqual(validateFeature(migratedForm, FOPTS).errors, []);
+  // The strict rules still apply once a path ends in .revision.md.
+  const badPath = revisedFeature.replace(`# Changed by ${REVISION}`, "# Changed by the owner");
+  assert.ok(validateFeature(badPath, FOPTS).errors.some((e) => /must name kartograph\/YYYY-MM-DD-HHMM-<slug>\.revision\.md/.test(e)));
+});
