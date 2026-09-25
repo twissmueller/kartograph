@@ -531,6 +531,7 @@ asc_version_editable() { echo "EDITABLE $1 $2" >&2; echo version-1; }
 asc_version_attach() { echo "ATTACH $1 $2" >&2; }
 asc_version_whats_new() { echo "WHATSNEW $1 $2 $3" >&2; }
 asc_review_submit() { echo "SUBMIT $1" >&2; }
+asc_review_prepare() { echo "PREPARE $1" >&2; echo submission-1; }
 `);
   writeFileSync(join(dist, "notes.md"), "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n");
   return (env = {}) => spawnSync("bash", [join(dist, "release-stores.sh"), ...args, ...(env.EXTRA ? [env.EXTRA] : []), "--notes", join(dist, "notes.md"), "--version", "1.3.0", "--yes"], { encoding: "utf8", env: { ...process.env, ...env } });
@@ -754,15 +755,17 @@ test("an app removed from sale is not a first release: asc_version_on_sale, rele
   }
 });
 
-test("release-stores.sh --no-submit attaches the build and sets What's New where allowed, but creates no review submission; Play is unaffected", () => {
+test("release-stores.sh --no-submit attaches the build, sets What's New where allowed and prepares the open submission, but does not submit it; Play is unaffected", () => {
   let r = releaseStores()({ ON_SALE: "1.2.0", EXTRA: "--no-submit" });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stderr, /ATTACH version-1 build-1/);
   assert.match(r.stderr, /WHATSNEW version-1 en-US/);
+  assert.match(r.stderr, /PREPARE IOS/, "the open submission Add for Review joins must exist (ASC24)");
   assert.doesNotMatch(r.stderr, /SUBMIT/);
   assert.match(r.stderr, /not submitted.*Add for Review/);
   r = releaseStores()({ ON_SALE: "", EXTRA: "--no-submit" });
   assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /PREPARE IOS/);
   assert.doesNotMatch(r.stderr, /WHATSNEW|SUBMIT/);
 
   const play = releaseStores("kmp", { lanes: "android", args: ["--play"] });
@@ -796,4 +799,48 @@ test("play_listing.py's template leaves defaultLanguage empty: it is chosen, nev
   const listing = JSON.parse(readFileSync(join(dir, "play/listing.json"), "utf8"));
   assert.equal(listing.defaultLanguage, "");
   assert.deepEqual(Object.keys(listing.listings), ["de-DE", "en-US"]);
+});
+
+// asc_review_prepare against a stubbed HTTP layer: every write is logged, so the test sees
+// exactly which submission calls go out — and that none of them marks it submitted.
+const reviewCalls = (fn, submissions, items = []) => {
+  const r = sh(`${asc}
+    asc_version_editable() { echo version-1; }
+    asc_get() {
+      echo "GET $1" >&2
+      case "$1" in
+        /appStoreVersions/version-1/build) printf '%s' '{"data":{"attributes":{"version":"41"}}}' ;;
+        /reviewSubmissions) printf '%s' '${JSON.stringify({ data: submissions })}' ;;
+        */items) printf '%s' '${JSON.stringify({ data: items })}' ;;
+        */subscriptionGroups) printf '%s' '{"data":[],"included":[]}' ;;
+      esac
+    }
+    asc_post() { echo "POST $1" >&2; printf '%s' '{"data":{"id":"submission-new"}}'; }
+    asc_patch() { echo "PATCH $1 $2" >&2; printf '%s' '{"data":{"attributes":{"state":"WAITING_FOR_REVIEW"}}}'; }
+    ASC_APP_ID=1 ${fn} IOS 1.3.0`);
+  return { ...r, writes: r.stderr.split("\n").filter((l) => /^(POST|PATCH) /.test(l)) };
+};
+
+test("asc_review_prepare creates the submission and adds the version, and never marks it submitted", () => {
+  const r = reviewCalls("asc_review_prepare", []);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "submission-new");
+  assert.deepEqual(r.writes, ["POST /reviewSubmissions", "POST /reviewSubmissionItems"]);
+  assert.doesNotMatch(r.stderr, /submitted/);
+});
+
+test("asc_review_prepare reuses an open submission that already holds the version: no second submission, no second item (ASC31)", () => {
+  const open = [{ id: "submission-open", attributes: { state: "READY_FOR_REVIEW" } }];
+  const r = reviewCalls("asc_review_prepare", open, [{ relationships: { appStoreVersion: { data: { id: "version-1" } } } }]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "submission-open");
+  assert.deepEqual(r.writes, []);
+});
+
+test("asc_review_submit makes the same calls as before: prepare, then the submitted PATCH", () => {
+  const r = reviewCalls("asc_review_submit", []);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.writes.length, 3, r.stderr);
+  assert.deepEqual(r.writes.slice(0, 2), ["POST /reviewSubmissions", "POST /reviewSubmissionItems"]);
+  assert.match(r.writes[2], /^PATCH \/reviewSubmissions\/submission-new .*"submitted":true/);
 });

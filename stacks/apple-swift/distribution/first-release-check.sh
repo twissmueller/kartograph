@@ -11,7 +11,8 @@
 #          per Apple platform the editable version against --version (a build attaches
 #          only to the version of its own number); in-app purchases and subscriptions:
 #          ✗ when incomplete, ? when one waits for its first review (release-stores.sh
-#          then runs with --no-submit and the person clicks Add for Review, ASC24); the
+#          prepares the open submission with --no-submit, the person's Add for Review
+#          on the product's page joins it and submits it, ASC24); the
 #          EULA link in each locale's description when a subscription is sold (ASC25);
 #          App Privacy and the agreements, web only.
 #   play   defaultLanguage, the contact details and a listing per locale, in one edit that
@@ -166,7 +167,7 @@ print(max(on_sale, key=key) if on_sale else "-", open_version)')"
       gate apple ✓ "$name" "none waiting for a first review"; return 0
     fi
     [ "$incomplete" = "-" ] || gate apple ✗ "$name" "$(printf '%s' "$incomplete" | sed 's/,/, /g') is incomplete (MISSING_METADATA): add its localization and review screenshot in App Store Connect; it cannot go to review before that (ASC23)"
-    [ "$waiting" = "-" ] || gate apple "?" "$name" "$(printf '%s' "$waiting" | sed 's/,/, /g') $(waits "$waiting") for a first review: release-stores.sh runs with --no-submit, and once it has attached the build, Add for Review on each product's page in App Store Connect joins it to the submission and submits the version with it (ASC24)"
+    [ "$waiting" = "-" ] || gate apple "?" "$name" "$(printf '%s' "$waiting" | sed 's/,/, /g') $(waits "$waiting") for a first review: release-stores.sh runs with --no-submit, which attaches the build and leaves the review submission open; then Add for Review on each product's page in App Store Connect joins it to that open submission and submits the whole thing (ASC24)"
   }
   # products data|subscriptions — the in-app purchases (a response's data) or the
   # subscriptions (a response's included); prints "COUNT INCOMPLETE WAITING".

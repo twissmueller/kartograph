@@ -391,8 +391,10 @@ Rules for editing them:
   in-app purchases, subscriptions, price, availability, EULA link) or a file-backed ✗
   still empty stops with nothing sent. The script order is unchanged. `release-stores.sh`
   sets no What's New where nothing was ever on sale (ASC10), and when products wait for
-  their first review it runs with `--no-submit`: the build is attached and the person's
-  Add for Review on each product's page submits the version with them (ASC24). A project
+  their first review it runs with `--no-submit`: the build is attached and the open review
+  submission prepared (`asc_review_prepare`: reused, never a second one, ASC31) but not
+  submitted, and the person's Add for Review on each product's page joins it and submits
+  the whole thing (ASC24). A project
   whose copy predates either gets it and `lib/asc.sh` refreshed first. The report lists
   every ✗ and ? left, the hand-over, and where each is done.
 - **A revision plan rebuilds what the revision touched**: every scenario it changed or

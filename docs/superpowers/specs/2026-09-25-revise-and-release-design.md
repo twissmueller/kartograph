@@ -390,8 +390,9 @@ clicks the web UI through, one question covers both). Follow-up releases are unc
   a gate the push does not set (version, in-app purchases, subscriptions, price,
   availability, EULA link) or an empty file-backed ✗ stops with nothing sent. Products
   waiting for their first review are a hand-over, not a gate: `release-stores.sh
-  --no-submit` attaches the build and the person's Add for Review on the product's page
-  submits the version with them (ASC24). `push-store-metadata.sh --version` stops, dry run
+  --no-submit` attaches the build and prepares the open review submission
+  (`asc_review_prepare`, reused per ASC31) without submitting it, and the person's Add for
+  Review on the product's page joins it and submits the whole thing (ASC24). `push-store-metadata.sh --version` stops, dry run
   included, when another editable version exists (the auto-created 1.0, ASC29).
   `defaultLanguage` is never derived; the Play template leaves it empty (GP2). A version
   ever on sale (`ASC_SHIPPED_STATES`, removed-from-sale included) ends first-release mode.

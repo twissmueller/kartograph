@@ -501,7 +501,42 @@ for s in d.get("included", []):
 # case). Submitting the version without it would earn the same 2.1(b) rejection again.
 asc_review_submit() {
   local platform="${1:?asc_review_submit PLATFORM [X.Y.Z]}" version_string="${2:-}"
-  local app version_id build answer submission items payload state pending
+  local submission payload state pending
+  submission="$(asc_review_prepare "$platform" "$version_string")" || return 1
+
+  pending="$(asc_subscriptions_pending)"
+  if [ -n "$pending" ]; then
+    warn "these subscriptions are still READY_TO_SUBMIT:"
+    printf '%s\n' "$pending" | sed 's/^/   /' >&2
+    warn "A subscription's FIRST review is ticked in App Store Connect while submitting the"
+    warn "version — the API has no way to add it. Submitting without it repeats the"
+    warn "Guideline 2.1(b) rejection, so nothing was submitted."
+    return 1
+  fi
+
+  payload="{\"data\":{\"type\":\"reviewSubmissions\",\"id\":\"$submission\",\"attributes\":{\"submitted\":true}}}"
+  state="$(asc_patch "/reviewSubmissions/$submission" "$payload" \
+    | _asc_py 'print(d.get("data", {}).get("attributes", {}).get("state", ""))')" || state=""
+  case "$state" in
+    WAITING_FOR_REVIEW|IN_REVIEW|COMPLETING|COMPLETE)
+      log "$platform submitted to App Store Review (state: $state)"
+      ;;
+    *)
+      die "the submission did not enter review (state: ${state:-unknown}) — nothing was published"
+      ;;
+  esac
+}
+
+# asc_review_prepare PLATFORM [X.Y.Z] — steps 1 and 2 of asc_review_submit, never step 3:
+# the open submission with the version in it, not submitted. Prints the submission's id.
+# An in-app purchase's first review is added from its own page, whose Add for Review joins
+# the OPEN submission and submits it (ASC24) — so this is what a release leaves behind
+# when that click is the person's. An open submission is reused, and the version item is
+# added only when it is not there yet: a second submission for a version already in one
+# lingers as an undeletable draft (ASC31).
+asc_review_prepare() {
+  local platform="${1:?asc_review_prepare PLATFORM [X.Y.Z]}" version_string="${2:-}"
+  local app version_id build answer submission items payload
   app="$(_asc_app)"
 
   version_id="$(asc_version_editable "$platform" "$version_string")" || return 1
@@ -554,26 +589,5 @@ print(json.dumps({"data": {"type": "reviewSubmissionItems",
       log "version attached to the submission"
       ;;
   esac
-
-  pending="$(asc_subscriptions_pending)"
-  if [ -n "$pending" ]; then
-    warn "these subscriptions are still READY_TO_SUBMIT:"
-    printf '%s\n' "$pending" | sed 's/^/   /' >&2
-    warn "A subscription's FIRST review is ticked in App Store Connect while submitting the"
-    warn "version — the API has no way to add it. Submitting without it repeats the"
-    warn "Guideline 2.1(b) rejection, so nothing was submitted."
-    return 1
-  fi
-
-  payload="{\"data\":{\"type\":\"reviewSubmissions\",\"id\":\"$submission\",\"attributes\":{\"submitted\":true}}}"
-  state="$(asc_patch "/reviewSubmissions/$submission" "$payload" \
-    | _asc_py 'print(d.get("data", {}).get("attributes", {}).get("state", ""))')" || state=""
-  case "$state" in
-    WAITING_FOR_REVIEW|IN_REVIEW|COMPLETING|COMPLETE)
-      log "$platform submitted to App Store Review (state: $state)"
-      ;;
-    *)
-      die "the submission did not enter review (state: ${state:-unknown}) — nothing was published"
-      ;;
-  esac
+  printf '%s\n' "$submission"
 }

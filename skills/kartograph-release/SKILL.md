@@ -270,9 +270,12 @@ keeps its `?` or `✗`. Remove every angle-bracket placeholder.
 An in-app purchase or subscription waiting for its first review (a `?` on the `in-app
 purchases` or `subscriptions` line) is no step before the yes. The API cannot add it to a
 submission, and the product's own **Add for Review** in App Store Connect joins it to the
-open submission and submits the version with it (ASC24). So the release attaches the
-build without submitting (`release-stores.sh --no-submit`), and the checklist's *After the
-release* hands the person that click, per product. An incomplete product (`✗`,
+**open** submission and submits the whole thing (ASC24). So the release attaches the build
+and prepares that open submission with the version in it, without submitting it
+(`release-stores.sh --no-submit`, which reuses an open submission rather than creating a
+second one, ASC31), and the checklist's *After the release* hands the person that click,
+per product: reload the product's page first, its state badge can be stale; and canceling
+the submission drops the product from it, so it needs the click again. An incomplete product (`✗`,
 MISSING_METADATA) has to be completed before the yes. The Play section's *After the
 release* is the draft production release, sent for review from the console.
 
@@ -298,7 +301,8 @@ is done, `defaultLanguage` by name when it is still yours to decide, and the han
 after the release (the Add for Review clicks, the Play review); and the one question is:
 "The web steps in `distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?"
 — **A:** yes, **B:** not yet. When products wait for a first review, the question adds
-"The build is attached but not submitted; your Add for Review on each product submits it."
+"The build is attached and the review submission prepared but not submitted; your Add for
+Review on each product's page joins it and submits it."
 
 On yes to a first release, before anything leaves the machine:
 
@@ -332,7 +336,8 @@ On yes, run from the project root, in this order, stopping at the first failure:
 
 The order is the same on a first release. `release-stores.sh` then sets no What's New on
 an Apple platform with nothing on sale; with `--no-submit` it attaches the build and
-submits nothing, and the person's Add for Review does. Play accepts only a draft
+prepares the open submission without submitting it, and the person's Add for Review
+submits it. Play accepts only a draft
 production release for an app never published: it is staged, and the person sends it for
 review from the console (the checklist's *After the release*). A failure on the Play lane
 after the Apple version was submitted is reported per lane: what Apple already has, and
@@ -352,7 +357,8 @@ production and its rollout, the tag. The delivery scripts refreshed in step 1, i
 What the scripts said only the web UI can do (App Privacy, Data safety, a subscription's
 first review). On a first release: every line of `distribution/store/first-release.md`
 that still carries ✗ or `?`, and where it is done (App Store Connect, the Play Console, or
-the file and field), then the hand-over: each product's Add for Review when the build was
-attached without a submission, and the Play review of the draft release last. Every screen whose
+the file and field), then the hand-over: each product's Add for Review when the
+submission was left open (reload the page first; a canceled submission needs the click
+again), and the Play review of the draft release last. Every screen whose
 screenshot was rendered from shared code only, or not rendered, and why. Then you are
 done.

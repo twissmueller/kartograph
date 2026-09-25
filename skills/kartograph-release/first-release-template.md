@@ -40,12 +40,13 @@ when Play fails after the App Store version was submitted, you learn what each s
 
 ### After the release: the hand-over
 
-Only when products wait for their first review; then the build is attached and the version
-is not submitted (`release-stores.sh --no-submit`).
+Only when products wait for their first review; then the build is attached and the review
+submission is prepared with the version in it but not submitted (`release-stores.sh
+--no-submit`).
 
 | Step | Where |
 |---|---|
-| Add for Review on <each product id>: joins it to the submission and submits the version with it (ASC24); reload the page first, its state badge can be stale | App Store Connect → the product's own page |
+| Add for Review on <each product id>: joins it to the open submission and submits the whole thing (ASC24); reload the page first, its state badge can be stale; canceling the submission drops the product, and it needs the click again | App Store Connect → the product's own page |
 
 ## Google Play
 

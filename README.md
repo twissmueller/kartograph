@@ -357,8 +357,9 @@ left for you, never guessed, Play's default language included. You click the web
 through and answer the one question ("the web steps are done, and it goes out?"); it
 checks the gates once more, then runs the same scripts in the same order. What's New is
 left out on Apple, which refuses it on a first release. When in-app purchases wait for
-their first review, the build is attached but not submitted: your Add for Review on each
-product's page submits the version with them. Play stages a draft production release that
+their first review, the build is attached and the review submission prepared but not
+submitted: your Add for Review on each product's page joins it and submits the whole
+thing. Play stages a draft production release that
 you send for review from the console.
 
 ## `kartograph-migrate` — after every update
