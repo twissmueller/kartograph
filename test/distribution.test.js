@@ -458,7 +458,7 @@ test("push-store-metadata.sh's ensure_apple_version creates the missing App Stor
     set -euo pipefail; CONFIG_FILE=/dev/null
     . '${lib("common.sh")}'
     asc_version_exists() { [ "\${EXISTS:-0}" = 1 ]; }
-    asc_version_editable() { echo "CREATE $1 $2" >&2; echo fake-id; }
+    asc_version_editable() { [ -n "\${2:-}" ] || return 1; echo "CREATE $1 $2" >&2; echo fake-id; }
     ${fn}
     ensure_apple_version IOS
   `], { encoding: "utf8", input, env: { ...process.env, version: "1.2.0", dry: "", ...env } });
@@ -513,13 +513,17 @@ test("asc_version_on_sale prints the highest version on sale, nothing on a first
 
 // release-stores.sh against stubbed libraries: every store call is a function that logs what
 // it was asked to do, so the order and the What's New decision are visible without an API.
-const releaseStores = (stack = "kmp") => {
+const releaseStores = (stack = "kmp", { lanes = "ios", args = ["--apple"] } = {}) => {
   const dir = tmp("release-stores-");
   const dist = join(dir, "distribution");
   mkdirSync(dist);
   execFileSync("cp", ["-R", join(root, "stacks/common/distribution/lib"), join(dist, "lib")]);
   execFileSync("cp", [join(root, "stacks", stack, "distribution/release-stores.sh"), join(dist, "/")]);
-  writeFileSync(join(dist, "config.sh"), 'APP_NAME="Demo"\nLANES="ios"\nLOCALES="en-US de-DE"\nASC_APP_ID=1\nASC_KEY_ID=k\nASC_ISSUER_ID=i\n');
+  writeFileSync(join(dist, "config.sh"), `APP_NAME="Demo"\nLANES="${lanes}"\nLOCALES="en-US de-DE"\nASC_APP_ID=1\nASC_KEY_ID=k\nASC_ISSUER_ID=i\nPLAY_PACKAGE_NAME=p\n`);
+  writeFileSync(join(dist, "lib/play.sh"), `play_track_versions() { echo 41; }
+play_promote() { echo "PROMOTE $1 $2" >&2; }
+play_verify() { echo "VERIFY $1 $2" >&2; }
+`);
   writeFileSync(join(dist, "lib/xcode.sh"), "version_read() { echo 1.3.0; }\n");
   writeFileSync(join(dist, "lib/asc.sh"), `asc_build_latest() { echo "BUILD $1 $2" >&2; echo build-1; }
 asc_version_on_sale() { [ "\${ON_SALE_FAIL:-}" = 1 ] && { echo "HTTP 500" >&2; return 1; }; printf '%s\\n' "\${ON_SALE:-}"; }
@@ -529,7 +533,7 @@ asc_version_whats_new() { echo "WHATSNEW $1 $2 $3" >&2; }
 asc_review_submit() { echo "SUBMIT $1" >&2; }
 `);
   writeFileSync(join(dist, "notes.md"), "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n");
-  return (env = {}) => spawnSync("bash", [join(dist, "release-stores.sh"), "--apple", "--notes", join(dist, "notes.md"), "--version", "1.3.0", "--yes"], { encoding: "utf8", env: { ...process.env, ...env } });
+  return (env = {}) => spawnSync("bash", [join(dist, "release-stores.sh"), ...args, ...(env.EXTRA ? [env.EXTRA] : []), "--notes", join(dist, "notes.md"), "--version", "1.3.0", "--yes"], { encoding: "utf8", env: { ...process.env, ...env } });
 };
 
 test("release-stores.sh on a follow-up release sets What's New per locale, then submits, as before", () => {
@@ -648,8 +652,8 @@ test("first-release-check.sh marks what the stores lack ✗ and exits 1", () => 
     AGE: JSON.stringify({ data: { id: "age-1", attributes: { violenceRealistic: null, gambling: null, kidsAgeBand: null } } }),
     PRICE: JSON.stringify({ data: { id: "1" }, included: [] }),
     VERSIONS_IOS: frc.versions(["1.0", "PREPARE_FOR_SUBMISSION"]),
-    PURCHASES: JSON.stringify({ data: [{ id: "iap-1", attributes: { productId: "org.example.demo.pro", state: "READY_TO_SUBMIT" } }] }),
-    SUBSCRIPTIONS: JSON.stringify({ data: [{ id: "g1" }], included: [{ type: "subscriptions", id: "s1", attributes: { productId: "org.example.demo.monthly", state: "READY_TO_SUBMIT" } }] }),
+    PURCHASES: JSON.stringify({ data: [{ id: "iap-1", attributes: { productId: "org.example.demo.pro", state: "MISSING_METADATA" } }] }),
+    SUBSCRIPTIONS: JSON.stringify({ data: [{ id: "g1" }], included: [{ type: "subscriptions", id: "s1", attributes: { productId: "org.example.demo.monthly", state: "MISSING_METADATA" } }] }),
     DETAILS: JSON.stringify({ defaultLanguage: "", contactEmail: "", contactWebsite: "" }),
     LISTINGS: JSON.stringify({ listings: [{ language: "en-US" }] }),
   });
@@ -660,8 +664,8 @@ test("first-release-check.sh marks what the stores lack ✗ and exits 1", () => 
     /^apple ✗ age rating: 2 questions unanswered: gambling, violenceRealistic/m,
     /^apple ✗ price: none/m,
     /^ios ✗ version: the editable version is 1\.0, the build is 1\.0\.0; .*ASC29/m,
-    /^apple ✗ in-app purchases: org\.example\.demo\.pro waits for a first review/m,
-    /^apple ✗ subscriptions: org\.example\.demo\.monthly waits for a first review/m,
+    /^apple ✗ in-app purchases: org\.example\.demo\.pro is incomplete \(MISSING_METADATA\)/m,
+    /^apple ✗ subscriptions: org\.example\.demo\.monthly is incomplete \(MISSING_METADATA\)/m,
     /^apple ✗ EULA link: no store\/apple\/en-US\.json/m,
     /^android ✗ defaultLanguage: not set/m,
     /^android ✗ contact: /m,
@@ -699,4 +703,97 @@ test("first-release-check.sh exits 3 when a store cannot be read, and 2 without 
   const help = spawnSync("bash", [join(frc.dist, "first-release-check.sh"), "--help"], { encoding: "utf8" });
   assert.equal(help.status, 0);
   assert.match(help.stderr, /first-release-check\.sh \[--apple\] \[--play\] \[--version X\.Y\.Z\]/);
+});
+
+// --- fix round 1: products waiting for their first review are a hand-over (ASC24), a removed
+// app is not a first release, the other editable version stops before the question, and
+// defaultLanguage is chosen, never derived (GP2).
+
+test("first-release-check.sh hands products waiting for their first review over as ?, naming Add for Review (ASC24)", () => {
+  const r = firstReleaseCheck().run({
+    PURCHASES: JSON.stringify({ data: [{ id: "iap-1", attributes: { productId: "org.example.demo.pro", state: "READY_TO_SUBMIT" } }] }),
+    SUBSCRIPTIONS: JSON.stringify({ data: [{ id: "g1" }], included: [{ type: "subscriptions", id: "s1", attributes: { productId: "org.example.demo.monthly", state: "READY_TO_SUBMIT" } }] }),
+  });
+  assert.match(r.stdout, /^apple \? in-app purchases: org\.example\.demo\.pro waits for a first review: .*--no-submit.*Add for Review.*\(ASC24\)/m);
+  assert.match(r.stdout, /^apple \? subscriptions: org\.example\.demo\.monthly waits for a first review: .*--no-submit.*Add for Review/m);
+});
+
+test("first-release-check.sh accepts a localized Terms of Use link, and still marks a description without one ✗", () => {
+  const frc = firstReleaseCheck();
+  writeFileSync(join(frc.dist, "store/apple/en-US.json"), JSON.stringify({ description: "EULA: https://example.org/eula" }));
+  writeFileSync(join(frc.dist, "store/apple/de-DE.json"), JSON.stringify({ description: "Nutzungsbedingungen: https://example.org/de/agb" }));
+  const sold = { SUBSCRIPTIONS: JSON.stringify({ data: [{ id: "g1" }], included: [{ type: "subscriptions", id: "s1", attributes: { productId: "m", state: "APPROVED" } }] }) };
+  let r = frc.run(sold);
+  assert.match(r.stdout, /^apple ✓ EULA link: en-US de-DE$/m);
+  writeFileSync(join(frc.dist, "store/apple/de-DE.json"), JSON.stringify({ description: "Nutzungsbedingungen gelten." }));
+  r = frc.run(sold);
+  assert.match(r.stdout, /^apple ✗ EULA link: none in the de-DE description/m);
+});
+
+test("an app removed from sale is not a first release: asc_version_on_sale, release-check.sh and first-release-check.sh agree on the shipped states", () => {
+  const removed = JSON.stringify({ data: [{ id: "v1", attributes: { platform: "IOS", versionString: "1.2.0", appVersionState: "DEVELOPER_REMOVED_FROM_SALE" } }, { id: "v2", attributes: { platform: "IOS", versionString: "1.1.0", appStoreState: "REPLACED_WITH_NEW_VERSION" } }] });
+  let r = sh(`${asc} asc_get() { printf '%s' '${removed}'; }; ASC_APP_ID=1 asc_version_on_sale IOS`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "1.2.0\n");
+
+  const rc = releaseCheck();
+  r = rc.run({ VERSIONS: removed, BUILDS_IOS: rc.build("1.2.0", "41"), BUILDS_MAC_OS: rc.build("1.2.0", "41") });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ios: tested 1\.2\.0 \(41\), on sale 1\.2\.0 — not newer$/m);
+
+  const frc = firstReleaseCheck();
+  r = frc.run({ VERSIONS_IOS: removed });
+  assert.match(r.stdout, /^ios ✓ on sale: 1\.2\.0/m);
+
+  // one vocabulary: every script that inlines the states names exactly asc.sh's
+  const states = /^ASC_SHIPPED_STATES="([^"]+)"/m.exec(readFileSync(lib("asc.sh"), "utf8"))[1].split(" ").sort();
+  for (const f of ["release-check.sh", "first-release-check.sh"]) {
+    const text = readFileSync(join(root, "stacks/kmp/distribution", f), "utf8");
+    const inline = /shipped = \{([^}]+)\}/.exec(text)?.[1].match(/[A-Z_]+/g).sort();
+    assert.deepEqual(inline, states, f);
+  }
+});
+
+test("release-stores.sh --no-submit attaches the build and sets What's New where allowed, but creates no review submission; Play is unaffected", () => {
+  let r = releaseStores()({ ON_SALE: "1.2.0", EXTRA: "--no-submit" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /ATTACH version-1 build-1/);
+  assert.match(r.stderr, /WHATSNEW version-1 en-US/);
+  assert.doesNotMatch(r.stderr, /SUBMIT/);
+  assert.match(r.stderr, /not submitted.*Add for Review/);
+  r = releaseStores()({ ON_SALE: "", EXTRA: "--no-submit" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stderr, /WHATSNEW|SUBMIT/);
+
+  const play = releaseStores("kmp", { lanes: "android", args: ["--play"] });
+  r = play({ EXTRA: "--no-submit" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /PROMOTE internal production/);
+  assert.match(r.stderr, /VERIFY production 41/);
+});
+
+test("push-store-metadata.sh stops, even on --dry-run, when an editable Apple version with another number exists (ASC29)", () => {
+  const fn = ensureAppleVersionFn();
+  for (const dry of ["", "--dry-run"]) {
+    const r = spawnSync("bash", ["-c", `
+      set -euo pipefail; CONFIG_FILE=/dev/null
+      . '${lib("common.sh")}'
+      asc_version_exists() { return 1; }
+      asc_version_editable() { if [ -z "\${2:-}" ]; then echo other-id; else echo "CREATE $1 $2" >&2; echo fake-id; fi; }
+      ${fn}
+      ensure_apple_version IOS
+    `], { encoding: "utf8", env: { ...process.env, version: "1.0.0", dry, ASSUME_YES: "1" } });
+    assert.notEqual(r.status, 0, `${dry}: ${r.stderr}`);
+    assert.match(r.stderr, /another editable IOS version.*ASC29/);
+    assert.doesNotMatch(r.stderr, /CREATE/);
+  }
+});
+
+test("play_listing.py's template leaves defaultLanguage empty: it is chosen, never derived (GP2)", () => {
+  const dir = tmp("play-template-");
+  const r = spawnSync("python3", [lib("play_listing.py"), "--dry-run"], { encoding: "utf8", env: { ...process.env, PLAY_PACKAGE_NAME: "p", STORE_DIR: dir, LOCALES: "de-DE en-US" } });
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  const listing = JSON.parse(readFileSync(join(dir, "play/listing.json"), "utf8"));
+  assert.equal(listing.defaultLanguage, "");
+  assert.deepEqual(Object.keys(listing.listings), ["de-DE", "en-US"]);
 });

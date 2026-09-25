@@ -44,10 +44,16 @@ export APP_NAME STORE_DIR LOCALES
 # bash 3.2 treats an empty array as unbound under set -u, hence the ${arr[@]+…} idiom below
 loc_arg=(); [ -n "$locale" ] && loc_arg=(--locale "$locale")
 # ensure_apple_version PLATFORM — makes sure an editable version $version exists on
-# PLATFORM, creating it (confirmed, unless --yes) when none does yet.
+# PLATFORM, creating it (confirmed, unless --yes) when none does yet. App Store Connect
+# keeps one editable version per platform, and creates "1.0" with a new app record: with
+# another number already editable, creating $version would fail after the confirmation,
+# so it stops first, on --dry-run too (ASC29).
 ensure_apple_version() {
   local platform="$1"
   asc_version_exists "$platform" "$version" && return 0
+  if asc_version_editable "$platform" >/dev/null 2>&1; then
+    die "another editable $platform version, with a different number, already exists; $version cannot be created beside it — change that version's number to $version on its page in App Store Connect (ASC29). Nothing was changed."
+  fi
   if [ -n "$dry" ]; then
     log "dry run: would create the editable $platform version $version"
     return 0

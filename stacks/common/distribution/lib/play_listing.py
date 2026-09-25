@@ -234,7 +234,10 @@ class Api:
 
 def write_template(path: pathlib.Path, locales: list) -> None:
     template = {
-        "defaultLanguage": locales[0],
+        # Chosen, never derived: the first locale of LOCALES is an order, not a decision,
+        # and it becomes what every country without its own listing sees (GP2). Empty
+        # fails the validation until someone sets it.
+        "defaultLanguage": "",
         "contactEmail": "",
         "contactWebsite": "",
         "listings": {
