@@ -352,6 +352,58 @@ test("release-check.sh compares versions numerically; nothing on sale is older t
   assert.ok(!newer("", "1.0.0"));
 });
 
+// release-check.sh against stubbed store reads: lib/asc.sh and lib/play.sh are replaced by
+// functions that answer from environment variables, so nothing calls a real API.
+const releaseCheck = () => {
+  const dir = tmp("release-check-stub-");
+  mkdirSync(join(dir, "distribution"));
+  execFileSync("cp", ["-R", join(root, "stacks/common/distribution/lib"), join(dir, "distribution/lib")]);
+  execFileSync("cp", [join(root, "stacks/kmp/distribution/release-check.sh"), join(dir, "distribution/")]);
+  writeFileSync(join(dir, "distribution/config.sh"), 'LANES="ios mac android"\nASC_APP_ID=1\nASC_KEY_ID=k\nASC_ISSUER_ID=i\nPLAY_PACKAGE_NAME=p\n');
+  writeFileSync(join(dir, "distribution/lib/asc.sh"), `asc_get() {
+  [ "\${ASC_FAIL:-}" = "$1" ] && { echo "HTTP 500 from App Store Connect" >&2; return 1; }
+  case "$1" in
+    /builds) case "$2" in *MAC_OS*) printf '%s' "$BUILDS_MAC_OS" ;; *) printf '%s' "$BUILDS_IOS" ;; esac ;;
+    *) printf '%s' "$VERSIONS" ;;
+  esac
+}
+`);
+  writeFileSync(join(dir, "distribution/lib/play.sh"), `play_track_versions() {
+  [ "\${PLAY_FAIL:-}" = 1 ] && { echo "could not read the '$1' track" >&2; exit 1; }
+  case "$1" in internal) echo "\${INTERNAL:-}" ;; production) echo "\${PRODUCTION:-}" ;; esac
+}
+`);
+  const build = (version, number) => JSON.stringify({ data: [{ attributes: { version: number }, relationships: { preReleaseVersion: { data: { id: "p" } } } }], included: [{ id: "p", type: "preReleaseVersions", attributes: { version } }] });
+  const env = { BUILDS_IOS: build("1.3.0", "41"), BUILDS_MAC_OS: build("1.3.0", "41"), VERSIONS: JSON.stringify({ data: [{ attributes: { versionString: "1.2.0", appStoreState: "READY_FOR_SALE" } }] }), INTERNAL: "41", PRODUCTION: "40" };
+  return { build, run: (over = {}) => spawnSync("bash", [join(dir, "distribution/release-check.sh")], { encoding: "utf8", env: { ...process.env, ...env, ...over } }) };
+};
+
+test("release-check.sh exits 0 with the version to release when every lane is ahead", () => {
+  const r = releaseCheck().run();
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^ios: tested 1\.3\.0 \(41\), on sale 1\.2\.0 — newer$/m);
+  assert.match(r.stdout, /^android: internal versionCode 41, production 40 — newer$/m);
+  assert.match(r.stdout, /^release 1\.3\.0$/m);
+});
+
+test("release-check.sh exits 3 when a store cannot be read, never 1 (which means a new build is needed)", () => {
+  const rc = releaseCheck();
+  for (const over of [{ ASC_FAIL: "/builds" }, { ASC_FAIL: "/apps/1/appStoreVersions" }, { PLAY_FAIL: "1" }]) {
+    const r = rc.run(over);
+    assert.equal(r.status, 3, `${JSON.stringify(over)}: ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /could not read/);
+    assert.doesNotMatch(r.stdout + r.stderr, /new build is needed/);
+  }
+});
+
+test("release-check.sh names the first platform's version when Apple platforms test different ones", () => {
+  const rc = releaseCheck();
+  const r = rc.run({ BUILDS_MAC_OS: rc.build("1.4.0", "42") });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stdout, /^mac: tests 1\.4\.0, but another Apple platform tests 1\.3\.0/m);
+  assert.match(r.stdout, /^release 1\.3\.0$/m);
+});
+
 const SCREENSHOT_SECTIONS = ["1. Where the renderer lives", "2. Devices and sizes", "3. Seed", "4. Run", "5. Output"];
 
 test("every stack that releases to a store documents its screenshot renderer in screenshots.md", () => {
@@ -395,11 +447,11 @@ test("asc_version_exists is true only for an editable version whose versionStrin
   assert.notEqual(r.status, 0);
 });
 
-const ensureApplyVersionFn = () =>
+const ensureAppleVersionFn = () =>
   spawnSync("bash", ["-c", `sed -n '/^ensure_apple_version() {/,/^}/p' '${join(root, "stacks/apple-swift/distribution/push-store-metadata.sh")}'`], { encoding: "utf8" }).stdout;
 
 test("push-store-metadata.sh's ensure_apple_version creates the missing App Store version only after confirming (or --yes), never touches one that already exists, and writes nothing on --dry-run", () => {
-  const fn = ensureApplyVersionFn();
+  const fn = ensureAppleVersionFn();
   assert.match(fn, /confirm_typed create/, "ensure_apple_version must confirm before creating (an outward action)");
 
   const run = (env, input) => spawnSync("bash", ["-c", `

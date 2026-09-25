@@ -6,9 +6,12 @@
 #          and build number) against the version on sale; every platform must carry the
 #          same tested version, since one release ships one version.
 #   play   the highest versionCode on the internal track against the highest on production.
-# Prints one line per lane, then `release X.Y.Z` when an Apple lane named the version.
+# Prints one line per lane, then `release X.Y.Z` when an Apple lane named the version (the
+# first Apple platform's, when they differ).
 # Exit 0: every lane is ahead of the store. Exit 1: a lane is not; a new build is needed
-# first and there is nothing to release. Exit 2: the project ships no store lane.
+# first and there is nothing to release. Exit 2: the project ships no store lane. Exit 3: a
+# store could not be read (network, credentials, an API error); that says nothing about
+# the build, so it is never reported as exit 1.
 # A build attaches only to the App Store version whose versionString equals the build's
 # marketing version, so a release ships the tested build's number; it never renames it.
 set -euo pipefail
@@ -50,7 +53,8 @@ if [ "$apple" = 1 ]; then
     case "$platform" in IOS) has_lane ios || continue; lane=ios ;; MAC_OS) has_lane mac || continue; lane=mac ;; esac
     # The build's attributes.version is its build number; the marketing version lives on
     # the related preReleaseVersion, so it is included and read from there.
-    builds="$(asc_get /builds "filter[app]=$ASC_APP_ID&filter[processingState]=VALID&filter[preReleaseVersion.platform]=$platform&sort=-uploadedDate&limit=1&include=preReleaseVersion")"
+    builds="$(asc_get /builds "filter[app]=$ASC_APP_ID&filter[processingState]=VALID&filter[preReleaseVersion.platform]=$platform&sort=-uploadedDate&limit=1&include=preReleaseVersion")" \
+      || die "could not read the $lane builds from App Store Connect" 3
     read -r tested build <<<"$(printf '%s' "$builds" | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
@@ -63,7 +67,8 @@ v = pre.get(rel.get("id"), {}).get("attributes", {}).get("version", "")
 parts = (v.split(".") + ["0", "0"])[:3] if v else []
 print((".".join(parts) if parts else "-"), b["attributes"].get("version") or "-")
 ')"
-    versions="$(asc_get "/apps/$ASC_APP_ID/appStoreVersions" "filter[platform]=$platform&limit=50")"
+    versions="$(asc_get "/apps/$ASC_APP_ID/appStoreVersions" "filter[platform]=$platform&limit=50")" \
+      || die "could not read the $lane App Store versions from App Store Connect" 3
     # Older responses call the state appStoreState, newer ones appVersionState.
     live="$(printf '%s' "$versions" | python3 -c '
 import json, sys
@@ -90,15 +95,15 @@ print(".".join(map(str, max(found))) if found else "")
     if [ -n "$release" ] && [ "$release" != "$tested" ]; then
       printf '%s: tests %s, but another Apple platform tests %s — one release ships one version\n' "$lane" "$tested" "$release"; ahead=0
     fi
-    release="$tested"
+    [ -n "$release" ] || release="$tested"
   done
 fi
 
 if [ "$play" = 1 ]; then
   . "$HERE/lib/play.sh"
   require_var PLAY_PACKAGE_NAME
-  internal="$(play_track_versions internal | head -1)"
-  production="$(play_track_versions production | head -1)"
+  internal="$(play_track_versions internal | head -1)" || die "could not read the internal track from Google Play" 3
+  production="$(play_track_versions production | head -1)" || die "could not read the production track from Google Play" 3
   if [ -z "$internal" ]; then
     printf 'android: nothing on the internal track — not newer\n'; ahead=0
   elif [ -n "$production" ] && [ "$internal" -le "$production" ]; then
