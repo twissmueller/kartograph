@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 export const TYPE = "Mapping";
 export const FILENAME = /^(\d{4}-\d{2}-\d{2})-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.mapping\.md$/;
 export const INTENT = /^(\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*)\.intent\.md$/;
-export const DOC_NAME = /^\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.(?:conversation|intent|mapping)\.md$/;
+export const DOC_NAME = /^\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.(?:conversation|intent|mapping|revision)\.md$/;
 export const FRONTMATTER_KEYS = ["type", "title", "description", "status", "date", "sources", "related"];
 export const STATUSES = ["mapped"];
 export const SECTIONS = ["Done", "Partly done", "New", "Contradicts", "Researched"];

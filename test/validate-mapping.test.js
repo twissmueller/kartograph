@@ -96,3 +96,7 @@ test("every intended outcome is mapped exactly once, and nothing else is", () =>
   assert.ok(has(errs(twice), /mapped twice/));
   assert.ok(has(errs(swap("**Overdue tasks are highlighted**", "**Something invented**")), /'Something invented' is not an intended outcome/));
 });
+
+test("related may name a revision", () => {
+  assert.deepEqual(errs(swap("related: []", "related: [2026-09-25-1000-archive-undo.revision.md]")), []);
+});

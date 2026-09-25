@@ -101,3 +101,7 @@ test("an AI block holds only lookups, one reasoning line, one question and optio
 test("template placeholders are rejected outside code spans", () => {
   assert.ok(has(errs(swap("I want to export my sessions as CSV.", "<what the person said>")), /template placeholder/));
 });
+
+test("related may name a revision", () => {
+  assert.deepEqual(errs(swap("related: []", "related: [2026-09-25-1000-archive-undo.revision.md]")), []);
+});

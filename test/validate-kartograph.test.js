@@ -49,3 +49,11 @@ test("log.md is dated newest first and sources resolve", (t) => {
   assert.ok(has(validateKartograph(bundle(t, { files: { "log.md": "# Kartograph Log\n\n## 2026-09-20\n\n## 2026-09-24\n" } })).errors, /newest first/));
   assert.ok(has(validateKartograph(bundle(t, { files: { [C]: null } , idx: [LINES[0]] })).errors, new RegExp(`sources names '${C}', which does not exist`)));
 });
+
+test("a revision is a typed document of the bundle", (t) => {
+  const R = "2026-09-25-1000-archive-undo.revision.md";
+  const line = `* [Archive undo](${R}) - x. _(Revision, recorded)_`;
+  assert.deepEqual(validateKartograph(bundle(t, { files: { [R]: doc("Revision", `[${I}]`) }, idx: [line, ...LINES] })).errors, []);
+  assert.ok(has(validateKartograph(bundle(t, { files: { [R]: doc("Intent", `[${I}]`) }, idx: [line, ...LINES] })).errors, /type must be Revision for a \.revision\.md file/));
+  assert.ok(has(validateKartograph(bundle(t, { files: { [R]: doc("Revision", "[2026-01-01-0000-gone.intent.md]") }, idx: [line, ...LINES] })).errors, /sources names '2026-01-01-0000-gone\.intent\.md', which does not exist/));
+});

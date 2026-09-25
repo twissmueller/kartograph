@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 export const TYPE = "Intent";
 export const FILENAME = /^(\d{4}-\d{2}-\d{2})-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.intent\.md$/;
-export const DOC_NAME = /^\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.(?:conversation|intent|mapping)\.md$/;
+export const DOC_NAME = /^\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.(?:conversation|intent|mapping|revision)\.md$/;
 export const CONVERSATION = /^(\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*)\.conversation\.md$/;
 export const LEGACY = "legacy-no-conversation";
 export const MAX_SLUG_WORDS = 5;

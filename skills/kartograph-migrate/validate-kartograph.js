@@ -13,8 +13,8 @@ import { readFileSync, readdirSync, existsSync, statSync, realpathSync } from "n
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const DOC = /^(\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*)\.(conversation|intent|mapping)\.md$/;
-export const TYPES = { conversation: "Conversation", intent: "Intent", mapping: "Mapping" };
+export const DOC = /^(\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*)\.(conversation|intent|mapping|revision)\.md$/;
+export const TYPES = { conversation: "Conversation", intent: "Intent", mapping: "Mapping", revision: "Revision" };
 export const OKF_VERSION = "0.2";
 const VERSION = /^\d+\.\d+\.\d+$/;
 const INDEX_LINE = /^\* \[([^\]]+)\]\(([^)\s]+)\) - \S.* _\((\w+), [a-z]+\)_$/;
@@ -37,7 +37,7 @@ export function validateKartograph(dir) {
     if (statSync(p).isDirectory()) { errors.push(`${e}/: kartograph/ is flat; no subdirectories`); continue; }
     if (e === "index.md" || e === "log.md") continue;
     const m = DOC.exec(e);
-    if (!m) { errors.push(`${e}: only index.md, log.md and YYYY-MM-DD-HHMM-slug.(conversation|intent|mapping).md belong in kartograph/`); continue; }
+    if (!m) { errors.push(`${e}: only index.md, log.md and YYYY-MM-DD-HHMM-slug.(conversation|intent|mapping|revision).md belong in kartograph/`); continue; }
     const fm = frontmatterOf(readFileSync(p, "utf8"))?.fm ?? {};
     if (fm.type !== TYPES[m[2]]) errors.push(`${e}: type must be ${TYPES[m[2]]} for a .${m[2]}.md file, got '${fm.type ?? "none"}'`);
     docs.push({ file: e, kind: m[2], fm });

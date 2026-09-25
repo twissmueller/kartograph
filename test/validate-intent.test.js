@@ -120,3 +120,7 @@ test("sections, H1, lists and placeholders keep the old rules", () => {
   assert.ok(has(errs(swap("- Tasks for the day are already on the device before the connection drops", "Prose instead.")), /## Assumptions must be a bullet list/));
   assert.ok(has(errs(swap("- **Watering task**: one plant bed to water on one day", "- <term>")), /template placeholder/));
 });
+
+test("related may name a revision", () => {
+  assert.deepEqual(errs(swap("related: []", "related: [2026-09-25-1000-archive-undo.revision.md]")), []);
+});
