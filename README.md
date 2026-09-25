@@ -6,7 +6,7 @@
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/twissmueller)
 
 Kartograph is a plugin for [Claude Code](https://code.claude.com),
-[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with twelve
+[Codex](https://developers.openai.com/codex) and [OpenCode](https://opencode.ai) with fourteen
 skills that build on each other through plain files in your repository:
 
 | skill | reads | writes |
@@ -21,7 +21,9 @@ skills that build on each other through plain files in your repository:
 | **`kartograph-domain`** | ring 2 of the plan | use case implementations, rules, ports, one test per scenario |
 | **`kartograph-adapters`** | ring 3 of the plan | repositories, database, API client, platform capabilities, server |
 | **`kartograph-walk`** | any ring's result, and you watching | `walks/<date>-<capability>.md`, your verdicts |
+| **`kartograph-revise`** | what you want changed, after a walk or anytime | `kartograph/<date>-<slug>.revision.md`, then the features, the concepts, a superseding plan and the rings already built, one commit each |
 | **`kartograph-deliver`** | the built app, the stack's delivery scripts | `distribution/` on first use; then a device, TestFlight, Play, the stores or a host |
+| **`kartograph-release`** | the tested build on TestFlight and Play internal, what changed since the last release | release notes, store texts and screenshots under `distribution/`; the build in App Store review and on Play production; the tag |
 | **`kartograph-migrate`** | the project and `migrations/` | the project moved onto the plugin's current layout, one commit |
 
 Each run starts from a fresh context. What one skill knows, it knows from the files the
@@ -282,6 +284,20 @@ The walk ends in `walks/<date>-<capability>.md`: driver, surface, one section pe
 with the verdict and your words on a failure, a summary, and one line saying what that
 surface proves. Committed as `walk: <capability>`, pushed. Feature files stay untouched.
 
+## `kartograph-revise` — change it, and everything follows
+
+Building the screens first is meant to make you say "change this and that". Say it, after
+a walk or anytime, and this skill carries it through everything in one run, one commit per
+step. It records your words verbatim in `kartograph/<date>-<slug>.revision.md`, with what
+they affect and each change (changed, added, removed) citing the words it comes from; it
+asks only when the words can honestly be read two ways. Then it changes exactly the
+affected scenarios, each marked `# Changed by` the revision; updates the concepts whose
+meaning moved; writes a new plan that supersedes the old one, keeping the ticks of work the
+revision does not touch and unticking or adding what it does; and builds the change in the
+rings already built, by the ring skills' own rules, without ever reloading the app you are
+looking at. The report says what changed where, what is still open, and whether a walk is
+worth it.
+
 ## `kartograph-deliver` — from the build to a person's hands
 
 Names the action: run it here, put it on my iPad, TestFlight, Play internal, the store
@@ -300,6 +316,7 @@ typed word when run by hand.
 | `deploy-testflight.sh` | archive, export, upload, internal group; the Mac lane validates a `.pkg` first |
 | `deploy-play-internal.sh` | signed bundle to the internal track in one edit, read back and verified |
 | `push-store-metadata.sh` | listing texts and screenshots from `distribution/store/`, templates created when missing |
+| `release-check.sh` | reads only: is the tested build on TestFlight and Play internal newer than what the stores sell? |
 | `release-stores.sh --notes …` | Play internal promoted to production; the tested build attached, What's New set, submitted for review |
 | `deploy.sh` | backend to Fly, frontend to Vercel, each with a live health check (angular-kotlin) |
 
@@ -309,6 +326,22 @@ subscription check), one Play library (service-account token, one-edit uploads, 
 staged rollout, read-back verification), Xcode, Gradle and Kotlin Toolchain helpers, and stdlib-only Python for
 the listings and screenshot uploads. The contract every script keeps is in
 `stacks/common/DISTRIBUTION.md`; a stack's own scripts live in `stacks/<stack>/distribution/`.
+
+## `kartograph-release` — from TestFlight into the stores
+
+For the build you tested on TestFlight and Play internal. It checks that this build is
+newer than what the stores sell, and stops if not: it never bumps, builds or uploads a
+binary. It reads what changed since the last release tag (the commits, and the intents,
+revisions and features added since), writes the release notes in
+`distribution/release-notes/v<version>.md` with a slice for each store, positive and
+factual and never naming another platform, and adds the new features to each locale's
+description and promotional text without rewording the rest. It renders new screenshots of
+the screens that changed, from the real UI with data reaching today, never from the running
+app; a project without a renderer gets one, built once from the stack's `screenshots.md`,
+and Play reuses the Apple images. Then it commits, shows you the notes, the text changes
+and the screenshots in one summary, and asks once. After your yes it pushes the listings
+and screenshots, submits the App Store version for review and promotes Play internal to
+production, tags the release, and says what is left for the web UI.
 
 ## `kartograph-migrate` — after every update
 
@@ -394,10 +427,14 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
   file, map the mapping file, knowledge the `knowledge/` bundle, features the `features/`
   directory, plan the plan and the stack declaration, screens the feature module and its
   wiring, domain the module and `core/`, adapters the module's data layer, `core/` and
-  `server/`, walk one record under `walks/`, migrate the project's `kartograph/` layout.
+  `server/`, walk one record under `walks/`, migrate the project's `kartograph/` layout,
+  release the notes, the store texts, the screenshots and their renderer. Revise is the one
+  deliberate exception: it carries one change through the revision, the features, the
+  knowledge, the plan and the rings already built.
 - Each commits only what it wrote (`conversation:`, `intent:`, `mapping:`, `knowledge:`,
-  `features:`, `plan:`, `screens:`, `domain:`, `adapters:`, `walk:`) and pushes to the
-  branch's upstream. Without git or a remote it says so and moves on.
+  `features:`, `plan:`, `screens:`, `domain:`, `adapters:`, `walk:`, `revision:`,
+  `release:`) and pushes to the branch's upstream. Without git or a remote it says so and
+  moves on.
 - None invents. What was not said is an assumption, an open question, a stub, or
   friction; never a guessed rule, a guessed outcome, or a placeholder in a plan.
 - None writes a `verified` stamp or claims a feature is approved, implemented or tested.
@@ -406,7 +443,8 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
   a fake in production, and never touch the plan's content.
 - All drive. Converse ends every message with the next question or the written file;
   intent, map, knowledge, features, plan, screens, domain and adapters ask nothing at all;
-  walk asks once per scenario.
+  walk asks once per scenario; revise asks only when your words are ambiguous; release asks
+  once, before anything leaves the machine.
 - Every file has a fixed structure, and each skill ships a validator it runs before
   committing:
 
@@ -419,6 +457,7 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
   node skills/kartograph-features/validate-features.js features
   node skills/kartograph-plan/validate-plan.js plans/<file>.md
   node skills/kartograph-walk/validate-walk.js walks/<file>.md
+  node skills/kartograph-revise/validate-revision.js kartograph/<file>.revision.md
   ```
 
   They need only Node, no dependencies. `npm test` runs the suite behind them.

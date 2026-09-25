@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-Kartograph is a plugin with **twelve skills**, a structure validator for each of the eight
+Kartograph is a plugin with **fourteen skills**, a structure validator for each of the nine
 that write a fixed-shape file, a directory of **technology stacks** (three design documents
 and the delivery scripts per stack), and no build step.
 Each skill starts from a fresh context and knows only what the files in the target
@@ -35,11 +35,19 @@ project tell it:
 - `kartograph-walk` takes one named capability, feature or scenario, drives the running
   app in front of the person scenario by scenario after any ring, asks once per scenario,
   and records the verdicts in `walks/<YYYY-MM-DD-HHMM>-<capability>.md`.
+- `kartograph-revise` takes what the person wants changed after seeing it, records their
+  words as `kartograph/<YYYY-MM-DD-HHMM>-<slug>.revision.md`, and in the same run changes
+  the affected scenarios, the concepts, writes a plan superseding the capability's plan
+  (ticks kept for untouched work), and builds the change in the rings already built.
 - `kartograph-deliver` takes a named action (run locally, on a device, TestFlight, Play
   internal, store listings, prepare a release, release, deploy), copies the stack's
   delivery scripts into the project's `distribution/` on first use and fills
   `distribution/config.sh`, then runs the matching script; outward actions are confirmed
   by the person once.
+- `kartograph-release` ships the build tested on TestFlight and Play internal: checks it is
+  newer than the store, writes the release notes, adds the new features to the store texts,
+  renders the changed screens' screenshots (building the renderer once from the stack's
+  `screenshots.md`), commits, asks once, then pushes the listings, releases and tags.
 - `kartograph-migrate` brings a project's Kartograph files onto this plugin's layout, in
   one step and one commit, whatever version the project comes from.
 
@@ -55,6 +63,7 @@ skills/kartograph-features/capability-template.md skeleton of capability.md
 skills/kartograph-features/example.md         worked example (fictional) for features
 skills/kartograph-plan/plan-template.md       skeleton of one three-ring plan
 skills/kartograph-walk/walk-template.md       skeleton of one walk record
+skills/kartograph-revise/revision-template.md skeleton of one revision
 skills/<name>/validate-*.js                 the skill's structure validator (see below)
 migrations/<version>.md   what each layout change requires; the highest is the layout version
 scripts/migrate-*.js   the mechanical part of the migrations
@@ -62,6 +71,7 @@ stacks/<stack>/STACK.md                     identity, status (ready | scaffold),
 stacks/<stack>/design-system.md             tokens, theme, components, layout
 stacks/<stack>/code-design.md               the three rings in that stack, layout, state, naming, DI, nav
 stacks/<stack>/build-design.md              ports and adapters in detail, tests, definition of done
+stacks/<stack>/screenshots.md               how kartograph-release builds the store-screenshot renderer
 stacks/<stack>/distribution/                the stack's delivery entry scripts and config.sh.template
 stacks/common/distribution/lib/             the shared delivery libraries (bash + stdlib python)
 stacks/common/DISTRIBUTION.md               the delivery contract: layout, config keys, library API
@@ -89,7 +99,9 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   "the `stacks/` directory at the plugin root, two levels above this file's directory".
 - **Each skill writes only its own output** and commits only that. None names or starts
   a phase beyond itself; the next phase is a separate skill that *reads* the previous
-  one's files.
+  one's files. The one deliberate exception is `kartograph-revise`: a change the person
+  asks for after seeing the product must reach the revision, `features/`, `knowledge/`,
+  the plan and the built rings in one run, one commit per step, or plan and code drift.
 - **The AI drives.** Converse ends every message with the next question or the written
   file and never waits to be asked what comes next. Intent, map, knowledge, features, plan,
   screens, domain and adapters are fully automated: no question, no review, no
@@ -97,7 +109,10 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   an open question, a stub, or friction in the written file. Walk is interactive by design,
   but asks exactly once per scenario, never after trivial steps. Plan and walk need an
   argument; the three ring skills fall back to the newest planned plan. Intent and map
-  fall back to the newest conversation or intent without a successor.
+  fall back to the newest conversation or intent without a successor. Revise asks only
+  when the person's words can be read two ways, one question per message, recorded as a
+  block. Release asks exactly once, after it has written and committed everything, before
+  anything leaves the machine.
 - **Frontmatter is the contract.** `name` is the slash name and the Codex skill folder.
   `description` states *when* to use the skill, never *how* it works — a description that
   summarises the process makes agents skip the body.
@@ -108,11 +123,15 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 
 ## Stacks
 
-- **Only plan reads `stacks/`.** It detects the stack from the build files against each
-  `STACK.md`'s *Detection* rules, stops on none, more than one, or `status: scaffold`,
-  then copies the three documents into the project's `docs/code-design/` and writes
-  `stack.md` there. Screens, domain and adapters read the project's copies only, so they
-  stay self-contained and the user's edits to the copies steer every later run.
+- **Only plan reads a stack's design documents.** It detects the stack from the build
+  files against each `STACK.md`'s *Detection* rules, stops on none, more than one, or
+  `status: scaffold`, then copies the three documents into the project's
+  `docs/code-design/` and writes `stack.md` there. Screens, domain and adapters read the
+  project's copies only, so they stay self-contained and the user's edits to the copies
+  steer every later run. Deliver copies a stack's `distribution/`; release reads its
+  `screenshots.md` once, to build a project's renderer, and copies `release-check.sh` into
+  a project whose `distribution/` predates it. A store stack's `screenshots.md` has the
+  five sections of `stacks/kmp/screenshots.md`; a scaffold's are `UNFILLED`.
 - **Adding a stack** is adding `stacks/<name>/` with `STACK.md` (frontmatter `name`,
   `title`, `status`, `version`, `targets`, `docs`; a *Detection* section; a table of what
   each document must cover) and the three documents with the same section headings as
@@ -178,6 +197,9 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 - **Bash 3.2, stdlib Python, curl, openssl.** No PyJWT, no fastlane, no Ruby, no gcloud.
   Identifiers (team, key ids, package names, hosts) come only from `config.sh`; the test
   rejects any literal from the source projects.
+- **`release-check.sh` only reads**, and uses nothing but `asc_get` and
+  `play_track_versions`, so it works when copied alone into a project whose library is
+  older. Release ships the tested build; nothing bumps or rebuilds on the way to the stores.
 - **Outward actions confirm.** Upload, promote, submit and deploy call `confirm_typed`;
   `--yes` skips it and the skill passes it only after the person agreed in chat. A step that
   fails deletes the edit or reservation it opened and says "nothing was published".
@@ -202,6 +224,7 @@ node skills/kartograph-knowledge/validate-knowledge.js knowledge        # or one
 node skills/kartograph-features/validate-features.js features           # or one capability dir
 node skills/kartograph-plan/validate-plan.js plans/<file>.md            # or no arg: all of ./plans
 node skills/kartograph-walk/validate-walk.js walks/<file>.md            # or no arg: all of ./walks
+node skills/kartograph-revise/validate-revision.js kartograph/<file>.revision.md  # or no arg: all of ./kartograph
 npm test                                                                # the suite behind them
 ```
 
@@ -213,7 +236,8 @@ Rules for editing them:
   with `sources`/`related` as one-line `[a, b]` lists.
 - **Pure function + thin CLI.** `validateConversation`, `validateIntent`, `validateMapping`,
   `validateKartograph`, `validateConcept`/`validateBundle`,
-  `validateCapability`/`validateFeature`/`validateTree`, `validatePlan`, `validateWalk` take
+  `validateCapability`/`validateFeature`/`validateTree`, `validatePlan`, `validateWalk`,
+  `validateRevision` take
   text or a path and return `{ errors, warnings }` (plan also returns which rings are
   done); the CLI is guarded by `fileURLToPath(import.meta.url) === realpathSync(process.argv[1])`.
   Tests exercise the functions on fixtures in temp dirs.
@@ -318,7 +342,27 @@ Rules for editing them:
   of Done (commit and scenario), Partly done (cited, `Missing:`), New, Contradicts (`Open
   question:`). Knowledge and features refuse an intent without its mapping.
 - **One flat `kartograph/`**, documents `<stamp>-<slug>.<type>.md`; the intent and mapping
-  take the conversation's stamp and slug.
+  take the conversation's stamp and slug. A revision is the fourth type, with its own stamp.
+
+## Rules the revise and release skills must keep
+
+- **Revise records first.** The person's words verbatim in numbered blocks, the first and
+  last the person's; every change cites a person block of the revision itself. `sources`
+  names the intents of the affected capabilities; `status` goes `recorded` → `applied`.
+- **Revise changes exactly what was said.** Untouched scenarios stay byte for byte; each
+  changed or added one gets `# Changed by kartograph/<file>.revision.md` directly above it
+  and the capability a `- Revision:` source line; removal only when said.
+- **The superseding plan keeps the ticks** of every task the revision does not touch and
+  marks the rest `**Revised:** changed|added`, unticked; `validate-plan.js` checks both
+  against the superseded plan. Revise builds only rings that were fully built, by the ring
+  skills' own `SKILL.md`, never reloading the app; the ring skills skip ticked tasks.
+- **Release ships the tested build.** `release-check.sh` decides; a first release is out
+  of scope. The notes live only in `distribution/release-notes/v<X.Y.Z>.md` (REL5, AV8),
+  positive and factual, never naming another platform (ASC32); store texts gain only
+  what is new; screenshots are renders from the project's renderer (ASC13, MAS10, ASC14,
+  GP5), committed under `distribution/store/`, only for changed screens.
+- **Release asks once**, then `push-store-metadata.sh --screenshots` and
+  `release-stores.sh --yes`, then the tag `v<X.Y.Z>` unless it exists.
 
 ## Migrations
 
@@ -328,6 +372,9 @@ Rules for editing them:
   updated, never chained through an intermediate layout.
 - Every skill but migrate starts with the byte-identical `## 0. Version gate`;
   `test/skills.test.js` enforces it.
+- A new, optional document type or file is not a layout change: every project on the
+  current layout stays valid, so it gets no migration document (the revision of 3.2.0).
+  A migration document raises the layout version and stops every project at the gate.
 
 ## Releasing
 
