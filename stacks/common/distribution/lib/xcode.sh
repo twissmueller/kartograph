@@ -514,11 +514,21 @@ print(json.dumps({"data": {"type": "profiles",
     answer="$(asc_get "/profiles/$profile_id")"
   fi
 
-  # Install into both directories xcodebuild consults — which one it reads depends on the
-  # Xcode version, and writing both costs nothing.
-  printf '%s' "$answer" | python3 - "$extension" <<'PY'
+  xcode_profile_install "$extension" "$answer" || die "could not install the profile"
+  log "profile installed"
+}
+
+# xcode_profile_install EXTENSION JSON — writes the profileContent of a /v1/profiles answer
+# (create or read) as <uuid>.<EXTENSION> into both directories xcodebuild consults; which one
+# it reads depends on the Xcode version, and writing both costs nothing.
+# The JSON travels as an argument, never on stdin: the script itself comes from a heredoc,
+# which takes stdin, so a piped answer arrived as EOF and json.load died with
+# "Expecting value: line 1 column 1 (char 0)" on every run with an existing profile.
+xcode_profile_install() {
+  local extension="${1:?xcode_profile_install EXTENSION JSON}" answer="${2:?xcode_profile_install EXTENSION JSON}"
+  python3 - "$extension" "$answer" <<'PY'
 import base64, json, pathlib, sys
-attributes = json.load(sys.stdin)["data"]["attributes"]
+attributes = json.loads(sys.argv[2])["data"]["attributes"]
 content = base64.b64decode(attributes["profileContent"])
 name = "%s.%s" % (attributes["uuid"], sys.argv[1])
 for directory in (pathlib.Path.home() / "Library/MobileDevice/Provisioning Profiles",
@@ -529,7 +539,6 @@ for directory in (pathlib.Path.home() / "Library/MobileDevice/Provisioning Profi
 print("  name=%s  state=%s  expires=%s" % (attributes["name"], attributes["profileState"],
                                            attributes.get("expirationDate", "")[:10]), file=sys.stderr)
 PY
-  log "profile installed"
 }
 
 # ---------------------------------------------------------------------------

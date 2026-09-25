@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, existsSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 
@@ -856,4 +856,33 @@ test("asc_review_prepare refuses, writing nothing, when the version already sits
   const other = reviewCalls("asc_review_prepare", [{ id: "submission-sent", attributes: { state: "IN_REVIEW" } }], [{ relationships: { appStoreVersion: { data: { id: "version-0" } } } }]);
   assert.equal(other.status, 0, other.stderr);
   assert.deepEqual(other.writes, ["POST /reviewSubmissions", "POST /reviewSubmissionItems"]);
+});
+
+// ensure_profile's install step once read the profile JSON from a pipe while its Python script
+// came from a heredoc; the heredoc took stdin, json.load saw EOF, and every run with an existing
+// profile died with JSONDecodeError. The JSON is an argument now, never stdin.
+test("xcode_profile_install writes the profile as <uuid>.<extension> into both directories", () => {
+  const home = mkdtempSync(join(tmpdir(), "karto-profile-"));
+  try {
+    const content = Buffer.from("fake profile bytes");
+    const answer = JSON.stringify({ data: { attributes: {
+      name: "Demo Mac App Store", profileState: "ACTIVE", expirationDate: "2027-09-25T10:00:00.000+0000",
+      uuid: "1234ABCD-0000-4000-8000-00000000BEEF", profileContent: content.toString("base64"),
+    } } });
+    const run = (call) => sh(`. '${lib("xcode.sh")}'; ${call}`, { HOME: home, ANSWER: answer });
+    const r = run(`xcode_profile_install provisionprofile "$ANSWER"`);
+    assert.equal(r.status, 0, r.stderr);
+    for (const dir of ["Library/MobileDevice/Provisioning Profiles", "Library/Developer/Xcode/UserData/Provisioning Profiles"]) {
+      const file = join(home, dir, "1234ABCD-0000-4000-8000-00000000BEEF.provisionprofile");
+      assert.ok(existsSync(file), `missing ${file}`);
+      assert.deepEqual(readFileSync(file), content);
+    }
+    assert.match(r.stderr, /name=Demo Mac App Store {2}state=ACTIVE {2}expires=2027-09-25/);
+    // The answer arriving on stdin as well must not matter: the old piped-heredoc shape failed exactly here.
+    const piped = run(`printf '%s' "$ANSWER" | xcode_profile_install mobileprovision "$ANSWER"`);
+    assert.equal(piped.status, 0, piped.stderr);
+    assert.ok(existsSync(join(home, "Library/MobileDevice/Provisioning Profiles", "1234ABCD-0000-4000-8000-00000000BEEF.mobileprovision")));
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 });

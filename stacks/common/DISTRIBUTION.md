@@ -162,6 +162,7 @@ altool_validate PKG [ios|macos]        grep VERIFY SUCCEEDED, never the absence 
 altool_upload PKG [ios|macos]
 keychain_has IDENTITY_PREFIX
 ensure_profile LANE [--recreate]       create the App Store profile through POST /v1/profiles and install it, when *_PROFILE_NAME is set and absent
+xcode_profile_install EXTENSION JSON   write a /v1/profiles answer's profileContent as <uuid>.<EXTENSION> into both provisioning-profile directories; logs name, state, expiry
 simulator_run                          build for the simulator named $SIMULATOR, boot, install, launch, tail the log
 mac_run                                build the Mac scheme Debug and open the product
 device_list                            paired iPhones and iPads with hardware UDIDs (devicectl and xcodebuild use different ids)
