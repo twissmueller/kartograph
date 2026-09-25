@@ -91,7 +91,7 @@ thing, prefer alias over a second file.
 
 Write each concept from `concept-template.md` in this file's directory. Frontmatter:
 `type`, `title`, `description`, `status: draft` for new files, `aliases_to_avoid`,
-`generated: { by: kartograph-knowledge/3.2.0, at: <ISO 8601> }`, and `sources` with one
+`generated: { by: kartograph-knowledge/3.3.0, at: <ISO 8601> }`, and `sources` with one
 entry pointing at the intent (`resource: ../kartograph/<file>.intent.md`, `id` used for footnotes).
 Links between concepts are bundle-relative (`/events/plant-watered.md`); a link to a
 concept not yet written is allowed. Slugs are lowercase hyphenated.

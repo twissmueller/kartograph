@@ -5,7 +5,7 @@ description: <one sentence that defines it, in the intent's language>
 status: draft
 aliases_to_avoid: [<words people use for this that must not become new concepts>]
 tags: []
-generated: { by: kartograph-knowledge/3.2.0, at: <YYYY-MM-DDTHH:MM:SSZ> }
+generated: { by: kartograph-knowledge/3.3.0, at: <YYYY-MM-DDTHH:MM:SSZ> }
 sources:
   - id: <intent-file-slug>
     resource: ../kartograph/<YYYY-MM-DD-HHMM-slug>.intent.md
