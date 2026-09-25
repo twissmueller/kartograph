@@ -23,7 +23,9 @@ A project is this stack when **both** hold:
 - a `Package.swift` at the root or under `Packages/`, or an `*.xcodeproj` / `*.xcworkspace`
   directory, or a `project.yml` for XcodeGen at the root;
 - **no** `settings.gradle.kts` anywhere (a KMP project also carries an `iosApp/` Xcode
-  project; the Gradle build decides, see `kmp`).
+  project; the Gradle build decides, see `kmp`), and **no** `project.yaml` with a `kotlin`
+  wrapper beside it at the root or under `code/` (a Kotlin Toolchain project generates
+  `iosApp/module.xcodeproj`; see `kmp-toolchain`).
 
 ## What the three documents cover
 
