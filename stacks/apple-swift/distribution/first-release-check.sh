@@ -9,9 +9,11 @@
 #   ?  no API can read it (or its read failed): the person checks it in the web UI
 #   apple  the app record's content rights, category, age rating, price and availability;
 #          per Apple platform the editable version against --version (a build attaches
-#          only to the version of its own number); in-app purchases and subscriptions
-#          waiting for their first review; the EULA link in each locale's description when
-#          a subscription is sold (ASC25); App Privacy and the agreements, web only.
+#          only to the version of its own number); in-app purchases and subscriptions:
+#          ✗ when incomplete, ? when one waits for its first review (release-stores.sh
+#          then runs with --no-submit and the person clicks Add for Review, ASC24); the
+#          EULA link in each locale's description when a subscription is sold (ASC25);
+#          App Privacy and the agreements, web only.
 #   play   defaultLanguage, the contact details and a listing per locale, in one edit that
 #          is discarded; Data safety, content rating, target audience, ads, app access,
 #          category, privacy policy and the first production review, web only (GP6).
@@ -127,20 +129,21 @@ else:
     case "$platform" in IOS) has_lane ios || continue; lane=ios ;; MAC_OS) has_lane mac || continue; lane=mac ;; esac
     versions="$(asc_get "/apps/$ASC_APP_ID/appStoreVersions" "filter[platform]=$platform&limit=50")" \
       || die "could not read the $lane App Store versions from App Store Connect" 3
-    read -r on_sale editable <<<"$(printf '%s' "$versions" | jpy 'live = ("READY_FOR_SALE", "READY_FOR_DISTRIBUTION")
+    read -r on_sale editable <<<"$(printf '%s' "$versions" | jpy '# ASC_SHIPPED_STATES in asc.sh: a version that has been on sale at some point.
+shipped = {"READY_FOR_SALE", "READY_FOR_DISTRIBUTION", "DEVELOPER_REMOVED_FROM_SALE", "REMOVED_FROM_SALE", "REPLACED_WITH_NEW_VERSION"}
 editable = ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED",
             "INVALID_BINARY", "WAITING_FOR_REVIEW")
 on_sale, open_version = [], "-"
 for v in d.get("data", []):
     a = v["attributes"]
     state = a.get("appStoreState") or a.get("appVersionState")
-    if state in live:
+    if state in shipped:
         on_sale.append(a.get("versionString") or "")
     elif state in editable and open_version == "-":
         open_version = a.get("versionString") or "-"
 key = lambda s: [int(p) if p.isdigit() else 0 for p in s.split(".")]
 print(max(on_sale, key=key) if on_sale else "-", open_version)')"
-    [ "$on_sale" = "-" ] || gate "$lane" ✓ "on sale" "$on_sale — this platform has had its first release"
+    [ "$on_sale" = "-" ] || gate "$lane" ✓ "on sale" "$on_sale (or once was) — this platform has had its first release"
     if [ "$editable" = "-" ]; then
       gate "$lane" ✓ version "none editable yet${version:+; push-store-metadata.sh --version $version creates it}"
     elif [ -z "$version" ]; then
@@ -152,22 +155,43 @@ print(max(on_sale, key=key) if on_sale else "-", open_version)')"
     fi
   done
 
+  # products_gate NAME INCOMPLETE WAITING — comma-separated product ids. Incomplete ones
+  # cannot go to review at all (ASC23). Waiting ones are a hand-over, not a gap: the API
+  # cannot add a product to a submission, and the product page's Add for Review joins the
+  # open submission and submits it (ASC24), so the release attaches the build without
+  # submitting and the person clicks it.
+  products_gate() {
+    local name="$1" incomplete="$2" waiting="$3"
+    if [ "$incomplete" = "-" ] && [ "$waiting" = "-" ]; then
+      gate apple ✓ "$name" "none waiting for a first review"; return 0
+    fi
+    [ "$incomplete" = "-" ] || gate apple ✗ "$name" "$(printf '%s' "$incomplete" | sed 's/,/, /g') is incomplete (MISSING_METADATA): add its localization and review screenshot in App Store Connect; it cannot go to review before that (ASC23)"
+    [ "$waiting" = "-" ] || gate apple "?" "$name" "$(printf '%s' "$waiting" | sed 's/,/, /g') $(waits "$waiting") for a first review: release-stores.sh runs with --no-submit, and once it has attached the build, Add for Review on each product's page in App Store Connect joins it to the submission and submits the version with it (ASC24)"
+  }
+  # products data|subscriptions — the in-app purchases (a response's data) or the
+  # subscriptions (a response's included); prints "COUNT INCOMPLETE WAITING".
+  products() {
+    jpy 'if sys.argv[2] == "data":
+    products = d.get("data", [])
+else:
+    products = [s for s in d.get("included", []) if s.get("type") == "subscriptions"]
+ids = lambda state: ",".join(p["attributes"].get("productId", p["id"]) for p in products if p["attributes"].get("state") == state)
+print(len(products), ids("MISSING_METADATA") or "-", ids("READY_TO_SUBMIT") or "-")' "$1"
+  }
+
   if answer="$(asc_get "/apps/$ASC_APP_ID/inAppPurchasesV2" "limit=200")"; then
-    waiting="$(printf '%s' "$answer" | jpy 'print(", ".join(p["attributes"].get("productId", p["id"]) for p in d.get("data", []) if p["attributes"].get("state") == "READY_TO_SUBMIT"))')"
-    if [ -z "$waiting" ]; then gate apple ✓ "in-app purchases" "none waiting for a first review"
-    else gate apple ✗ "in-app purchases" "$waiting $(waits "$waiting") for a first review, which goes with this version: ticked on the version's page in App Store Connect before submitting; the API cannot add it (ASC23, ASC24)"; fi
+    read -r count incomplete waiting <<<"$(printf '%s' "$answer" | products data)"
+    products_gate "in-app purchases" "$incomplete" "$waiting"
   else
     gate apple "?" "in-app purchases" "could not be read — look under In-App Purchases in App Store Connect"
   fi
 
   sold=""
   if answer="$(asc_get "/apps/$ASC_APP_ID/subscriptionGroups" "include=subscriptions&limit=50")"; then
-    read -r sold waiting <<<"$(printf '%s' "$answer" | jpy 'subs = [s for s in d.get("included", []) if s.get("type") == "subscriptions"]
-waiting = ",".join(s["attributes"].get("productId", s["id"]) for s in subs if s["attributes"].get("state") == "READY_TO_SUBMIT")
-print(len(subs), waiting or "-")')"
+    read -r sold incomplete waiting <<<"$(printf '%s' "$answer" | products subscriptions)"
     if [ "$sold" = 0 ]; then gate apple ✓ subscriptions none
-    elif [ "$waiting" != "-" ]; then gate apple ✗ subscriptions "$(printf '%s' "$waiting" | sed 's/,/, /g') $(waits "$waiting") for a first review: ticked on the version's page in App Store Connect; release-stores.sh refuses to submit while it waits (Guideline 2.1(b))"
-    else gate apple ✓ subscriptions "$sold sold, none waiting for a first review"; fi
+    elif [ "$incomplete" = "-" ] && [ "$waiting" = "-" ]; then gate apple ✓ subscriptions "$sold sold, none waiting for a first review"
+    else products_gate subscriptions "$incomplete" "$waiting"; fi
   else
     gate apple "?" subscriptions "could not be read — look under Subscriptions in App Store Connect"
     sold="?"
@@ -187,7 +211,9 @@ print(len(subs), waiting or "-")')"
 import json, re, sys
 text = json.load(open(sys.argv[1], encoding="utf-8")).get("description") or ""
 standard = "apple.com/legal/internet-services/itunes/dev/stdeula" in text
-custom = re.search(r"(eula|terms of use)", text, re.I) and "https://" in text
+# The link's label in the locales the owner ships; the check still errs to ✗.
+label = r"(eula|terms of use|terms and conditions|nutzungsbedingungen|lizenzvereinbarung|endbenutzer-lizenzvertrag|conditions d.utilisation|condiciones de uso|termini di utilizzo)"
+custom = re.search(label, text, re.I) and "https://" in text
 sys.exit(0 if standard or custom else 1)
 PY
         then linked="$linked${linked:+ }$locale"
