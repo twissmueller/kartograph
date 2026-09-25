@@ -59,15 +59,15 @@ scenarios is reported and not executed.
 
 ## 2. Execute ring 1, task by task
 
-A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise`
-wrote keeps the ticks of work already built. Each ring-1 task is one screen. Follow its steps: the state contract, the ports the
-screen needs, the presentation model, the fakes and sample data, the screen and its views,
-the binding in the composition root and the route and navigation entry, then compile and
-see. Every control and outcome a scenario names
+A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise` wrote
+keeps the ticks of work already built. Each ring-1 task is one screen. Follow its steps:
+the state contract, the ports the screen needs, the presentation model, the fakes and
+sample data, the screen and its views, the binding in the composition root and the route
+and navigation entry, then compile and see. Every control and outcome a scenario names
 gets the scenario's own words as its text or content description, so a person and a
-semantic tree can find it. Loading, empty and error are states of the screen. If
-the theme entry point `design-system.md` names does not exist yet, create it exactly as
-that document describes. Tick each step's checkbox as you complete it.
+semantic tree can find it. Loading, empty and error are states of the screen. If the theme
+entry point `design-system.md` names does not exist yet, create it exactly as that
+document describes. Tick each step's checkbox as you complete it.
 
 **See it.** Compile the capability and the fast-loop target `build-design.md` names. If a
 live window is connected, look: through Compose Hot Reload (`reload`, `get_ui_error`,

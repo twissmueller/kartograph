@@ -60,19 +60,19 @@ it is now; a plan that no longer matches its scenarios is reported and not execu
 
 ## 2. Execute ring 2, task by task
 
-A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise`
-wrote keeps the ticks of work already built. Each ring-2 task is one scenario. **Outer loop:** its Step 1 is the scenario's test at the
-presentation model against fakes behind the ports; write it as given, run it, confirm it
-fails for the reason the plan expects. A scenario that describes a rejection or an error
-asserts the error the stack's error type carries and its classification. **Inner loop:**
-per layer step, the failing test as given, run and see it fail, the minimal code as given,
-run and see it pass, refactor while green, through the ring-2 layers `code-design.md` § 6
-lists in the stack's own shapes (implementations, rules or validators, the ports the core
-adds, the demo data seeded from the ring-1 sample data). Then the composition-root rebind
-from fake to implementation as `code-design.md` § 6 describes for ring 2, with the demo
-binding behind the demo flag for later. A ring-1 double that nothing binds any more is
-deleted; one the stack keeps as its demo or UI-test substrate stays. Tick each step's
-checkbox.
+A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise` wrote
+keeps the ticks of work already built. Each ring-2 task is one scenario. **Outer loop:**
+its Step 1 is the scenario's test at the presentation model against fakes behind the
+ports; write it as given, run it, confirm it fails for the reason the plan expects. A
+scenario that describes a rejection or an error asserts the error the stack's error type
+carries and its classification. **Inner loop:** per layer step, the failing test as given,
+run and see it fail, the minimal code as given, run and see it pass, refactor while green,
+through the ring-2 layers `code-design.md` § 6 lists in the stack's own shapes
+(implementations, rules or validators, the ports the core adds, the demo data seeded from
+the ring-1 sample data). Then the composition-root rebind from fake to implementation as
+`code-design.md` § 6 describes for ring 2, with the demo binding behind the demo flag for
+later. A ring-1 double that nothing binds any more is deleted; one the stack keeps as its
+demo or UI-test substrate stays. Tick each step's checkbox.
 
 **See it.** When the outer test is green and a live window is connected (a hot-reload
 desktop window, a simulator through a screen-control tool, a browser), look: the

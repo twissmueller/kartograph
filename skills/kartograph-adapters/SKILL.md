@@ -62,18 +62,18 @@ a port whose signature moved since the plan was written is a deviation to report
 
 ## 2. Execute ring 3, task by task
 
-A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise`
-wrote keeps the ticks of work already built. Each ring-3 task is one port or endpoint. The failing adapter test as given, run and see
-it fail, the data source and mapping and adapter as given, run and see it pass, refactor
-while green, each in the shape `build-design.md` prescribes. For persistence: the entity
-or record, the data access type, the schema version, a migration and its test when the
-schema changed. For HTTP: the DTOs, the client type, the calls through the stack's
-safe-call boundary. For a platform capability: the port, one implementation per target, a
-stub returning the stack's not-supported outcome where a target cannot provide it, bound
-in that target's platform bindings. For the server: the route, the shared request and
-response types, the status mapping, one route test. Then the composition-root rebind from
-the demo adapter to the real one, keeping the demo one behind the demo flag. Tick each
-step's checkbox.
+A task whose steps are all ticked is done and is skipped: a plan `kartograph-revise` wrote
+keeps the ticks of work already built. Each ring-3 task is one port or endpoint. The
+failing adapter test as given, run and see it fail, the data source and mapping and
+adapter as given, run and see it pass, refactor while green, each in the shape
+`build-design.md` prescribes. For persistence: the entity or record, the data access type,
+the schema version, a migration and its test when the schema changed. For HTTP: the DTOs,
+the client type, the calls through the stack's safe-call boundary. For a platform
+capability: the port, one implementation per target, a stub returning the stack's
+not-supported outcome where a target cannot provide it, bound in that target's platform
+bindings. For the server: the route, the shared request and response types, the status
+mapping, one route test. Then the composition-root rebind from the demo adapter to the
+real one, keeping the demo one behind the demo flag. Tick each step's checkbox.
 
 ## 3. Verify, commit, push, report
 
