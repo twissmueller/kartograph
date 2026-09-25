@@ -28,6 +28,8 @@ distribution/
   store/                    listing texts and screenshots, versioned with the project
     apple/app.json, apple/<locale>.json, apple/screenshots/<locale>/<displayType>/
     play/listing.json, play/screenshots/<locale>/<imageType>/
+    first-release.md        written by kartograph-release before a first store release: the web-only steps
+                            per store with prepared answers, each gate ✓ / ✗ / ? from first-release-check.sh
   release-notes/vX.Y.Z.md   one file per release, the one place its notes live: written by prepare-release.sh
                             (or notes_write), its store slices filled by kartograph-release
   build/                    archives, bundles, logs; gitignored
@@ -44,7 +46,8 @@ distribution/
 | `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
 | `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots] [--version X.Y.Z] [--yes]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; `--version` first makes sure that Apple version is editable, creating it (confirmed, unless `--yes`) when none is; creates the JSON templates when missing; states what only the web UI can do |
 | `release-check.sh [--apple] [--play]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the newest processed TestFlight build per Apple platform against the version on sale, the internal track's highest versionCode against production's; prints one line per lane and `release X.Y.Z` (the first Apple platform's); exit 0 when every lane is ahead, 1 when a new build is needed first, 2 when no store lane ships, 3 when a store could not be read |
-| `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production; Apple: attaches the processed build to the editable version, sets What's New, submits for review |
+| `first-release-check.sh [--apple] [--play] [--version X.Y.Z]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the first-release gates the store APIs can show (Apple: content rights, category, age rating, price, availability, the editable version against X.Y.Z, in-app purchases and subscriptions waiting for their first review, the EULA link in each description when a subscription is sold; Play: defaultLanguage, contact details, a listing per locale) plus one `?` line per gate only the web UI holds; one line per gate, `<lane> ✓\|✗\|? <gate>: <detail>`; exit 0 when nothing is ✗, 1 when something is, 2 when no store lane ships, 3 when a store could not be read |
+| `release-stores.sh [--apple] [--play] [--rollout F] --notes FILE` | ✓ | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production (an app never published gets a draft production release, sent for review from the console); Apple: attaches the processed build to the editable version, sets What's New only when a version is already on sale on that platform (Apple refuses it on a first release), submits for review |
 | `deploy.sh [backend\|frontend\|all]` | – | – | – | – | ✓ | – | backend to Fly, frontend to Vercel, each followed by a live health check |
 
 A script whose lane the project does not ship (per `LANES` in `config.sh`) says so and exits 2.
@@ -180,6 +183,7 @@ asc_version_exists PLATFORM VERSION    true when an editable version already car
 asc_version_editable PLATFORM [X.Y.Z]  the version in an editable state, created with versionString when absent
 asc_version_attach VERSION_ID BUILD_ID
 asc_version_whats_new VERSION_ID LOCALE TEXT
+asc_version_on_sale PLATFORM           the highest versionString READY_FOR_SALE (or READY_FOR_DISTRIBUTION) on PLATFORM, empty when none — a first release; non-zero only when the versions cannot be read
 asc_subscriptions_pending              subscriptions at READY_TO_SUBMIT not attached to a submission; non-empty blocks a review submission (Guideline 2.1(b))
 asc_review_submit PLATFORM [X.Y.Z]     create or reuse the review submission, add the version, submit; refuses when asc_subscriptions_pending is non-empty
 ```
