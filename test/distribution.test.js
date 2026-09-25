@@ -14,10 +14,10 @@ const all = [...common, ...Object.values(perStack).flat()];
 
 // The scripts each stack must ship, from the table in stacks/common/DISTRIBUTION.md.
 const REQUIRED = {
-  kmp: ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
-  "kmp-toolchain": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
-  "apple-swift": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
-  "android-compose": ["run-local.sh", "prepare-release.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "release-stores.sh"],
+  kmp: ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "first-release-check.sh", "release-stores.sh"],
+  "kmp-toolchain": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "first-release-check.sh", "release-stores.sh"],
+  "apple-swift": ["run-local.sh", "run-device.sh", "prepare-release.sh", "deploy-testflight.sh", "push-store-metadata.sh", "release-check.sh", "first-release-check.sh", "release-stores.sh"],
+  "android-compose": ["run-local.sh", "prepare-release.sh", "deploy-play-internal.sh", "push-store-metadata.sh", "release-check.sh", "first-release-check.sh", "release-stores.sh"],
   "angular-kotlin": ["run-local.sh", "prepare-release.sh", "deploy.sh"],
   "python-fastapi": ["run-local.sh", "prepare-release.sh"],
 };
@@ -556,4 +556,147 @@ test("release-stores.sh stops before touching the version when it cannot read wh
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /could not read/);
   assert.doesNotMatch(r.stderr, /EDITABLE|ATTACH|WHATSNEW|SUBMIT/);
+});
+
+// first-release-check.sh against stubbed store reads, like release-check.sh: lib/asc.sh and
+// lib/play.sh are replaced by functions answering from environment variables.
+const firstReleaseCheck = (config = 'LANES="ios mac android"') => {
+  const dir = tmp("first-release-check-");
+  const dist = join(dir, "distribution");
+  mkdirSync(join(dist, "store/apple"), { recursive: true });
+  execFileSync("cp", ["-R", join(root, "stacks/common/distribution/lib"), join(dist, "lib")]);
+  execFileSync("cp", [join(root, "stacks/kmp/distribution/first-release-check.sh"), join(dist, "/")]);
+  writeFileSync(join(dist, "config.sh"), `${config}\nLOCALES="en-US de-DE"\nASC_APP_ID=1\nASC_KEY_ID=k\nASC_ISSUER_ID=i\nPLAY_PACKAGE_NAME=p\n`);
+  writeFileSync(join(dist, "lib/asc.sh"), `asc_get() {
+  [ "\${ASC_FAIL:-}" = "$1" ] && { echo "HTTP 500 from App Store Connect" >&2; return 1; }
+  case "$1" in
+    /apps/1) printf '%s' "$APP" ;;
+    /apps/1/appInfos) printf '%s' "$INFOS" ;;
+    /appInfos/info-1/primaryCategory) printf '%s' "$CATEGORY" ;;
+    /appInfos/info-1/ageRatingDeclaration) printf '%s' "$AGE" ;;
+    /apps/1/appPriceSchedule) printf '%s' "$PRICE" ;;
+    /apps/1/appAvailabilityV2) printf '%s' "$AVAILABILITY" ;;
+    /apps/1/appStoreVersions) case "$2" in *MAC_OS*) printf '%s' "$VERSIONS_MAC" ;; *) printf '%s' "$VERSIONS_IOS" ;; esac ;;
+    /apps/1/subscriptionGroups) printf '%s' "$SUBSCRIPTIONS" ;;
+    /apps/1/inAppPurchasesV2) printf '%s' "$PURCHASES" ;;
+    *) echo "unexpected GET $1" >&2; return 1 ;;
+  esac
+}
+asc_post() { echo "WRITE" >&2; }; asc_patch() { echo "WRITE" >&2; }; asc_delete() { echo "WRITE" >&2; }
+`);
+  writeFileSync(join(dist, "lib/play.sh"), `play_edit_open() { [ "\${PLAY_FAIL:-}" = open ] && die "HTTP 403 — grant the service account access"; echo edit-1; }
+play_edit_delete() { echo "DISCARD $1" >&2; }
+play_edit_commit() { echo "WRITE" >&2; }
+play_api() {
+  [ "$1" = GET ] || { echo "WRITE" >&2; return 1; }
+  [ "\${PLAY_FAIL:-}" = "$2" ] && { echo "HTTP 500" >&2; return 1; }
+  case "$2" in */details) printf '%s' "$DETAILS" ;; */listings) printf '%s' "$LISTINGS" ;; *) echo "unexpected GET $2" >&2; return 1 ;; esac
+}
+`);
+  const versions = (...list) => JSON.stringify({ data: list.map(([versionString, appStoreState], i) => ({ id: `v${i}`, attributes: { versionString, appStoreState } })) });
+  const ready = {
+    APP: JSON.stringify({ data: { id: "1", attributes: { name: "Demo", bundleId: "org.example.demo", contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT" } } }),
+    INFOS: JSON.stringify({ data: [{ id: "info-1", attributes: { appStoreState: "PREPARE_FOR_SUBMISSION" } }] }),
+    CATEGORY: JSON.stringify({ data: { type: "appCategories", id: "EDUCATION" } }),
+    AGE: JSON.stringify({ data: { id: "age-1", attributes: { violenceRealistic: "NONE", gambling: false, kidsAgeBand: null, ageRatingOverride: null } } }),
+    PRICE: JSON.stringify({ data: { id: "1" }, included: [{ type: "appPrices", id: "p1" }] }),
+    AVAILABILITY: JSON.stringify({ data: { id: "1", attributes: { availableInNewTerritories: true } } }),
+    VERSIONS_IOS: versions(["1.0.0", "PREPARE_FOR_SUBMISSION"]),
+    VERSIONS_MAC: versions(),
+    SUBSCRIPTIONS: JSON.stringify({ data: [] }),
+    PURCHASES: JSON.stringify({ data: [] }),
+    DETAILS: JSON.stringify({ defaultLanguage: "en-US", contactEmail: "a@example.org", contactWebsite: "https://example.org" }),
+    LISTINGS: JSON.stringify({ listings: [{ language: "en-US" }, { language: "de-DE" }] }),
+  };
+  const run = (over = {}, args = ["--version", "1.0.0"]) => spawnSync("bash", [join(dist, "first-release-check.sh"), ...args], { encoding: "utf8", env: { ...process.env, ...ready, ...over } });
+  return { dist, versions, run };
+};
+
+test("first-release-check.sh marks every readable gate ✓, every web-only gate ?, and exits 0 when nothing is ✗", () => {
+  const r = firstReleaseCheck().run();
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  for (const line of [
+    /^apple ✓ app record: Demo \(org\.example\.demo\)$/m,
+    /^apple ✓ content rights: DOES_NOT_USE_THIRD_PARTY_CONTENT$/m,
+    /^apple ✓ category: EDUCATION$/m,
+    /^apple ✓ age rating: every question answered$/m,
+    /^apple ✓ price: set$/m,
+    /^apple ✓ availability: set$/m,
+    /^ios ✓ version: the editable version is 1\.0\.0$/m,
+    /^mac ✓ version: none editable yet; push-store-metadata\.sh --version 1\.0\.0 creates it$/m,
+    /^apple ✓ in-app purchases: none waiting for a first review$/m,
+    /^apple ✓ subscriptions: none$/m,
+    /^apple \? App Privacy: /m,
+    /^android ✓ defaultLanguage: en-US$/m,
+    /^android ✓ contact: a@example\.org, https:\/\/example\.org$/m,
+    /^android ✓ listings: en-US de-DE$/m,
+    /^android \? Data safety: /m,
+    /^android \? content rating: /m,
+    /^android \? app access: /m,
+    /^android \? ads: /m,
+  ]) assert.match(r.stdout, line);
+  assert.doesNotMatch(r.stdout, / ✗ /);
+  assert.doesNotMatch(r.stderr, /WRITE/, "it only reads");
+  assert.match(r.stderr, /DISCARD edit-1/, "the read-only Play edit is discarded");
+});
+
+test("first-release-check.sh marks what the stores lack ✗ and exits 1", () => {
+  const frc = firstReleaseCheck();
+  const r = frc.run({
+    APP: JSON.stringify({ data: { id: "1", attributes: { name: "Demo", bundleId: "org.example.demo", contentRightsDeclaration: null } } }),
+    CATEGORY: JSON.stringify({ data: null }),
+    AGE: JSON.stringify({ data: { id: "age-1", attributes: { violenceRealistic: null, gambling: null, kidsAgeBand: null } } }),
+    PRICE: JSON.stringify({ data: { id: "1" }, included: [] }),
+    VERSIONS_IOS: frc.versions(["1.0", "PREPARE_FOR_SUBMISSION"]),
+    PURCHASES: JSON.stringify({ data: [{ id: "iap-1", attributes: { productId: "org.example.demo.pro", state: "READY_TO_SUBMIT" } }] }),
+    SUBSCRIPTIONS: JSON.stringify({ data: [{ id: "g1" }], included: [{ type: "subscriptions", id: "s1", attributes: { productId: "org.example.demo.monthly", state: "READY_TO_SUBMIT" } }] }),
+    DETAILS: JSON.stringify({ defaultLanguage: "", contactEmail: "", contactWebsite: "" }),
+    LISTINGS: JSON.stringify({ listings: [{ language: "en-US" }] }),
+  });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  for (const line of [
+    /^apple ✗ content rights: not declared/m,
+    /^apple ✗ category: none/m,
+    /^apple ✗ age rating: 2 questions unanswered: gambling, violenceRealistic/m,
+    /^apple ✗ price: none/m,
+    /^ios ✗ version: the editable version is 1\.0, the build is 1\.0\.0; .*ASC29/m,
+    /^apple ✗ in-app purchases: org\.example\.demo\.pro waits for a first review/m,
+    /^apple ✗ subscriptions: org\.example\.demo\.monthly waits for a first review/m,
+    /^apple ✗ EULA link: no store\/apple\/en-US\.json/m,
+    /^android ✗ defaultLanguage: not set/m,
+    /^android ✗ contact: /m,
+    /^android ✗ listings: none for de-DE/m,
+  ]) assert.match(r.stdout, line);
+});
+
+test("first-release-check.sh checks the EULA link in each description only when a subscription is sold (ASC25)", () => {
+  const frc = firstReleaseCheck();
+  const sold = { SUBSCRIPTIONS: JSON.stringify({ data: [{ id: "g1" }], included: [{ type: "subscriptions", id: "s1", attributes: { productId: "org.example.demo.monthly", state: "APPROVED" } }] }) };
+  writeFileSync(join(frc.dist, "store/apple/en-US.json"), JSON.stringify({ description: "Practice daily.\n\nTerms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" }));
+  writeFileSync(join(frc.dist, "store/apple/de-DE.json"), JSON.stringify({ description: "Täglich üben." }));
+  let r = frc.run(sold);
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /^apple ✓ subscriptions: 1 sold, none waiting for a first review$/m);
+  assert.match(r.stdout, /^apple ✓ EULA link: en-US$/m);
+  assert.match(r.stdout, /^apple ✗ EULA link: none in the de-DE description \(ASC25\)/m);
+  r = frc.run();
+  assert.doesNotMatch(r.stdout, /EULA link/);
+});
+
+test("first-release-check.sh exits 3 when a store cannot be read, and 2 without a store lane", () => {
+  const frc = firstReleaseCheck();
+  for (const over of [{ ASC_FAIL: "/apps/1" }, { ASC_FAIL: "/apps/1/appStoreVersions" }, { PLAY_FAIL: "open" }, { PLAY_FAIL: "/edits/edit-1/details" }]) {
+    const r = frc.run(over);
+    assert.equal(r.status, 3, `${JSON.stringify(over)}: ${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /could not read/);
+  }
+  // a gate whose own read fails is '?', never a guessed ✓ or ✗
+  const r = frc.run({ ASC_FAIL: "/apps/1/appPriceSchedule" });
+  assert.match(r.stdout, /^apple \? price: could not be read/m);
+  const none = firstReleaseCheck('LANES="docker"').run();
+  assert.equal(none.status, 2);
+  assert.match(none.stderr, /ships neither an Apple nor a Play lane/);
+  const help = spawnSync("bash", [join(frc.dist, "first-release-check.sh"), "--help"], { encoding: "utf8" });
+  assert.equal(help.status, 0);
+  assert.match(help.stderr, /first-release-check\.sh \[--apple\] \[--play\] \[--version X\.Y\.Z\]/);
 });

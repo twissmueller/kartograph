@@ -35,6 +35,6 @@ A project is this stack when:
 
 `distribution/` beside this file holds the entry scripts `kartograph-deliver` copies into a
 project on first use, over the shared libraries from `stacks/common/distribution/lib/`:
-run-local.sh (android), prepare-release.sh, deploy-play-internal.sh, push-store-metadata.sh, release-check.sh, release-stores.sh. Their contract is `stacks/common/DISTRIBUTION.md`.
+run-local.sh (android), prepare-release.sh, deploy-play-internal.sh, push-store-metadata.sh, release-check.sh, first-release-check.sh, release-stores.sh. Their contract is `stacks/common/DISTRIBUTION.md`.
 `screenshots.md` beside this file is how `kartograph-release` builds the project's
 store-screenshot renderer the first time.
