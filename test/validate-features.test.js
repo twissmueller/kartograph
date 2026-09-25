@@ -293,3 +293,37 @@ test("a nested tree validates, with full paths in the feature headers", (t) => {
   mkdirSync(join(root, "features", "other", "individual-accounts"), { recursive: true });
   assert.deepEqual(resolveCapabilityDir(join(root, "features"), "individual-accounts").ambiguous, ["admin-console/individual-accounts", "other/individual-accounts"]);
 });
+
+// --- revisions ----------------------------------------------------------------
+
+const REVISION = "kartograph/2026-09-25-1000-archive-undo.revision.md";
+const revisedCapability = capability.replace(`- Intent: \`${INTENT}\``, `- Intent: \`${INTENT}\`\n- Revision: \`${REVISION}\``);
+const revisedFeature = feature.replace("    Scenario: An owner archives an active project", `    # Changed by ${REVISION}\n    Scenario: An owner archives an active project`);
+
+test("a '# Changed by' revision comment above a scenario or rule passes and is reported", () => {
+  const r = validateFeature(revisedFeature, { path: "features/project-archiving/archive-project.feature", capabilityDir: "project-archiving" });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.revisions, [REVISION]);
+  const aboveRule = feature.replace("  Rule: Non-owners cannot archive a project", `  # Changed by ${REVISION}\n  @revised\n  Rule: Non-owners cannot archive a project`);
+  assert.deepEqual(validateFeature(aboveRule, { capabilityDir: "project-archiving" }).errors, []);
+  assert.deepEqual(validateCapability(revisedCapability, OPTS).revisions, [REVISION]);
+});
+
+test("a '# Changed by' comment names a revision and stands above a scenario or rule", () => {
+  const badPath = revisedFeature.replace(`# Changed by ${REVISION}`, "# Changed by the owner");
+  assert.ok(validateFeature(badPath, { capabilityDir: "project-archiving" }).errors.some((e) => /must name kartograph\/YYYY-MM-DD-HHMM-<slug>\.revision\.md/.test(e)));
+  const aboveStep = feature.replace("      When Alice archives \"Atlas\"", `      # Changed by ${REVISION}\n      When Alice archives "Atlas"`);
+  assert.ok(validateFeature(aboveStep, { capabilityDir: "project-archiving" }).errors.some((e) => /must stand directly above a scenario, scenario outline or rule; it stands above: When Alice archives/.test(e)));
+  assert.ok(validateFeature(feature + `\n  # Changed by ${REVISION}\n`, { capabilityDir: "project-archiving" }).errors.some((e) => /nothing follows it/.test(e)));
+  assert.ok(validateCapability(revisedCapability.replace(REVISION, "kartograph/undo.md"), OPTS).errors.some((e) => /source revision path must look like/.test(e)));
+});
+
+test("a feature's revision must be listed in capability.md and must exist", (t) => {
+  const unlisted = tree(t, { files: { "capability.md": capability, "archive-project.feature": revisedFeature } });
+  const r1 = validateTree(join(unlisted, "features"));
+  assert.ok(r1.errors.some((e) => /'# Changed by kartograph\/2026-09-25-1000-archive-undo\.revision\.md' is not listed as '- Revision:'/.test(e)));
+  assert.ok(r1.errors.some((e) => /revision 'kartograph\/2026-09-25-1000-archive-undo\.revision\.md' does not exist/.test(e)));
+  const listed = tree(t, { files: { "capability.md": revisedCapability, "archive-project.feature": revisedFeature } });
+  writeFileSync(join(listed, REVISION), "# x\n");
+  assert.deepEqual(validateTree(join(listed, "features")).errors, []);
+});

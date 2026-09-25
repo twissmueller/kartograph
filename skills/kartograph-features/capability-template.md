@@ -5,7 +5,9 @@
 ## Sources
 - Intent: `kartograph/<YYYY-MM-DD-HHMM-slug>.intent.md`
 <!-- one line per intent that shaped this capability, oldest first; never remove one.
-     Add links to existing definitions or decisions where the capability relies on them. -->
+     A revision that changed it adds a line - Revision: `kartograph/YYYY-MM-DD-HHMM-slug.revision.md`
+     after them (kartograph-revise writes it). Add links to existing definitions or
+     decisions where the capability relies on them. -->
 
 ## Purpose and outcome
 <Who benefits, why, and the observable result.>

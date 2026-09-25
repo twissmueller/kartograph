@@ -3,7 +3,8 @@
 // capability, at any depth, holding `capability.md` (the structure of
 // `capability-template.md`), `.feature` files and sub-capability directories. Feature
 // files are plain Gherkin; checked are only Kartograph's additions: the header comments,
-// one Feature:, unique scenario names, a Then per scenario. Enforced so no
+// the '# Changed by <revision>' comments kartograph-revise puts above a changed scenario or
+// rule, one Feature:, unique scenario names, a Then per scenario. Enforced so no
 // capability or feature drifts.
 //
 //   node validate-features.js [features]                  validate the whole tree
@@ -20,6 +21,8 @@ export const CAPABILITY_SECTIONS = ["Sources", "Purpose and outcome", "Scope and
 // Features is required when the directory holds .feature files, Capabilities when it holds sub-capabilities.
 export const OPTIONAL_SECTIONS = new Set(["Constraints", "Features", "Capabilities"]);
 export const INTENT_PATH = /^kartograph\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.intent\.md$/;
+export const REVISION_PATH = /^kartograph\/\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.revision\.md$/;
+const CHANGED_BY = /^# Changed by (.*)$/;
 const PLACEHOLDER = /<[A-Za-z][^>\n]*>/;
 
 // Gherkin keywords per dialect. A file starts with `# language: <code>` on line 1 to use
@@ -85,7 +88,7 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
   if (featureFiles && featureFiles.length && !names.includes("Features")) err("missing section '## Features'");
   if (subCapabilities && subCapabilities.length && !names.includes("Capabilities")) err("missing section '## Capabilities'");
 
-  const intents = [];
+  const intents = []; const revisions = [];
   const sources = sections.find((s) => s.name === "Sources");
   if (sources) {
     const bad = content(sources.lines).filter((l) => !/^- /.test(l) && !/^\s{2,}\S/.test(l));
@@ -93,6 +96,8 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
     for (const b of bullets(sources.lines)) {
       const m = /^- Intent: `([^`]+)`$/.exec(b);
       if (m) { if (!INTENT_PATH.test(m[1])) err(`source intent path must look like kartograph/YYYY-MM-DD-HHMM-<slug>.intent.md, got '${m[1]}'`); intents.push(m[1]); }
+      const r = /^- Revision: `([^`]+)`$/.exec(b);
+      if (r) { if (!REVISION_PATH.test(r[1])) err(`source revision path must look like kartograph/YYYY-MM-DD-HHMM-<slug>.revision.md, got '${r[1]}'`); revisions.push(r[1]); }
     }
     if (!intents.length) err("'## Sources' needs at least one '- Intent: `kartograph/<file>.intent.md`' line");
   }
@@ -137,7 +142,7 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
   }
   const ph = PLACEHOLDER.exec(text);
   if (ph) err(`still holds a template placeholder: ${ph[0]}`);
-  return { errors, intents, listed, listedCapabilities };
+  return { errors, intents, revisions, listed, listedCapabilities };
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +151,7 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
 export function validateFeature(text, { path = "x.feature", capabilityDir } = {}) {
   const errors = []; const err = (m) => errors.push(`${path}: ${m}`);
   const lines = text.split(/\r?\n/);
-  const intents = [];
+  const intents = []; const revisions = [];
   let d = DIALECTS.en;
   let i = 0;
   const lang = LANGUAGE.exec(lines[0] || "");
@@ -182,6 +187,8 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
   let scenarios = 0;
   let rule = null; let cur = null; const names = new Set();
   let inDocString = null; let expectHeader = false; const headerCells = new Set();
+  // A '# Changed by <revision>' comment marks the scenario or rule directly below it.
+  let changedBy = null;
   const closeBlock = () => {
     if (!cur) return;
     if (cur.type === "scenario") {
@@ -200,7 +207,17 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
   for (const line of rest) {
     const t = line.trim();
     if (inDocString !== null) { if (t.startsWith(inDocString)) inDocString = null; continue; }
+    const cb = CHANGED_BY.exec(t);
+    if (cb) {
+      const p = cb[1].trim();
+      if (!REVISION_PATH.test(p)) err(`'# Changed by' must name kartograph/YYYY-MM-DD-HHMM-<slug>.revision.md, got '${p}'`);
+      revisions.push(p); changedBy = p; continue;
+    }
     if (t === "" || t.startsWith("#") || t.startsWith("@")) continue;
+    if (changedBy !== null) {
+      if (block(t, d.rule) === null && block(t, d.outline) === null && block(t, d.scenario) === null) err(`'# Changed by ${changedBy}' must stand directly above a scenario, scenario outline or rule; it stands above: ${t}`);
+      changedBy = null;
+    }
     if (block(t, d.feature) !== null) continue;
     let m;
     if ((m = block(t, d.rule)) !== null) { closeRule(); closeBlock(); rule = { name: m, scenarios: 0 }; continue; }
@@ -225,13 +242,14 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
     err(`unexpected line: ${t}`);
   }
   closeRule(); closeBlock();
+  if (changedBy !== null) err(`'# Changed by ${changedBy}' must stand directly above a scenario, scenario outline or rule; nothing follows it`);
   if (!scenarios) err("at least one scenario is required");
   // `<name>` is a legitimate Scenario Outline parameter; template placeholders are multi-word,
   // unless an Examples header declares that multi-word parameter.
   for (const ph of text.matchAll(/<([A-Za-z][^>\n]* [^>\n]*)>/g)) {
     if (!headerCells.has(ph[1])) { err(`still holds a template placeholder: ${ph[0]}`); break; }
   }
-  return { errors, intents };
+  return { errors, intents, revisions };
 }
 
 // ---------------------------------------------------------------------------
@@ -252,24 +270,31 @@ export function validateCapabilityDir(dir, { projectRoot, relPath } = {}) {
     errors.push(`${rel(e)}: only capability.md, .feature files and sub-capability directories belong here`);
   }
   if (!featureFiles.length && !subCapabilities.length) errors.push(`${dir}: needs at least one .feature file or one sub-capability`);
-  let capIntents = [];
+  let capIntents = []; let capRevisions = [];
   if (!entries.includes("capability.md")) errors.push(`${rel("capability.md")}: missing`);
   else {
     const r = validateCapability(readFileSync(join(dir, "capability.md"), "utf8"), { path: rel("capability.md"), featureFiles, subCapabilities });
-    errors.push(...r.errors); capIntents = r.intents;
+    errors.push(...r.errors); capIntents = r.intents; capRevisions = r.revisions;
   }
   const allIntents = new Set(capIntents);
+  const allRevisions = new Set(capRevisions);
   for (const f of featureFiles) {
     if (!SLUG.test(f.replace(/\.feature$/, ""))) errors.push(`${rel(f)}: feature filename must be a lowercase hyphenated slug`);
     const r = validateFeature(readFileSync(join(dir, f), "utf8"), { path: rel(f), capabilityDir: relPathOrName });
     errors.push(...r.errors);
     for (const p of r.intents) { allIntents.add(p); if (!capIntents.includes(p)) errors.push(`${rel(f)}: source intent '${p}' is not listed under '## Sources' in capability.md`); }
+    for (const p of new Set(r.revisions)) { allRevisions.add(p); if (!capRevisions.includes(p)) errors.push(`${rel(f)}: '# Changed by ${p}' is not listed as '- Revision:' under '## Sources' in capability.md`); }
   }
   if (projectRoot) {
     const intentsDir = join(projectRoot, "kartograph");
     for (const p of allIntents) {
       if (!existsSync(join(projectRoot, p))) {
         (existsSync(intentsDir) ? errors : warnings).push(`${rel("capability.md")}: source intent '${p}' does not exist`);
+      }
+    }
+    for (const p of allRevisions) {
+      if (!existsSync(join(projectRoot, p))) {
+        (existsSync(intentsDir) ? errors : warnings).push(`${rel("capability.md")}: revision '${p}' does not exist`);
       }
     }
   }
