@@ -197,8 +197,9 @@ The plugin ships the stacks under `stacks/`, one directory each:
 | stack | status | detected by |
 |---|---|---|
 | `kmp` | ready | `settings.gradle.kts` plus a `kotlin("multiplatform")` module |
+| `kmp-toolchain` | ready | a `project.yaml` beside the `kotlin` wrapper plus a `kmp/lib` module, no Gradle (the Kotlin Toolchain, Alpha) |
 | `android-compose` | scaffold | an Android application module without multiplatform |
-| `apple-swift` | ready | `Package.swift`, an `.xcodeproj` or a `project.yml`, no Gradle |
+| `apple-swift` | ready | `Package.swift`, an `.xcodeproj` or a `project.yml`, no Gradle or Kotlin Toolchain |
 | `angular-kotlin` | scaffold | `angular.json` beside a Kotlin server build |
 | `python-fastapi` | ready | a root `docker-compose.yml` plus a `requirements.txt` pinning `fastapi`, no Gradle, Xcode or Angular |
 
@@ -207,6 +208,9 @@ refuses to run against it. Adding a stack is adding a directory with a `STACK.md
 three documents. The KMP stack derives from its owner's knowledge repository and reads
 Clean Architecture plus MVVM as the hexagon: screens are the driving adapter, use cases
 and ports the core, repositories, data sources and the Ktor server the driven adapters.
+`kmp-toolchain` is the same stack built with JetBrains' Kotlin Toolchain (`project.yaml`,
+one `module.yaml` per module, `./kotlin build|test|run`) instead of Gradle, for new
+projects; existing Gradle projects stay on `kmp`.
 
 ## `kartograph-screens` — ring 1, the flow before the behaviour
 
@@ -299,7 +303,7 @@ typed word when run by hand.
 The scripts consolidate the owner's delivery tooling from six shipped apps: one App Store
 Connect library (ES256 token, TestFlight groups, versions, review submission with the
 subscription check), one Play library (service-account token, one-edit uploads, promotion,
-staged rollout, read-back verification), Xcode and Gradle helpers, and stdlib-only Python for
+staged rollout, read-back verification), Xcode, Gradle and Kotlin Toolchain helpers, and stdlib-only Python for
 the listings and screenshot uploads. The contract every script keeps is in
 `stacks/common/DISTRIBUTION.md`; a stack's own scripts live in `stacks/<stack>/distribution/`.
 

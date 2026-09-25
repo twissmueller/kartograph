@@ -126,6 +126,17 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   server atom is a deferred stub. The vocabulary is the user's, not hexagonal's: the code
   says `…UseCase`, `…Repository`/`…Impl`, `…Api`, `…Dao`, Pattern A/B, seam; never "port"
   or "adapter" in identifiers, even though the documents teach the rings as a hexagon.
+- **The kmp-toolchain stack** is the KMP stack built with JetBrains' Kotlin Toolchain
+  (`project.yaml`, one `module.yaml` per module, the committed `kotlin` wrapper) instead of
+  Gradle: the owner's decision of 2026-09-25 for new KMP projects; existing Gradle projects
+  stay on `kmp`. It derives from the same knowledge-repo atoms plus I11 (Kotlin Toolchain);
+  the build facts come from the Toolchain's documentation and a hands-on check on
+  2026-09-25, and every line that check did not exercise (iOS archive and export, Android
+  `kotlin run`, the server module) says so. Everything that is not the build is copied from
+  `stacks/kmp/`; each forced change is marked *Toolchain departure*. The Toolchain is
+  **Alpha**, so a Toolchain release can break a document: re-check before bumping the
+  stack's `version`. Its delivery scripts are kmp's byte for byte; `STACK="kmp-toolchain"`
+  makes `kotlin_build_lib` source `lib/kotlin-toolchain.sh` instead of `lib/gradle.sh`.
 - **The apple-swift stack** derives from the owner's two shipped Swift apps, Beatrep
   (`~/projects/beatrep`) and Mokuso (`~/projects/mokuso`), plus the knowledge repo's
   native-lane atoms (MON13, MAS8–MAS12, HRD7, RED10, CI4). Where the two apps differ the
@@ -156,7 +167,9 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 - **Common library, per-stack entry scripts.** `stacks/common/distribution/lib/` is copied
   into every project; `stacks/<stack>/distribution/` holds only the entry scripts and
   `config.sh.template`. An entry script shared by several stacks is byte-identical in each
-  (the test enforces it); edit it once and copy.
+  (the test enforces it); edit it once and copy. Where the build system matters, a script
+  calls `kotlin_build_lib` and the Kotlin build interface (`android_version_read`, …),
+  never `gradle.sh` or `kotlin-toolchain.sh` directly; `STACK` in `config.sh` decides.
 - **Bash 3.2, stdlib Python, curl, openssl.** No PyJWT, no fastlane, no Ruby, no gcloud.
   Identifiers (team, key ids, package names, hosts) come only from `config.sh`; the test
   rejects any literal from the source projects.

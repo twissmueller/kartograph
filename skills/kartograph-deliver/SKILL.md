@@ -58,15 +58,19 @@ If `distribution/config.sh` exists, skip to step 2. Otherwise:
    the executable bits, never overwriting a file that exists. Rename the copied
    `config.sh.template` to `config.sh`.
 3. **Fill `config.sh`** from what the project shows, leaving a key empty when nothing
-   shows: `APP_NAME` from the product name; `APPLE_BUNDLE_ID`, `TEAM_ID`, `IOS_PROJECT`,
-   `IOS_SCHEME`, `VERSION_FILE` and `XCODEGEN` from an `.xcconfig`, `project.yml` or
-   `project.pbxproj`; `PLAY_PACKAGE_NAME`, `GRADLE_DIR`, `ANDROID_BUILD_FILE`,
-   `KEYSTORE_PROPERTIES` from the Gradle build; `COMPOSE_FILE`, `BACKEND_DIR`, `FLY_APP`,
-   `FRONTEND_DIR` from a compose file, `fly.toml` and an `angular.json`; `ASC_APP_ID`,
-   `ASC_KEY_ID`, `ASC_ISSUER_ID` from a delivery script already in the project when one
-   carries them; `LANES` from what exists (an iOS project → `ios`, a Mac scheme → `mac`, an
-   Android module → `android`, a desktop module → `desktop`, a `fly.toml` → `backend`, an
-   Angular project → `frontend`). Keep the template's comments.
+   shows. The comment beside each key in the copied template names the file its value
+   comes from; read it there: `APP_NAME` from the product name; the Apple keys from the
+   Xcode project and its configuration files; the Android keys (package, the build's
+   directory, the file holding the version fields, the keystore properties) from the
+   Android build files; `COMPOSE_FILE`, `BACKEND_DIR`, `FLY_APP`, `FRONTEND_DIR` from a
+   compose file, `fly.toml` and an `angular.json`; `ASC_APP_ID`, `ASC_KEY_ID`,
+   `ASC_ISSUER_ID` from a delivery script already in the project when one carries them;
+   `LANES` from what exists (an iOS project → `ios`, a Mac scheme → `mac`, an Android
+   module → `android`, a desktop module → `desktop`, a `fly.toml` → `backend`, an Angular
+   project → `frontend`). Keep `STACK` as the template sets it and keep its comments. When
+   a template comment asks for a change to a project file before a key can be filled (the
+   stack's `STACK.md` says which, under *Delivery*), leave the key empty and name the change
+   in the report.
 4. **Ignore the build output:** add `distribution/build/` to `.gitignore` if absent.
 5. **Commit** `distribution/` and `.gitignore` as `deliver: scripts for <stack>`; push to the
    branch's upstream; no git or no upstream, skip and say so. Report every key you filled
