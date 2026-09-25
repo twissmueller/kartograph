@@ -8,7 +8,8 @@ Prepared by kartograph-release on <YYYY-MM-DD> from `distribution/first-release-
 - ? no API can read it: you do it in the web UI, with the prepared answer
 
 Do every ✗ and every ? under *Before your yes*, then answer the one question. The steps
-under *After the release* come once the scripts have run.
+under *After the release* come once the scripts have run. A failure is reported per store:
+when Play fails after the App Store version was submitted, you learn what each store has.
 
 ## App Store — <platforms>
 
@@ -20,7 +21,7 @@ under *After the release* come once the scripts have run.
 | Price and availability | <✓ ✗ ?> | <price tier, countries and regions> | <what the code sells> |
 | Agreements, tax, DAC7, trader status (ASC19) | ? | <paid apps agreement needed: yes or no> | <in-app purchases, subscriptions> |
 | Version number (ASC29) | <✓ ✗> | <the editable version carries X.Y.Z> | first-release-check.sh |
-| First review of in-app purchases and subscriptions (ASC23, ASC24) | <✓ ✗> | <product ids ticked on the version's page> | first-release-check.sh |
+| In-app purchases and subscriptions complete (ASC23) | <✓ ✗> | <product ids still MISSING_METADATA: their localization and review screenshot> | first-release-check.sh |
 
 ### Set by the push after your yes
 
@@ -37,6 +38,15 @@ under *After the release* come once the scripts have run.
 | EULA link in the description (ASC25) | <✓ ✗ or "no subscription sold"> | <link> | `store/apple/<locale>.json` |
 | Screenshots | <✓ ✗> | <display types, screens> | `store/apple/screenshots/` |
 
+### After the release: the hand-over
+
+Only when products wait for their first review; then the build is attached and the version
+is not submitted (`release-stores.sh --no-submit`).
+
+| Step | Where |
+|---|---|
+| Add for Review on <each product id>: joins it to the submission and submits the version with it (ASC24); reload the page first, its state badge can be stale | App Store Connect → the product's own page |
+
 ## Google Play
 
 ### Before your yes: in the Play Console
@@ -50,14 +60,14 @@ under *After the release* come once the scripts have run.
 | App access (GP8) | ? | <every function without sign-in, or the reviewer's credentials> | <sign-in in the features> |
 | Category (GP6) | ? | <app or game, category, tags> | <the intents> |
 | Privacy policy (GP6) | <? ✗> | <the URL that answers 200> | <where the URL came from> |
-| Production access | ? | <only when the Dashboard asks for it: a new personal developer account first runs a closed test> | Play Console → Dashboard |
+| Production access (general Play policy, not in the knowledge repo) | ? | <only when the Dashboard asks for it: a new personal developer account first runs a closed test> | Play Console → Dashboard |
 | Icon and feature graphic | <✓ ✗> | <512 × 512 icon, 1024 × 500 graphic> | `store/play/screenshots/<locale>/icon/`, `featureGraphic/` |
 
 ### Set by the push after your yes
 
 | Gate | Mark | Value | File |
 |---|---|---|---|
-| defaultLanguage (GP2) | <✓ ✗> | <the locale chosen> | `store/play/listing.json` |
+| defaultLanguage (GP2) | <✓ ✗> | <the locale listing.json carries, or "yours to decide": never derived> | `store/play/listing.json` |
 | Contact email and website | <✓ ✗> | <email, website> | `store/play/listing.json` |
 | Listing per locale | <✓ ✗> | <locales> | `store/play/listing.json` |
 | Screenshots (GP5) | <✓ ✗> | <the App Store images> | `store/play/screenshots/` |

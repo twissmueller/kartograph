@@ -91,14 +91,18 @@ from `versionName` in the file `ANDROID_BUILD_FILE` names.
 A lane whose line says `on sale none` (Apple) or `production none` (Play) is a **first
 release** on that lane; every other lane is a follow-up and everything below runs for it
 as it always did. The tested build on TestFlight or Play internal is still required (exit
-0), and it already proves that the app record and the Play app exist. For a first release,
-copy `stacks/<STACK>/distribution/first-release-check.sh` from the plugin root when
-`distribution/first-release-check.sh` is missing, keeping it executable. When the
-project's `distribution/release-stores.sh` does not call `asc_version_on_sale` and the
-first release includes an Apple lane, copy `stacks/<STACK>/distribution/release-stores.sh`
-and `stacks/common/distribution/lib/asc.sh` over both, keeping the script executable, and
-say in the report that they were refreshed: the older script sets What's New, which Apple
-refuses on a first release. Then run
+0), and it already proves that the app record and the Play app exist. An Apple line reads
+`on sale none` from an older `distribution/release-check.sh` for an app removed from sale
+too: when the project's copy does not name `DEVELOPER_REMOVED_FROM_SALE`, copy the
+plugin's over it, keeping it executable, and run it again before deciding. For a first
+release, copy `stacks/<STACK>/distribution/first-release-check.sh` from the plugin root
+when `distribution/first-release-check.sh` is missing, keeping it executable. When the
+first release includes an Apple lane and the project's `distribution/release-stores.sh`
+does not call `asc_version_on_sale` or has no `--no-submit)` case, copy
+`stacks/<STACK>/distribution/release-stores.sh` and `stacks/common/distribution/lib/asc.sh`
+over both, keeping the script executable, and say in the report that they were refreshed:
+the older script sets What's New, which Apple refuses on a first release, and cannot leave
+the submission to an in-app purchase's Add for Review. Then run
 `distribution/first-release-check.sh --version <X.Y.Z>`, with `--apple` or `--play` when
 only that store's lanes are first releases: exit 3 stops like
 `release-check.sh`'s; exit 0 or 1 gives one line per gate (`✓` in place, `✗` missing, `?`
@@ -183,9 +187,10 @@ templates, sends nothing and stops with exit 2), and fill the templates:
   empty. `distribution/store/apple/app.json`: the categories, `contentRightsDeclaration`,
   `usesIdfa`, `copyright`, every `ageRatingDeclaration` answer, and `reviewDetail`.
 - Play, `distribution/store/play/listing.json`: `title`, `shortDescription` (at most 80) and
-  `fullDescription` per locale, `contactEmail`, `contactWebsite`, and `defaultLanguage` set
-  explicitly to the first locale in `LOCALES`, the order the person chose, and named in the
-  checklist and the summary so the one answer confirms it (GP2).
+  `fullDescription` per locale, `contactEmail`, `contactWebsite`. `defaultLanguage` is the
+  person's choice, never derived, not even from the order of `LOCALES` (GP2): one the file
+  already carries stays; an empty one stays empty, becomes "yours to decide" in the
+  checklist, and the one question names it.
 
 Each answer comes from the code and the project's files, per the rule *Never guess an
 answer*: `usesIdfa` is true only when an ad or attribution library reads the advertising
@@ -201,7 +206,11 @@ has its own (ASC25).
 Then run `distribution/push-store-metadata.sh --dry-run --version <X.Y.Z>`. It checks
 every length and refuses other-platform words and dead URLs before any upload, and says
 for each Apple platform that it would create the version `X.Y.Z` the texts land on; fix
-the texts until it passes.
+the texts until it passes. It also stops when an Apple platform already has an editable
+version with another number, such as the "1.0" App Store Connect creates with a new app:
+`X.Y.Z` cannot be created beside it (ASC29). That is no text fix; it becomes the ✗ of the
+version gate in the checklist, and the summary before the question says so. Only that
+finding and an empty `defaultLanguage` may stay when the dry run ends; fix every other.
 
 ## 5. Screenshots
 
@@ -256,8 +265,16 @@ when it is empty. A `?` line is a web step and gets its answer here:
   ID declaration, GP11) and what the app sells; the price is the person's, never guessed.
 
 Every answer names what it came from; one that nothing shows reads "yours to decide" and
-keeps its `?` or `✗`. Remove every angle-bracket placeholder. The Play section ends with
-*After the release*: the draft production release is sent for review from the console.
+keeps its `?` or `✗`. Remove every angle-bracket placeholder.
+
+An in-app purchase or subscription waiting for its first review (a `?` on the `in-app
+purchases` or `subscriptions` line) is no step before the yes. The API cannot add it to a
+submission, and the product's own **Add for Review** in App Store Connect joins it to the
+open submission and submits the version with it (ASC24). So the release attaches the
+build without submitting (`release-stores.sh --no-submit`), and the checklist's *After the
+release* hands the person that click, per product. An incomplete product (`✗`,
+MISSING_METADATA) has to be completed before the yes. The Play section's *After the
+release* is the draft production release, sent for review from the console.
 
 ## 6. Commit, ask once, release
 
@@ -277,11 +294,26 @@ removed. Ask once: "Release v<X.Y.Z> to the stores now?" — **A (recommended):*
 
 On a first release the summary shows instead the full texts per locale, every screenshot,
 and every ✗ and `?` of `distribution/store/first-release.md` with its answer and where it
-is done, including `defaultLanguage`; and the one question is: "The web steps in
-`distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?" — **A:** yes,
-**B:** not yet. On yes, when the person has filled a file under `distribution/store/`
-since the commit (the review contact's phone, a URL), commit it as `release: v<X.Y.Z>
-store details` and push first; the scripts below check every file again before they send.
+is done, `defaultLanguage` by name when it is still yours to decide, and the hand-over
+after the release (the Add for Review clicks, the Play review); and the one question is:
+"The web steps in `distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?"
+— **A:** yes, **B:** not yet. When products wait for a first review, the question adds
+"The build is attached but not submitted; your Add for Review on each product submits it."
+
+On yes to a first release, before anything leaves the machine:
+
+1. When the person has filled a file under `distribution/store/` since the commit (the
+   review contact's phone, a URL, `defaultLanguage`), commit it as `release: v<X.Y.Z>
+   store details` and push.
+2. Run `distribution/first-release-check.sh --version <X.Y.Z>` again, with the same lane
+   options. Stop with "nothing was sent" on exit 3, and on any `✗` among the gates the push
+   does not set: `version`, `in-app purchases`, `subscriptions`, `price`, `availability`,
+   `EULA link`. A `✗` on a gate the push sets from the files — `content rights`,
+   `category`, `age rating`, `defaultLanguage`, `contact`, `listings` — is expected on an
+   app never pushed, and exit 1 for those alone is no stop.
+3. Stop the same way when a checklist `✗` that lives in a file is still empty there: the
+   review contact in `app.json`, a URL in `<locale>.json`, `defaultLanguage` or the contact
+   in `listing.json`. Name each one and where it is set.
 
 On yes, run from the project root, in this order, stopping at the first failure:
 
@@ -291,16 +323,20 @@ On yes, run from the project root, in this order, stopping at the first failure:
    screenshots land on it rather than being skipped as "nothing was changed"; they go live
    only with the version, after review)
 2. `distribution/release-stores.sh --notes distribution/release-notes/v<X.Y.Z>.md --version <X.Y.Z> --yes`
-   (with `--rollout <fraction>` when the person named one)
+   (with `--rollout <fraction>` when the person named one, and `--no-submit` on a first
+   release whose in-app purchases or subscriptions wait for their first review)
 3. When the project has a Play lane:
    `distribution/push-store-metadata.sh --play --screenshots --yes` — last, because Play's
    listing and screenshots go live the moment its edit commits, so they must not describe a
    version production does not have yet
 
 The order is the same on a first release. `release-stores.sh` then sets no What's New on
-an Apple platform with nothing on sale, and Play accepts only a draft production release
-for an app never published: it is staged, and the person sends it for review from the
-console (the checklist's *After the release*).
+an Apple platform with nothing on sale; with `--no-submit` it attaches the build and
+submits nothing, and the person's Add for Review does. Play accepts only a draft
+production release for an app never published: it is staged, and the person sends it for
+review from the console (the checklist's *After the release*). A failure on the Play lane
+after the Apple version was submitted is reported per lane: what Apple already has, and
+what Play has and has not.
 
 When every step succeeded and no `v<X.Y.Z>` tag exists, tag the release commit
 `git tag -a v<X.Y.Z> -m "v<X.Y.Z>"` and push the tag; an existing tag stays where it is.
@@ -316,6 +352,7 @@ production and its rollout, the tag. The delivery scripts refreshed in step 1, i
 What the scripts said only the web UI can do (App Privacy, Data safety, a subscription's
 first review). On a first release: every line of `distribution/store/first-release.md`
 that still carries ✗ or `?`, and where it is done (App Store Connect, the Play Console, or
-the file and field), with the Play review of the draft release last. Every screen whose
+the file and field), then the hand-over: each product's Add for Review when the build was
+attached without a submission, and the Play review of the draft release last. Every screen whose
 screenshot was rendered from shared code only, or not rendered, and why. Then you are
 done.
