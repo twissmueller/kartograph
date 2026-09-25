@@ -98,8 +98,16 @@ _asc_str() { python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1
 #
 # Every verb prints the response body on stdout. On HTTP >= 400 it prints the errors
 # array's title and detail on stderr — the fields that name the cause — and returns 1.
-# `curl -sf` would swallow exactly that body.
+# `curl -sf` would swallow exactly that body. The reasons behind a refusal such as "This
+# resource cannot be reviewed" sit one level down, in errors[].meta.associatedErrors (a
+# list of {code, detail} per resource): printing only the top-level detail hides every
+# blocker (ASC20), so they are printed too, and only when that list is empty is the
+# version page in App Store Connect the place to look.
+# The status of the last request is left in ASC_HTTP_STATUS for a caller that did not call
+# the verb inside a command substitution (a 409 means different things per resource).
 # ---------------------------------------------------------------------------
+
+ASC_HTTP_STATUS=""
 
 _asc_request() {
   local method="$1" path="$2" query="${3:-}" body="${4:-}"
@@ -124,6 +132,7 @@ _asc_request() {
   fi
   code="$(printf '%s\n' "$response" | tail -n 1)"
   out="$(printf '%s\n' "$response" | sed '$d')"
+  ASC_HTTP_STATUS="$code"
   if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
     printf '%s\n' "$out"
     return 0
@@ -131,7 +140,17 @@ _asc_request() {
   warn "App Store Connect: $method ${url%%\?*} → HTTP $code"
   printf '%s' "$out" | _asc_py '
 for e in d.get("errors", []):
-    print("   %s: %s" % (e.get("title"), e.get("detail")))' >&2 2>/dev/null \
+    print("   %s: %s" % (e.get("title"), e.get("detail")))
+    associated = (e.get("meta") or {}).get("associatedErrors") or {}
+    if isinstance(associated, list):
+        associated = {"": associated}
+    for resource, errors in associated.items():
+        if resource:
+            print("     %s" % resource)
+        for a in errors or []:
+            print("       %s: %s" % (a.get("code"), a.get("detail")))
+    if not any(associated.values()) and "associated errors" in (e.get("detail") or ""):
+        print("     no associated errors listed: the version page in App Store Connect lists the blockers (ASC20)")' >&2 2>/dev/null \
     || printf '%s\n' "$out" >&2
   return 1
 }
@@ -204,16 +223,22 @@ asc_build_wait() {
   done
 }
 
-# asc_export_compliance BUILD_ID — declare that the build uses no non-exempt encryption.
-# A build whose Info.plist already declares it answers 409: that confirms the declaration
-# rather than contradicting it, so this never aborts the run.
+# asc_export_compliance BUILD_ID [PLATFORM [NUMBER]] — declare that the build uses no
+# non-exempt encryption. The declaration belongs in every app target's Info.plist
+# (ITSAppUsesNonExemptEncryption, ASC8): a build that has it answers 409, which confirms it.
+# So the PATCH going through is no success to report quietly: it means that target lacks
+# the key, and only this one build is declared. Any other status is warned with it. Never
+# aborts the run.
 asc_export_compliance() {
-  local build="${1:?asc_export_compliance BUILD_ID}"
+  local build="${1:?asc_export_compliance BUILD_ID [PLATFORM [NUMBER]]}" platform="${2:-app}" number="${3:-$1}"
+  ASC_HTTP_STATUS=""
   if asc_patch "/builds/$build" \
       "{\"data\":{\"type\":\"builds\",\"id\":\"$build\",\"attributes\":{\"usesNonExemptEncryption\":false}}}" >/dev/null 2>&1; then
-    log "export compliance declared (no non-exempt encryption)"
-  else
+    warn "the $platform target's Info.plist lacks ITSAppUsesNonExemptEncryption; set false through the API for build $number only — add the key to every app target (ASC8)"
+  elif [ "$ASC_HTTP_STATUS" = 409 ]; then
     log "export compliance already set from the Info.plist key (expected)"
+  else
+    warn "export compliance not set (HTTP ${ASC_HTTP_STATUS:-unknown}) — answer it on build $number's page in App Store Connect before submitting (ASC8)"
   fi
   return 0
 }
@@ -346,13 +371,20 @@ ASC_SHIPPED_STATES="READY_FOR_SALE READY_FOR_DISTRIBUTION DEVELOPER_REMOVED_FROM
 
 ASC_EDITABLE_STATES="PREPARE_FOR_SUBMISSION DEVELOPER_REJECTED REJECTED METADATA_REJECTED INVALID_BINARY WAITING_FOR_REVIEW"
 
+# The states of a version that already sits in a review submission: READY_FOR_REVIEW is an
+# item of the open draft (what --no-submit leaves), the other two were submitted. Its build
+# is locked, and a second submission for it is never created (ASC31): a release counts such
+# a version as done. After a withdrawal (ASC38) the version is DEVELOPER_REJECTED, editable.
+ASC_IN_SUBMISSION_STATES="READY_FOR_REVIEW WAITING_FOR_REVIEW IN_REVIEW"
+
 # asc_version_exists PLATFORM VERSION — true when a version in an editable state already
 # carries exactly VERSION; never creates one, so callers can decide whether creating one
-# needs confirming before asc_version_editable does it.
+# needs confirming before asc_version_editable does it. 1 when none does, 2 when the
+# versions cannot be read: an unreadable store is no reason to create a version.
 asc_version_exists() {
   local platform="${1:?asc_version_exists PLATFORM VERSION}" version="${2:?asc_version_exists PLATFORM VERSION}" app answer id
   app="$(_asc_app)"
-  answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 1
+  answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 2
   id="$(printf '%s' "$answer" | _asc_py 'want, states = sys.argv[2], set(sys.argv[3].split())
 for v in d.get("data", []):
     a = v["attributes"]
@@ -360,6 +392,38 @@ for v in d.get("data", []):
     if state in states and a.get("versionString") == want:
         print(v["id"]); break' "$version" "$ASC_EDITABLE_STATES")"
   [ -n "$id" ]
+}
+
+# asc_version_editable_string PLATFORM — the versionString of the version in an editable
+# state, nothing when there is none; non-zero only when the versions cannot be read. The
+# ASC29 stop names it: "1.0" beside a build 1.0.0 is a different number, and a build
+# attaches only to the version of its own.
+asc_version_editable_string() {
+  local platform="${1:?asc_version_editable_string PLATFORM}" app answer
+  app="$(_asc_app)"
+  answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 1
+  printf '%s' "$answer" | _asc_py 'states = set(sys.argv[2].split())
+for v in d.get("data", []):
+    a = v["attributes"]
+    if (a.get("appStoreState") or a.get("appVersionState")) in states:
+        print(a.get("versionString") or ""); break' "$ASC_EDITABLE_STATES"
+}
+
+# asc_version_in_submission PLATFORM VERSION — the state of the version carrying exactly
+# VERSION when it already sits in a review submission (ASC_IN_SUBMISSION_STATES), nothing
+# otherwise; non-zero only when the versions cannot be read. A re-run after --no-submit
+# finds its version READY_FOR_REVIEW, which no editable state names: creating it again is
+# refused with 409 "version number has been previously used" (ASC31).
+asc_version_in_submission() {
+  local platform="${1:?asc_version_in_submission PLATFORM VERSION}" version="${2:?asc_version_in_submission PLATFORM VERSION}" app answer
+  app="$(_asc_app)"
+  answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 1
+  printf '%s' "$answer" | _asc_py 'want, states = sys.argv[2], set(sys.argv[3].split())
+for v in d.get("data", []):
+    a = v["attributes"]
+    state = a.get("appStoreState") or a.get("appVersionState")
+    if state in states and a.get("versionString") == want:
+        print(state); break' "$version" "$ASC_IN_SUBMISSION_STATES"
 }
 
 # asc_version_editable PLATFORM [X.Y.Z] — print the id of the version in an editable state,
@@ -401,13 +465,59 @@ print(json.dumps({"data": {"type": "appStoreVersions",
   printf '%s\n' "$id"
 }
 
+# asc_version_carries PLATFORM VERSION BUILD_ID — 0 when the version carrying exactly
+# VERSION has BUILD_ID attached; 1 when another build or none is, warning with both build
+# numbers; 2 when it cannot be read. A version in a review submission keeps its build: a
+# newer build of the same version (a rebuild with the ASC8 key, say) cannot reach review
+# before that version is withdrawn (ASC38) or removed from the draft.
+asc_version_carries() {
+  local platform="${1:?asc_version_carries PLATFORM VERSION BUILD_ID}" version="${2:?}" build="${3:?}" app answer id attached newest
+  app="$(_asc_app)"
+  answer="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50")" || return 2
+  id="$(printf '%s' "$answer" | _asc_py 'want = sys.argv[2]
+for v in d.get("data", []):
+    if v["attributes"].get("versionString") == want:
+        print(v["id"]); break' "$version")"
+  [ -n "$id" ] || return 2
+  answer="$(asc_get "/appStoreVersions/$id/build")" || return 2
+  attached="$(printf '%s' "$answer" | _asc_py 'b = d.get("data") or {}
+print("%s %s" % (b.get("id") or "-", (b.get("attributes") or {}).get("version") or "-"))')"
+  [ "${attached%% *}" = "$build" ] && return 0
+  newest="$(asc_get "/builds/$build" | _asc_py 'print(((d.get("data") or {}).get("attributes") or {}).get("version") or "")')" || newest=""
+  if [ "${attached%% *}" = "-" ]; then
+    warn "no build is attached, the newest is ${newest:-$build}"
+  else
+    warn "build ${attached#* } is attached, the newest is ${newest:-$build}"
+  fi
+  return 1
+}
+
 # asc_version_attach VERSION_ID BUILD_ID — the build the store page (and its icon) comes
 # from. A rejected version keeps its rejected build until someone attaches a new one.
+# A version that sits in a review submission is locked and answers 409: that is reported
+# as "left alone", never as a failure (ASC27). Any other refusal fails, a 409 from an
+# editable version included (a build of another number, ASC29).
 asc_version_attach() {
-  local version="${1:?asc_version_attach VERSION_ID BUILD_ID}" build="${2:?asc_version_attach VERSION_ID BUILD_ID}"
-  asc_patch "/appStoreVersions/$version/relationships/build" \
-    "{\"data\":{\"type\":\"builds\",\"id\":\"$build\"}}" >/dev/null || return 1
-  log "build $build attached to version $version"
+  local version="${1:?asc_version_attach VERSION_ID BUILD_ID}" build="${2:?asc_version_attach VERSION_ID BUILD_ID}" state
+  ASC_HTTP_STATUS=""
+  if asc_patch "/appStoreVersions/$version/relationships/build" \
+      "{\"data\":{\"type\":\"builds\",\"id\":\"$build\"}}" >/dev/null; then
+    log "build $build attached to version $version"
+    return 0
+  fi
+  [ "$ASC_HTTP_STATUS" = 409 ] || return 1
+  # WAITING_FOR_REVIEW is in ASC_EDITABLE_STATES too (its texts stay patchable), so a build
+  # of another number racing onto such a version (ASC29) is also logged "left alone" here.
+  state="$(asc_get "/appStoreVersions/$version" \
+    | _asc_py 'a = (d.get("data") or {}).get("attributes") or {}
+print(a.get("appStoreState") or a.get("appVersionState") or "")')" || return 1
+  case " $ASC_IN_SUBMISSION_STATES " in
+    *" $state "*)
+      log "version $version is $state, locked in its review submission: its build is left alone (ASC27)"
+      return 0
+      ;;
+  esac
+  return 1
 }
 
 # asc_version_whats_new VERSION_ID LOCALE TEXT
@@ -510,7 +620,8 @@ asc_review_submit() {
     printf '%s\n' "$pending" | sed 's/^/   /' >&2
     warn "A subscription's FIRST review is ticked in App Store Connect while submitting the"
     warn "version — the API has no way to add it. Submitting without it repeats the"
-    warn "Guideline 2.1(b) rejection, so nothing was submitted."
+    warn "Guideline 2.1(b) rejection, so nothing was submitted. A first subscription goes"
+    warn "with its group, whose page has its own Add for Review (ASC36)."
     return 1
   fi
 
@@ -540,7 +651,19 @@ asc_review_prepare() {
   local app version_id build answer submission items payload
   app="$(_asc_app)"
 
-  version_id="$(asc_version_editable "$platform" "$version_string")" || return 1
+  # The version the open draft already holds (READY_FOR_REVIEW after --no-submit) comes
+  # first: no editable state names it, and it is submitted where it is (ASC31).
+  version_id="$(asc_get "/apps/$app/appStoreVersions" "filter[platform]=$platform&limit=50" \
+    | _asc_py 'want = sys.argv[2]
+for v in d.get("data", []):
+    a = v["attributes"]
+    if (a.get("appStoreState") or a.get("appVersionState")) == "READY_FOR_REVIEW" and (not want or a.get("versionString") == want):
+        print(v["id"]); break' "$version_string")" || version_id=""
+  if [ -n "$version_id" ]; then
+    log "the $platform version in the open draft: $version_id"
+  else
+    version_id="$(asc_version_editable "$platform" "$version_string")" || return 1
+  fi
 
   build="$(asc_get "/appStoreVersions/$version_id/build" \
     | _asc_py 'print((d.get("data") or {}).get("attributes", {}).get("version", ""))')" || build=""
@@ -606,4 +729,40 @@ print(json.dumps({"data": {"type": "reviewSubmissionItems",
       ;;
   esac
   printf '%s\n' "$submission"
+}
+
+# asc_review_cancel PLATFORM — withdraw the platform's submission that is WAITING_FOR_REVIEW
+# (ASC38): PATCH canceled true, and the state must read CANCELING or COMPLETE. The version
+# returns to DEVELOPER_REJECTED, editable, its build still attached; the next
+# asc_review_prepare creates a fresh submission, the cancelled one is spent. It is the fix
+# for what review cannot pass without, such as a first release sent without its first
+# subscriptions and their group (ASC36); anything the metadata can fix stays in the queue
+# (ASC27). A draft (READY_FOR_REVIEW) is no submission to withdraw and one in review is
+# not waiting: both are refused, writing nothing. A sibling platform's submission is
+# separate and keeps its place. Leaves the machine, so it confirms unless ASSUME_YES.
+asc_review_cancel() {
+  local platform="${1:?asc_review_cancel PLATFORM}" app answer submission payload state
+  app="$(_asc_app)"
+  answer="$(asc_get /reviewSubmissions "filter[app]=$app&filter[platform]=$platform&limit=20")" || return 1
+  submission="$(printf '%s' "$answer" | _asc_py '
+for s in d.get("data", []):
+    if s["attributes"].get("state") == "WAITING_FOR_REVIEW":
+        print(s["id"]); break')"
+  if [ -z "$submission" ]; then
+    warn "no $platform submission is WAITING_FOR_REVIEW; nothing was withdrawn"
+    return 1
+  fi
+  confirm_typed withdraw "Withdraw the $platform review submission $submission from App Review? Type 'withdraw'"
+  payload="{\"data\":{\"type\":\"reviewSubmissions\",\"id\":\"$submission\",\"attributes\":{\"canceled\":true}}}"
+  state="$(asc_patch "/reviewSubmissions/$submission" "$payload" \
+    | _asc_py 'print(d.get("data", {}).get("attributes", {}).get("state", ""))')" || state=""
+  case "$state" in
+    CANCELING|COMPLETE)
+      log "$platform submission $submission withdrawn (state: $state); the version is editable again with its build (ASC38)"
+      ;;
+    *)
+      warn "the $platform submission $submission was not withdrawn (state: ${state:-unknown}); it keeps its place in the queue"
+      return 1
+      ;;
+  esac
 }

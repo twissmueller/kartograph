@@ -16,6 +16,13 @@
 #          it: an in-app purchase's first review can only be added from its own page in
 #          App Store Connect, whose Add for Review joins that OPEN submission and submits
 #          the whole thing (ASC24). Play ignores --no-submit.
+#          A version already in a review submission (READY_FOR_REVIEW after a --no-submit
+#          run, WAITING_FOR_REVIEW, IN_REVIEW) is never created or attached again (ASC31).
+#          When it carries another build than the newest processed one the run stops:
+#          withdraw it (ASC38) or remove it from the draft first. Otherwise a
+#          READY_FOR_REVIEW draft is submitted where it is on a run without --no-submit,
+#          and every other case is done for its platform; the run goes on with the next.
+#          A locked version's build is left alone, never a failure (ASC27).
 #   play   on an app that was never published, Play accepts only a draft production
 #          release; it is staged, and sent for review from the Play Console.
 # Nothing is rebuilt: the artefact that was tested is the artefact that ships.
@@ -65,6 +72,28 @@ if [ "$apple" = 1 ]; then
     case "$platform" in IOS) has_lane ios || continue ;; MAC_OS) has_lane mac || continue ;; esac
     build_id="$(asc_build_latest "$platform" "$version")"
     [ -n "$build_id" ] || die "no processed $platform build for $version — run deploy-testflight.sh first"
+    in_submission="$(asc_version_in_submission "$platform" "$version")" \
+      || die "could not read the $platform App Store versions — nothing was changed"
+    if [ -n "$in_submission" ]; then
+      carries=0
+      asc_version_carries "$platform" "$version" "$build_id" || carries=$?
+      case "$carries" in
+        0) ;;
+        1) die "App Store ($platform): $APP_NAME $version sits in a review submission ($in_submission) with another build than the newest; withdraw it (ASC38) or remove it from the draft in App Store Connect first — nothing was published" ;;
+        *) die "could not read the $platform version's build — nothing was published" ;;
+      esac
+      if [ "$in_submission" = READY_FOR_REVIEW ] && [ "$submit" = 1 ]; then
+        log "App Store ($platform): $APP_NAME $version waits in the open review submission with its build; submitting it there, no second submission (ASC31)"
+        confirm_typed submit "Submit $APP_NAME $version ($platform) for App Review? Type 'submit'"
+        asc_review_submit "$platform" "$version"
+        continue
+      fi
+      case "$in_submission" in
+        READY_FOR_REVIEW) log "App Store ($platform): $APP_NAME $version is already in a review submission ($in_submission), prepared and not submitted; done for this platform. Add for Review on each product's page (and a first subscription's group page, ASC36) in App Store Connect sends it (ASC24, ASC31)" ;;
+        *) log "App Store ($platform): $APP_NAME $version is already in a review submission ($in_submission), submitted; done for this platform, nothing sent (ASC31)" ;;
+      esac
+      continue
+    fi
     on_sale="$(asc_version_on_sale "$platform")" \
       || die "could not read the $platform App Store versions — nothing was changed"
     version_id="$(asc_version_editable "$platform" "$version")"
@@ -80,7 +109,7 @@ if [ "$apple" = 1 ]; then
     if [ "$submit" = 0 ]; then
       confirm_typed prepare "Prepare the App Review submission for $APP_NAME $version ($platform), not submitted? Type 'prepare'"
       submission="$(asc_review_prepare "$platform")"
-      log "App Store ($platform): submission $submission holds $version, not submitted (--no-submit) — reload each in-app purchase's page in App Store Connect and click Add for Review; that joins it and submits the whole thing (ASC24). Canceling the submission drops the in-app purchase again."
+      log "App Store ($platform): submission $submission holds $version, not submitted (--no-submit) — reload each in-app purchase's page in App Store Connect and click Add for Review; that joins it and submits the whole thing (ASC24). A first subscription also needs its group's own Add for Review on the group page, the group named in every locale its subscriptions have before the first click (ASC36). Canceling the submission drops the in-app purchase again."
       continue
     fi
     confirm_typed submit "Submit $APP_NAME $version ($platform) for App Review? Type 'submit'"

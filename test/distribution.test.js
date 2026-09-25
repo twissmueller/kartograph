@@ -459,6 +459,7 @@ test("push-store-metadata.sh's ensure_apple_version creates the missing App Stor
     . '${lib("common.sh")}'
     asc_version_exists() { [ "\${EXISTS:-0}" = 1 ]; }
     asc_version_editable() { [ -n "\${2:-}" ] || return 1; echo "CREATE $1 $2" >&2; echo fake-id; }
+    asc_version_in_submission() { :; }; asc_version_editable_string() { :; }
     ${fn}
     ensure_apple_version IOS
   `], { encoding: "utf8", input, env: { ...process.env, version: "1.2.0", dry: "", ...env } });
@@ -532,6 +533,8 @@ asc_version_attach() { echo "ATTACH $1 $2" >&2; }
 asc_version_whats_new() { echo "WHATSNEW $1 $2 $3" >&2; }
 asc_review_submit() { echo "SUBMIT $1" >&2; }
 asc_review_prepare() { echo "PREPARE $1" >&2; echo submission-1; }
+asc_version_carries() { case "\${CARRIES:-0}" in 0) return 0 ;; 1) echo "! build 27 is attached, the newest is 28" >&2; return 1 ;; *) return 2 ;; esac; }
+asc_version_in_submission() { [ "\${IN_SUBMISSION_FAIL:-}" = 1 ] && { echo "HTTP 500" >&2; return 1; }; case "$1" in IOS) printf '%s\\n' "\${IN_SUBMISSION_IOS:-}" ;; *) printf '%s\\n' "\${IN_SUBMISSION_MAC:-}" ;; esac; }
 `);
   writeFileSync(join(dist, "notes.md"), "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n");
   return (env = {}) => spawnSync("bash", [join(dist, "release-stores.sh"), ...args, ...(env.EXTRA ? [env.EXTRA] : []), "--notes", join(dist, "notes.md"), "--version", "1.3.0", "--yes"], { encoding: "utf8", env: { ...process.env, ...env } });
@@ -584,6 +587,7 @@ const firstReleaseCheck = (config = 'LANES="ios mac android"') => {
     /apps/1/appStoreVersions) case "$2" in *MAC_OS*) printf '%s' "$VERSIONS_MAC" ;; *) printf '%s' "$VERSIONS_IOS" ;; esac ;;
     /apps/1/subscriptionGroups) printf '%s' "$SUBSCRIPTIONS" ;;
     /apps/1/inAppPurchasesV2) printf '%s' "$PURCHASES" ;;
+    /builds) case "$2" in *MAC_OS*) printf '%s' "\${BUILDS_MAC:-}" ;; *) printf '%s' "\${BUILDS_IOS:-}" ;; esac ;;
     *) echo "unexpected GET $1" >&2; return 1 ;;
   esac
 }
@@ -610,6 +614,8 @@ play_api() {
     VERSIONS_MAC: versions(),
     SUBSCRIPTIONS: JSON.stringify({ data: [] }),
     PURCHASES: JSON.stringify({ data: [] }),
+    BUILDS_IOS: JSON.stringify({ data: [{ id: "b1", attributes: { version: "41", usesNonExemptEncryption: false } }] }),
+    BUILDS_MAC: JSON.stringify({ data: [{ id: "b2", attributes: { version: "41", usesNonExemptEncryption: false } }] }),
     DETAILS: JSON.stringify({ defaultLanguage: "en-US", contactEmail: "a@example.org", contactWebsite: "https://example.org" }),
     LISTINGS: JSON.stringify({ listings: [{ language: "en-US" }, { language: "de-DE" }] }),
   };
@@ -783,6 +789,7 @@ test("push-store-metadata.sh stops, even on --dry-run, when an editable Apple ve
       . '${lib("common.sh")}'
       asc_version_exists() { return 1; }
       asc_version_editable() { if [ -z "\${2:-}" ]; then echo other-id; else echo "CREATE $1 $2" >&2; echo fake-id; fi; }
+      asc_version_in_submission() { :; }; asc_version_editable_string() { echo 1.0; }
       ${fn}
       ensure_apple_version IOS
     `], { encoding: "utf8", env: { ...process.env, version: "1.0.0", dry, ASSUME_YES: "1" } });
@@ -885,4 +892,285 @@ test("xcode_profile_install writes the profile as <uuid>.<extension> into both d
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
+});
+
+// --- Beatrep's first App Store release (2026-09): ASC8, ASC11, ASC20, ASC27, ASC29, ASC31,
+// ASC36, ASC37, ASC38. Every store call is stubbed; nothing reaches App Store Connect.
+
+// curl replaced by a function: the real _asc_request runs, and the answer per "METHOD path"
+// comes from the environment (BODY_<n>/CODE_<n> matched against ROUTE_<n>).
+const curlStub = String.raw`asc_token() { echo token; }
+curl() {
+  local m="" u="" prev="" a route
+  for a in "$@"; do [ "$prev" = -X ] && m="$a"; case "$a" in http*) u="$a" ;; esac; prev="$a"; done
+  u="$(printf '%s' "$u" | sed -e 's#^https://api.appstoreconnect.apple.com/v1##' -e 's#[?].*##')"
+  echo "CALL $m $u" >&2
+  for route in 1 2 3; do
+    if [ -n "$(printenv ROUTE_$route)" ] && [ "$m $u" = "$(printenv ROUTE_$route)" ]; then
+      printf '%s\n%s' "$(printenv BODY_$route)" "$(printenv CODE_$route)"; return 0
+    fi
+  done
+  printf '%s\n%s' '{"errors":[{"title":"not stubbed","detail":"no route"}]}' 404
+}`;
+
+test("an API refusal prints every associated error's code and detail, not only the top-level detail (ASC20)", () => {
+  const refusal = JSON.stringify({ errors: [{ status: "409", code: "STATE_ERROR.ENTITY_STATE_INVALID", title: "The request cannot be fulfilled.", detail: "This resource cannot be reviewed, please check associated errors to see why.",
+    meta: { associatedErrors: {
+      "/v1/appStoreVersions/v-ios": [{ code: "STATE_ERROR.APP_DATA_USAGES_REQUIRED", detail: "You must provide App Privacy details." },
+                                     { code: "STATE_ERROR.CANNOT_SUBMIT_MISSING_REGULATED_MEDICAL_DEVICE_APP_DECLARATION", detail: "Declare whether the app is a regulated medical device." }],
+      "/v1/builds/b-mac": [{ code: "ENTITY_ERROR.ATTRIBUTE.REQUIRED", detail: "usesNonExemptEncryption is required." }] } } }] });
+  let r = sh(`${asc} ${curlStub}; asc_post /reviewSubmissionItems '{}'`, { ROUTE_1: "POST /reviewSubmissionItems", BODY_1: refusal, CODE_1: "409" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /This resource cannot be reviewed/);
+  assert.match(r.stderr, /\/v1\/appStoreVersions\/v-ios/);
+  assert.match(r.stderr, /STATE_ERROR\.APP_DATA_USAGES_REQUIRED: You must provide App Privacy details\./);
+  assert.match(r.stderr, /STATE_ERROR\.CANNOT_SUBMIT_MISSING_REGULATED_MEDICAL_DEVICE_APP_DECLARATION: Declare whether/);
+  assert.match(r.stderr, /\/v1\/builds\/b-mac/);
+  assert.match(r.stderr, /ENTITY_ERROR\.ATTRIBUTE\.REQUIRED: usesNonExemptEncryption is required\./);
+
+  // no associated errors listed: then, and only then, the version page is the place to look
+  const bare = JSON.stringify({ errors: [{ status: "409", title: "The request cannot be fulfilled.", detail: "This resource cannot be reviewed, please check associated errors to see why." }] });
+  r = sh(`${asc} ${curlStub}; asc_post /reviewSubmissionItems '{}'`, { ROUTE_1: "POST /reviewSubmissionItems", BODY_1: bare, CODE_1: "409" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /no associated errors listed.*version page.*ASC20/);
+});
+
+test("asc_version_attach reports a locked version's 409 as 'left alone', and still fails on any other refusal (ASC27)", () => {
+  const conflict = JSON.stringify({ errors: [{ status: "409", title: "The request cannot be fulfilled.", detail: "The build cannot be changed." }] });
+  const version = (state) => JSON.stringify({ data: { id: "v1", attributes: { versionString: "1.0.0", appVersionState: state } } });
+  for (const state of ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"]) {
+    const r = sh(`${asc} ${curlStub}; asc_version_attach v1 b1`, { ROUTE_1: "PATCH /appStoreVersions/v1/relationships/build", BODY_1: conflict, CODE_1: "409", ROUTE_2: "GET /appStoreVersions/v1", BODY_2: version(state), CODE_2: "200" });
+    assert.equal(r.status, 0, `${state}: ${r.stderr}`);
+    assert.match(r.stderr, new RegExp(`${state}.*left alone.*ASC27`), state);
+  }
+  // an editable version that refuses the build is a real failure (a number mismatch, ASC29)
+  let r = sh(`${asc} ${curlStub}; asc_version_attach v1 b1`, { ROUTE_1: "PATCH /appStoreVersions/v1/relationships/build", BODY_1: conflict, CODE_1: "409", ROUTE_2: "GET /appStoreVersions/v1", BODY_2: version("PREPARE_FOR_SUBMISSION"), CODE_2: "200" });
+  assert.notEqual(r.status, 0);
+  assert.doesNotMatch(r.stderr, /left alone/);
+  // anything but a 409 never asks about the state
+  r = sh(`${asc} ${curlStub}; asc_version_attach v1 b1`, { ROUTE_1: "PATCH /appStoreVersions/v1/relationships/build", BODY_1: conflict, CODE_1: "500" });
+  assert.notEqual(r.status, 0);
+  assert.doesNotMatch(r.stderr, /CALL GET/);
+  // success is unchanged
+  r = sh(`${asc} ${curlStub}; asc_version_attach v1 b1`, { ROUTE_1: "PATCH /appStoreVersions/v1/relationships/build", BODY_1: "{}", CODE_1: "204" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /build b1 attached to version v1/);
+});
+
+const versionsJson = (...list) => JSON.stringify({ data: list.map(([versionString, state, key = "appStoreState"], i) => ({ id: `v${i}`, attributes: { platform: "IOS", versionString, [key]: state } })) });
+
+test("asc_version_in_submission prints the state of the version that already sits in a review submission, nothing otherwise (ASC31)", () => {
+  const stub = (json) => `asc_get() { printf '%s' '${json}'; }`;
+  for (const state of ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"]) {
+    const r = sh(`${asc} ${stub(versionsJson(["1.0.0", state, "appVersionState"]))}; ASC_APP_ID=1 asc_version_in_submission IOS 1.0.0`);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, `${state}\n`);
+  }
+  let r = sh(`${asc} ${stub(versionsJson(["1.0.0", "PREPARE_FOR_SUBMISSION"]))}; ASC_APP_ID=1 asc_version_in_submission IOS 1.0.0`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "");
+  r = sh(`${asc} ${stub(versionsJson(["0.9.0", "WAITING_FOR_REVIEW"]))}; ASC_APP_ID=1 asc_version_in_submission IOS 1.0.0`);
+  assert.equal(r.stdout, "");
+  r = sh(`${asc} asc_get() { echo "HTTP 500" >&2; return 1; }; ASC_APP_ID=1 asc_version_in_submission IOS 1.0.0`);
+  assert.notEqual(r.status, 0);
+});
+
+test("release-stores.sh counts a version already in a review submission as done and goes on with the next platform (ASC31)", () => {
+  for (const state of ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW"]) {
+    const r = releaseStores("kmp", { lanes: "ios mac" })({ ON_SALE: "", EXTRA: "--no-submit", IN_SUBMISSION_IOS: state });
+    assert.equal(r.status, 0, `${state}: ${r.stderr}`);
+    assert.match(r.stderr, new RegExp(`IOS.*1\\.3\\.0.*already in a review submission \\(${state}\\)`), state);
+    assert.doesNotMatch(r.stderr, /EDITABLE IOS|PREPARE IOS/, state);
+    assert.match(r.stderr, /EDITABLE MAC_OS 1\.3\.0/, state);
+    assert.match(r.stderr, /PREPARE MAC_OS/, state);
+  }
+  // it reads before it writes: an unreadable state stops before anything is attached
+  const r = releaseStores("kmp", { lanes: "ios mac" })({ ON_SALE: "", IN_SUBMISSION_FAIL: "1" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /could not read/);
+  assert.doesNotMatch(r.stderr, /EDITABLE|ATTACH|SUBMIT|PREPARE/);
+});
+
+// ensure_apple_version on the real asc.sh, only asc_get stubbed: the shape Beatrep met.
+const ensureReal = (json, env = {}) => spawnSync("bash", ["-c", `
+    set -euo pipefail; CONFIG_FILE=/dev/null
+    . '${lib("common.sh")}'; . '${lib("asc.sh")}'
+    asc_get() { [ "\${READ_FAIL:-}" = 1 ] && { echo "HTTP 500" >&2; return 1; }; printf '%s' "$VERSIONS"; }
+    asc_post() { echo "CREATE $1" >&2; printf '%s' '{"data":{"id":"new"}}'; }
+    ${ensureAppleVersionFn()}
+    ensure_apple_version IOS
+  `], { encoding: "utf8", env: { ...process.env, ASC_APP_ID: "1", version: "1.0.0", dry: "--dry-run", VERSIONS: json, ...env } });
+
+test("push-store-metadata.sh --dry-run --version names the other editable version and the build's number, and never says 'would create' beside it (ASC29)", () => {
+  for (const key of ["appStoreState", "appVersionState"]) {
+    const r = ensureReal(versionsJson(["1.0", "PREPARE_FOR_SUBMISSION", key]));
+    assert.notEqual(r.status, 0, `${key}: ${r.stderr}`);
+    assert.match(r.stderr, /editable IOS version is 1\.0, the build is 1\.0\.0.*ASC29/, key);
+    assert.doesNotMatch(r.stderr, /would create|CREATE/, key);
+  }
+  // an unreadable store is no licence to create: it stops, naming the read
+  const r = ensureReal(versionsJson(), { READ_FAIL: "1" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /could not read the IOS App Store versions/);
+  assert.doesNotMatch(r.stderr, /would create|CREATE/);
+  // nothing editable at all: the dry run still says what it would create
+  const none = ensureReal(versionsJson(["0.9.0", "READY_FOR_SALE"]));
+  assert.equal(none.status, 0, none.stderr);
+  assert.match(none.stderr, /would create the editable IOS version 1\.0\.0/);
+});
+
+test("push-store-metadata.sh --version creates nothing for a version already in a review submission (ASC31)", () => {
+  for (const dry of ["", "--dry-run"]) {
+    const r = ensureReal(versionsJson(["1.0.0", "READY_FOR_REVIEW", "appVersionState"]), { dry, ASSUME_YES: "1" });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stderr, /IOS version 1\.0\.0 is already in a review submission \(READY_FOR_REVIEW\)/);
+    assert.doesNotMatch(r.stderr, /would create|CREATE/);
+  }
+});
+
+test("first-release-check.sh leaves gracRatingClassificationNumber null for an app that is not a game (ASC11)", () => {
+  const r = firstReleaseCheck().run({ AGE: JSON.stringify({ data: { id: "age-1", attributes: { violenceRealistic: "NONE", gambling: false, gracRatingClassificationNumber: null, koreaAgeRatingOverride: null } } }) });
+  assert.match(r.stdout, /^apple ✓ age rating: every question answered$/m, r.stdout);
+});
+
+test("first-release-check.sh hands over the EU medical-device declaration (ASC37) and a first subscription's group Add for Review (ASC36)", () => {
+  let r = firstReleaseCheck().run();
+  assert.match(r.stdout, /^apple \? medical device: web only — .*regulated medical device.*App Information.*\(ASC37\)$/m);
+  r = firstReleaseCheck().run({
+    SUBSCRIPTIONS: JSON.stringify({ data: [{ id: "g1" }], included: [{ type: "subscriptions", id: "s1", attributes: { productId: "org.example.demo.monthly", state: "READY_TO_SUBMIT" } }] }),
+  });
+  assert.match(r.stdout, /^apple \? subscriptions: .*group's own Add for Review.*every locale.*\(ASC36\)/m);
+});
+
+test("first-release-check.sh gates export compliance per platform on the build's own declaration (ASC8)", () => {
+  const build = (value) => JSON.stringify({ data: [{ id: "b1", attributes: { version: "41", usesNonExemptEncryption: value } }] });
+  const frc = firstReleaseCheck();
+  let r = frc.run({ BUILDS_IOS: build(false), BUILDS_MAC: build(null) });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /^ios ✓ export compliance: build 41 declares it$/m);
+  assert.match(r.stdout, /^mac ✗ export compliance: build 41 declares none .*ITSAppUsesNonExemptEncryption.*mac target.*\(ASC8\)/m);
+  assert.doesNotMatch(r.stderr, /WRITE/, "it only reads; setting it is not a check's to do");
+  r = frc.run({ BUILDS_IOS: build(true), BUILDS_MAC: JSON.stringify({ data: [] }) });
+  assert.match(r.stdout, /^ios ✓ export compliance: build 41 declares it$/m);
+  assert.match(r.stdout, /^mac \? export compliance: no processed build for 1\.0\.0/m);
+  r = frc.run({}, []);
+  assert.match(r.stdout, /^ios \? export compliance: run with --version/m);
+});
+
+test("first-release-check.sh counts a version already in a review submission as in place, not as missing (ASC31)", () => {
+  const frc = firstReleaseCheck();
+  const r = frc.run({ VERSIONS_IOS: frc.versions(["1.0.0", "READY_FOR_REVIEW"]) });
+  assert.match(r.stdout, /^ios ✓ version: 1\.0\.0 is already in a review submission \(READY_FOR_REVIEW\)$/m);
+});
+
+test("asc_review_cancel withdraws the platform's submission waiting for review, and only that, after confirming (ASC38)", () => {
+  const run = (submissions, env = {}, input = "", patchState = "CANCELING") => sh(`${asc}
+    asc_get() { echo "GET $1" >&2; printf '%s' '${JSON.stringify({ data: submissions })}'; }
+    asc_patch() { echo "PATCH $1 $2" >&2; printf '%s' '{"data":{"attributes":{"state":"${patchState}"}}}'; }
+    ASC_APP_ID=1 asc_review_cancel IOS`, { ...env, INPUT: input });
+  const waiting = [{ id: "sub-old", attributes: { state: "COMPLETE" } }, { id: "sub-1", attributes: { state: "WAITING_FOR_REVIEW" } }];
+  let r = run(waiting, { ASSUME_YES: "1" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /^PATCH \/reviewSubmissions\/sub-1 .*"canceled":\s*true/m);
+  assert.match(r.stderr, /withdrawn.*CANCELING/);
+  // nothing waiting for review (a draft, or one in review): nothing is written
+  for (const state of ["READY_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES"]) {
+    r = run([{ id: "sub-1", attributes: { state } }], { ASSUME_YES: "1" });
+    assert.notEqual(r.status, 0, state);
+    assert.doesNotMatch(r.stderr, /PATCH/, state);
+    assert.match(r.stderr, /no IOS submission is WAITING_FOR_REVIEW/, state);
+  }
+  // an outward action: without --yes, anything but the word aborts before the PATCH
+  const refused = spawnSync("bash", ["-c", `set -euo pipefail; CONFIG_FILE=/dev/null; . '${lib("common.sh")}'; ${asc}
+    asc_get() { printf '%s' '${JSON.stringify({ data: waiting })}'; }
+    asc_patch() { echo "PATCH $1" >&2; }
+    ASC_APP_ID=1 asc_review_cancel IOS`], { encoding: "utf8", input: "no\n" });
+  assert.notEqual(refused.status, 0);
+  assert.doesNotMatch(refused.stderr, /PATCH/);
+  // the PATCH answered, but the submission did not move: say so, never claim it withdrawn
+  r = run(waiting, { ASSUME_YES: "1" }, "", "WAITING_FOR_REVIEW");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /not withdrawn/);
+});
+
+// --- review of the above: a prepared draft is still submitted by a normal run, a newer build
+// never slips past a version in a submission, and export compliance says what it did (ASC8).
+
+test("release-stores.sh submits a READY_FOR_REVIEW draft on a run without --no-submit, reusing it; WAITING_FOR_REVIEW stays done (ASC31)", () => {
+  let r = releaseStores("kmp", { lanes: "ios" })({ ON_SALE: "", IN_SUBMISSION_IOS: "READY_FOR_REVIEW" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /SUBMIT IOS/);
+  assert.doesNotMatch(r.stderr, /EDITABLE IOS|ATTACH/);
+  r = releaseStores("kmp", { lanes: "ios" })({ ON_SALE: "", IN_SUBMISSION_IOS: "WAITING_FOR_REVIEW" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stderr, /SUBMIT IOS|PREPARE IOS|EDITABLE IOS|ATTACH/);
+  assert.match(r.stderr, /already in a review submission \(WAITING_FOR_REVIEW\)/);
+});
+
+test("release-stores.sh stops, publishing nothing, when a version in a review submission carries an older build than the newest processed one (ASC38)", () => {
+  for (const [state, extra] of [["READY_FOR_REVIEW", ""], ["READY_FOR_REVIEW", "--no-submit"], ["WAITING_FOR_REVIEW", ""]]) {
+    const r = releaseStores("kmp", { lanes: "ios mac" })({ ON_SALE: "", IN_SUBMISSION_IOS: state, CARRIES: "1", EXTRA: extra });
+    assert.equal(r.status, 1, `${state} ${extra}: ${r.stderr}`);
+    assert.match(r.stderr, /build 27 is attached, the newest is 28/);
+    assert.match(r.stderr, /withdraw it \(ASC38\) or remove it from the draft.*nothing was published/);
+    assert.doesNotMatch(r.stderr, /SUBMIT|PREPARE|ATTACH|EDITABLE/);
+  }
+});
+
+test("asc_version_carries compares the version's attached build with the newest one, naming both numbers", () => {
+  const run = (attached) => sh(`${asc}
+    asc_get() {
+      case "$1" in
+        /apps/1/appStoreVersions) printf '%s' '${versionsJson(["1.0.0", "READY_FOR_REVIEW", "appVersionState"])}' ;;
+        /appStoreVersions/v0/build) printf '%s' '${JSON.stringify({ data: attached })}' ;;
+        /builds/b28) printf '%s' '{"data":{"id":"b28","attributes":{"version":"28"}}}' ;;
+        *) return 1 ;;
+      esac
+    }
+    ASC_APP_ID=1 asc_version_carries IOS 1.0.0 b28`);
+  let r = run({ id: "b28", attributes: { version: "28" } });
+  assert.equal(r.status, 0, r.stderr);
+  r = run({ id: "b27", attributes: { version: "27" } });
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /build 27 is attached, the newest is 28/);
+  r = run(null);
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /no build is attached, the newest is 28/);
+  r = sh(`${asc} asc_get() { return 1; }; ASC_APP_ID=1 asc_version_carries IOS 1.0.0 b28`);
+  assert.equal(r.status, 2);
+});
+
+test("asc_review_submit takes the READY_FOR_REVIEW version of the open draft: no new submission, no second item, then the submitted PATCH (ASC31)", () => {
+  const r = sh(`${asc}
+    asc_version_editable() { echo "EDITABLE" >&2; return 1; }
+    asc_get() {
+      case "$1" in
+        /apps/1/appStoreVersions) printf '%s' '${versionsJson(["1.0.0", "READY_FOR_REVIEW", "appVersionState"])}' ;;
+        /appStoreVersions/v0/build) printf '%s' '{"data":{"attributes":{"version":"28"}}}' ;;
+        /reviewSubmissions) printf '%s' '{"data":[{"id":"draft-1","attributes":{"state":"READY_FOR_REVIEW"}}]}' ;;
+        */items) printf '%s' '{"data":[{"relationships":{"appStoreVersion":{"data":{"id":"v0"}}}}]}' ;;
+        */subscriptionGroups) printf '%s' '{"data":[],"included":[]}' ;;
+      esac
+    }
+    asc_post() { echo "POST $1" >&2; printf '%s' '{"data":{"id":"new"}}'; }
+    asc_patch() { echo "PATCH $1 $2" >&2; printf '%s' '{"data":{"attributes":{"state":"WAITING_FOR_REVIEW"}}}'; }
+    ASC_APP_ID=1 asc_review_submit IOS`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stderr, /POST|EDITABLE/);
+  assert.match(r.stderr, /PATCH \/reviewSubmissions\/draft-1 .*"submitted":true/);
+});
+
+test("asc_export_compliance says what happened: a 2xx is a missing Info.plist key, only a 409 is the key, anything else is warned (ASC8)", () => {
+  const run = (code) => sh(`${asc} ${curlStub}; asc_export_compliance b1 mac 28`, { ROUTE_1: "PATCH /builds/b1", BODY_1: code === "200" ? "{}" : '{"errors":[{"title":"t","detail":"d"}]}', CODE_1: code });
+  let r = run("200");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /the mac target's Info\.plist lacks ITSAppUsesNonExemptEncryption; set false through the API for build 28 only — add the key to every app target \(ASC8\)/);
+  r = run("409");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /already set from the Info\.plist key/);
+  assert.doesNotMatch(r.stderr, /lacks/);
+  r = run("500");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /export compliance not set \(HTTP 500\)/);
+  assert.doesNotMatch(r.stderr, /already set/);
 });

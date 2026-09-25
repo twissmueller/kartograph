@@ -388,15 +388,33 @@ Rules for editing them:
   source, never guessed. The one question is "The web steps in
   `distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?"; after the yes,
   `first-release-check.sh` runs again and a ✗ on a gate the push does not set (version,
-  in-app purchases, subscriptions, price, availability, EULA link) or a file-backed ✗
+  export compliance per platform — ASC8, never set by the release —, in-app purchases,
+  subscriptions, price, availability, EULA link) or a file-backed ✗
   still empty stops with nothing sent. The script order is unchanged. `release-stores.sh`
   sets no What's New where nothing was ever on sale (ASC10), and when products wait for
   their first review it runs with `--no-submit`: the build is attached and the open review
   submission prepared (`asc_review_prepare`: reused, never a second one, ASC31) but not
   submitted, and the person's Add for Review on each product's page joins it and submits
-  the whole thing (ASC24). A project
-  whose copy predates either gets it and `lib/asc.sh` refreshed first. The report lists
-  every ✗ and ? left, the hand-over, and where each is done.
+  the whole thing (ASC24); a first subscription also needs Add for Review on its group's
+  page, with the group's display name set in every locale its subscriptions have before
+  the first click (ASC36). The web-only answers include the EU regulated-medical-device
+  declaration (ASC37), derived from what the app claims. The report lists every ✗ and ?
+  left, the hand-over, and where each is done.
+- **Stale copies are refreshed first.** `push-store-metadata.sh` and `lib/asc.sh` when
+  they predate `--version` or the ASC29 stop (`asc_version_editable_string`);
+  `release-stores.sh` and `lib/asc.sh`, on any release with an Apple lane, when they lack
+  `asc_version_on_sale`, `asc_version_in_submission`, `asc_version_carries` or
+  `--no-submit`; `first-release-check.sh` when missing or predating ASC37.
+- **A version already in a review submission is never created or submitted again**
+  (ASC31): a prepared draft is submitted where it is, a version waiting for or in review
+  counts as done, and an attached build older than the newest stops the run (withdraw,
+  ASC38, or remove it from the draft). A locked version's build-PATCH 409 is "left alone"
+  (ASC27); every refusal prints each `associatedErrors` code and detail (ASC20);
+  `asc_export_compliance` warns when a target's Info.plist lacks the key and reads only a
+  409 as "already set" (ASC8).
+- **Withdrawal (ASC38)** is only for a first release sent without its first subscriptions
+  and their group: ask once, run `asc_review_cancel` with `ASSUME_YES`, re-run with
+  `--no-submit`. Anything the metadata can fix stays in the queue (ASC27).
 - **A revision plan rebuilds what the revision touched**: every scenario it changed or
   added has a `**Revised:**` ring-2 task, never only a friction entry; `validate-plan.js`
   checks it, and skips the features cross-check for a `superseded` plan.

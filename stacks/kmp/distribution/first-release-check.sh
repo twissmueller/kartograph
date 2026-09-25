@@ -9,12 +9,14 @@
 #   ?  no API can read it (or its read failed): the person checks it in the web UI
 #   apple  the app record's content rights, category, age rating, price and availability;
 #          per Apple platform the editable version against --version (a build attaches
-#          only to the version of its own number); in-app purchases and subscriptions:
+#          only to the version of its own number, ASC29; one already in a review
+#          submission is in place, ASC31) and the export compliance its build declares
+#          (ASC8: the Info.plist key is per target); in-app purchases and subscriptions:
 #          ✗ when incomplete, ? when one waits for its first review (release-stores.sh
 #          prepares the open submission with --no-submit, the person's Add for Review
 #          on the product's page joins it and submits it, ASC24); the
 #          EULA link in each locale's description when a subscription is sold (ASC25);
-#          App Privacy and the agreements, web only.
+#          App Privacy, the agreements and the EU medical-device declaration, web only.
 #   play   defaultLanguage, the contact details and a listing per locale, in one edit that
 #          is discarded; Data safety, content rating, target audience, ads, app access,
 #          category, privacy policy and the first production review, web only (GP6).
@@ -92,9 +94,11 @@ print(pick["id"] if pick else "")')"
   fi
 
   if answer="$(asc_get "/appInfos/$info/ageRatingDeclaration")"; then
-    # Unanswered questions are null; the overrides and the kids band legitimately stay null.
+    # Unanswered questions are null; the overrides and the kids band legitimately stay null,
+    # and so does Korea's game-rating number for an app that is not a game (ASC11).
     open_questions="$(printf '%s' "$answer" | jpy 'optional = {"kidsAgeBand", "ageRatingOverride", "ageRatingOverrideV2",
-            "koreaAgeRatingOverride", "seventeenPlus", "developerAgeRatingInfoUrl"}
+            "koreaAgeRatingOverride", "seventeenPlus", "developerAgeRatingInfoUrl",
+            "gracRatingClassificationNumber"}
 data = d.get("data")
 if not data:
     print("all")
@@ -130,22 +134,29 @@ else:
     case "$platform" in IOS) has_lane ios || continue; lane=ios ;; MAC_OS) has_lane mac || continue; lane=mac ;; esac
     versions="$(asc_get "/apps/$ASC_APP_ID/appStoreVersions" "filter[platform]=$platform&limit=50")" \
       || die "could not read the $lane App Store versions from App Store Connect" 3
-    read -r on_sale editable <<<"$(printf '%s' "$versions" | jpy '# ASC_SHIPPED_STATES in asc.sh: a version that has been on sale at some point.
+    read -r on_sale editable submitted <<<"$(printf '%s' "$versions" | jpy '# ASC_SHIPPED_STATES in asc.sh: a version that has been on sale at some point.
 shipped = {"READY_FOR_SALE", "READY_FOR_DISTRIBUTION", "DEVELOPER_REMOVED_FROM_SALE", "REMOVED_FROM_SALE", "REPLACED_WITH_NEW_VERSION"}
 editable = ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED",
             "INVALID_BINARY", "WAITING_FOR_REVIEW")
-on_sale, open_version = [], "-"
+# ASC_IN_SUBMISSION_STATES in asc.sh: the version already sits in a review submission.
+in_submission = ("READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW")
+want = sys.argv[2]
+on_sale, open_version, submitted = [], "-", "-"
 for v in d.get("data", []):
     a = v["attributes"]
     state = a.get("appStoreState") or a.get("appVersionState")
+    if want and state in in_submission and a.get("versionString") == want and submitted == "-":
+        submitted = state
     if state in shipped:
         on_sale.append(a.get("versionString") or "")
     elif state in editable and open_version == "-":
         open_version = a.get("versionString") or "-"
 key = lambda s: [int(p) if p.isdigit() else 0 for p in s.split(".")]
-print(max(on_sale, key=key) if on_sale else "-", open_version)')"
+print(max(on_sale, key=key) if on_sale else "-", open_version, submitted)' "$version")"
     [ "$on_sale" = "-" ] || gate "$lane" ✓ "on sale" "$on_sale (or once was) — this platform has had its first release"
-    if [ "$editable" = "-" ]; then
+    if [ "$submitted" != "-" ]; then
+      gate "$lane" ✓ version "$version is already in a review submission ($submitted)"
+    elif [ "$editable" = "-" ]; then
       gate "$lane" ✓ version "none editable yet${version:+; push-store-metadata.sh --version $version creates it}"
     elif [ -z "$version" ]; then
       gate "$lane" "?" version "the editable version is $editable; run with --version X.Y.Z to compare it with the build"
@@ -153,6 +164,29 @@ print(max(on_sale, key=key) if on_sale else "-", open_version)')"
       gate "$lane" ✓ version "the editable version is $version"
     else
       gate "$lane" ✗ version "the editable version is $editable, the build is $version; a build attaches only to the version of its own number (ASC29) — change the version number to $version on that version's page in App Store Connect"
+    fi
+
+    # Export compliance is declared by ITSAppUsesNonExemptEncryption in each app target's
+    # Info.plist; a target without it uploads a build that declares nothing, and review
+    # refuses that build as a submission item (ASC8, named among the associated errors,
+    # ASC20). Read here, never set: the declaration is the owner's, not a check's.
+    if [ -z "$version" ]; then
+      gate "$lane" "?" "export compliance" "run with --version X.Y.Z to read what the build declares"
+    elif answer="$(asc_get /builds "filter[app]=$ASC_APP_ID&filter[processingState]=VALID&filter[preReleaseVersion.platform]=$platform&filter[preReleaseVersion.version]=$version&sort=-uploadedDate&limit=1")"; then
+      read -r number declared <<<"$(printf '%s' "$answer" | jpy 'b = (d.get("data") or [None])[0]
+if not b:
+    print("- -")
+else:
+    a = b.get("attributes") or {}
+    v = a.get("usesNonExemptEncryption")
+    print(a.get("version") or "?", "none" if v is None else str(v).lower())')"
+      case "$declared" in
+        -) gate "$lane" "?" "export compliance" "no processed build for $version yet — look again once it is processed" ;;
+        none) gate "$lane" ✗ "export compliance" "build $number declares none — review refuses it as a submission item (ASC20); put ITSAppUsesNonExemptEncryption in the $lane target's Info.plist for the next build, or answer the export compliance question on build $number's page in App Store Connect (ASC8)" ;;
+        *) gate "$lane" ✓ "export compliance" "build $number declares it" ;;
+      esac
+    else
+      gate "$lane" "?" "export compliance" "could not be read — look at the build's page in App Store Connect"
     fi
   done
 
@@ -192,6 +226,11 @@ print(len(products), ids("MISSING_METADATA") or "-", ids("READY_TO_SUBMIT") or "
     read -r sold incomplete waiting <<<"$(printf '%s' "$answer" | products subscriptions)"
     if [ "$sold" = 0 ]; then gate apple ✓ subscriptions none
     elif [ "$incomplete" = "-" ] && [ "$waiting" = "-" ]; then gate apple ✓ subscriptions "$sold sold, none waiting for a first review"
+    elif [ "$waiting" != "-" ]; then
+      [ "$incomplete" = "-" ] || products_gate subscriptions "$incomplete" "-"
+      # A first subscription goes to review with its group, whose page has its own Add for
+      # Review; the group's localizations lock once its subscriptions sit in a draft (ASC36).
+      gate apple "?" subscriptions "$(printf '%s' "$waiting" | sed 's/,/, /g') $(waits "$waiting") for a first review: release-stores.sh runs with --no-submit, which attaches the build and leaves the review submission open; then Add for Review on each product's page in App Store Connect joins it to that open submission (ASC24), and a first subscription also needs its group's own Add for Review on the group page — name the group in every locale its subscriptions have before the first click (ASC36)"
     else products_gate subscriptions "$incomplete" "$waiting"; fi
   else
     gate apple "?" subscriptions "could not be read — look under Subscriptions in App Store Connect"
@@ -226,6 +265,7 @@ PY
 
   gate apple "?" "App Privacy" "web only — answer it and PUBLISH it under App Privacy in App Store Connect; it needs the Admin role, and no API reads it back (ASC18)"
   gate apple "?" agreements "web only — the DAC7 tax data and the trader status under Business → Agreements, Tax, and Banking block a new app's submission (ASC19)"
+  gate apple "?" "medical device" "web only — answer whether the app is a regulated medical device in the EU under App Information in App Store Connect; it blocks the submission until answered (ASC37)"
 fi
 
 if [ "$play" = 1 ]; then

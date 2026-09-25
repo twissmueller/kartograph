@@ -21,8 +21,11 @@ already has.
 | App Privacy (ASC18) | ? | <Data Not Collected, or per data type: collected, linked to the person, used for tracking, purpose> — then **Publish**; needs the Admin role | <dependency manifests, permissions and usage strings, privacy manifest read> |
 | Price and availability | <✓ ✗ ?> | <price tier, countries and regions> | <what the code sells> |
 | Agreements, tax, DAC7, trader status (ASC19) | ? | <paid apps agreement needed: yes or no> | <in-app purchases, subscriptions> |
+| EU regulated medical device, under App Information (ASC37) | ? | <No, or Yes with what the app measures or treats> | <what the description and the features claim> |
+| Export compliance per platform (ASC8) | <✓ ✗ per platform> | <each build declares it; for a ✗: the key in that target's Info.plist and a new build, or the answer on the build's page> | first-release-check.sh |
 | Version number (ASC29) | <✓ ✗> | <the editable version carries X.Y.Z> | first-release-check.sh |
 | In-app purchases and subscriptions complete (ASC23) | <✓ ✗> | <product ids still MISSING_METADATA: their localization and review screenshot> | first-release-check.sh |
+| Subscription group named in every locale (ASC36) | <? or "no subscription sold"> | <the group, its display name per locale its subscriptions have; locked once they sit in a draft> | <the subscriptions' locales> |
 
 ### Set by the push after your yes
 
@@ -48,6 +51,7 @@ submission is prepared with the version in it but not submitted (`release-stores
 | Step | Where |
 |---|---|
 | Add for Review on <each product id>: joins it to the open submission and submits the whole thing (ASC24); reload the page first, its state badge can be stale; canceling the submission drops the product, and it needs the click again | App Store Connect → the product's own page |
+| Add for Review on <the subscription group>: a first subscription goes to review with its group, and the group page has its own button (ASC36); only when a subscription is sold | App Store Connect → Subscriptions → the group's page |
 
 ## Google Play
 

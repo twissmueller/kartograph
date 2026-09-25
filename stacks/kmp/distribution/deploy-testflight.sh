@@ -55,7 +55,7 @@ fi
 
 asc_platform=IOS; [ "$platform" = mac ] && asc_platform=MAC_OS
 build_id="$(asc_build_wait "$asc_platform" "$version" "$build")"
-asc_export_compliance "$build_id"
+asc_export_compliance "$build_id" "$platform" "$build"
 asc_beta_group_ensure >/dev/null
 asc_beta_group_add "$build_id"
 for locale in $LOCALES; do asc_beta_localization "$build_id" "$locale"; done

@@ -47,12 +47,25 @@ loc_arg=(); [ -n "$locale" ] && loc_arg=(--locale "$locale")
 # PLATFORM, creating it (confirmed, unless --yes) when none does yet. App Store Connect
 # keeps one editable version per platform, and creates "1.0" with a new app record: with
 # another number already editable, creating $version would fail after the confirmation,
-# so it stops first, on --dry-run too (ASC29).
+# so it stops first, on --dry-run too, naming both numbers (ASC29). A version $version that
+# already sits in a review submission is left alone: creating it again is refused as a
+# number "previously used", and a second submission is never made (ASC31). A store that
+# cannot be read stops the run; it is never read as "nothing there, create it".
 ensure_apple_version() {
-  local platform="$1"
-  asc_version_exists "$platform" "$version" && return 0
-  if asc_version_editable "$platform" >/dev/null 2>&1; then
-    die "another editable $platform version, with a different number, already exists; $version cannot be created beside it — change that version's number to $version on its page in App Store Connect (ASC29). Nothing was changed."
+  local platform="$1" found=0 state other
+  asc_version_exists "$platform" "$version" || found=$?
+  [ "$found" = 0 ] && return 0
+  [ "$found" = 1 ] || die "could not read the $platform App Store versions from App Store Connect. Nothing was changed."
+  state="$(asc_version_in_submission "$platform" "$version")" \
+    || die "could not read the $platform App Store versions from App Store Connect. Nothing was changed."
+  if [ -n "$state" ]; then
+    log "the $platform version $version is already in a review submission ($state); left alone (ASC31)"
+    return 0
+  fi
+  other="$(asc_version_editable_string "$platform")" \
+    || die "could not read the $platform App Store versions from App Store Connect. Nothing was changed."
+  if [ -n "$other" ]; then
+    die "another editable $platform version already exists: the editable $platform version is $other, the build is $version; $version cannot be created beside it, and a build attaches only to the version of its own number — change that version's number to $version on its page in App Store Connect (ASC29). Nothing was changed."
   fi
   if [ -n "$dry" ]; then
     log "dry run: would create the editable $platform version $version"

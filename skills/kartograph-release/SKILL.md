@@ -28,8 +28,8 @@ question covers both. A release to a lane already on sale runs exactly as before
   screenshots and, on a first release, `first-release.md`), `distribution/release-check.sh`
   and `distribution/first-release-check.sh` when they are missing,
   `distribution/push-store-metadata.sh` and `distribution/lib/asc.sh` when they predate
-  `--version`, `distribution/release-stores.sh` and `distribution/lib/asc.sh` on a first
-  release when they predate it (step 1), the screenshot renderer in the app's test code
+  `--version`, `distribution/release-stores.sh` and `distribution/lib/asc.sh` when they
+  predate what step 1 names, the screenshot renderer in the app's test code
   together with the one seam and the build-file lines the stack's `screenshots.md` names,
   and the tag `v<X.Y.Z>`. Never `kartograph/`, `features/`, `knowledge/`, `plans/`, `walks/`,
   `distribution/config.sh` or another delivery script.
@@ -75,7 +75,11 @@ say that `kartograph-deliver` sets up delivery first, and stop. If
 `distribution/config.sh`), keeping it executable; it needs only library functions every
 project's `distribution/lib/` already has. When the project's delivery scripts predate
 `--version` — the option parsing of `distribution/push-store-metadata.sh` has no
-`--version)` case, or `distribution/lib/asc.sh` defines no `asc_version_exists` — copy
+`--version)` case, or `distribution/lib/asc.sh` defines no `asc_version_exists` — or
+predate its version-number stop — `distribution/push-store-metadata.sh` does not call
+`asc_version_editable_string`, or `distribution/lib/asc.sh` does not define it: such a
+copy says "would create" beside another editable version, which App Store Connect then
+refuses (ASC29) — copy
 `stacks/<STACK>/distribution/push-store-metadata.sh` and
 `stacks/common/distribution/lib/asc.sh` from the plugin root over both, keeping the script
 executable, and say in the report that they were refreshed; step 6 needs `--version`.
@@ -96,13 +100,16 @@ as it always did. The tested build on TestFlight or Play internal is still requi
 too: when the project's copy does not name `DEVELOPER_REMOVED_FROM_SALE`, copy the
 plugin's over it, keeping it executable, and run it again before deciding. For a first
 release, copy `stacks/<STACK>/distribution/first-release-check.sh` from the plugin root
-when `distribution/first-release-check.sh` is missing, keeping it executable. When the
-first release includes an Apple lane and the project's `distribution/release-stores.sh`
-does not call `asc_version_on_sale` or has no `--no-submit)` case, copy
+when `distribution/first-release-check.sh` is missing or does not name `ASC37`, keeping it
+executable. On any release with an Apple lane, first or follow-up, when the project's
+`distribution/release-stores.sh` does not call `asc_version_on_sale`,
+`asc_version_in_submission` or `asc_version_carries`, or has no `--no-submit)` case, copy
 `stacks/<STACK>/distribution/release-stores.sh` and `stacks/common/distribution/lib/asc.sh`
 over both, keeping the script executable, and say in the report that they were refreshed:
-the older script sets What's New, which Apple refuses on a first release, and cannot leave
-the submission to an in-app purchase's Add for Review. Then run
+the older script sets What's New, which Apple refuses on a first release, cannot leave
+the submission to an in-app purchase's Add for Review, and on a re-run tries to create a
+version that already sits in a review submission, which Apple refuses as a number
+"previously used" (ASC31). Then, for a first release, run
 `distribution/first-release-check.sh --version <X.Y.Z>`, with `--apple` or `--play` when
 only that store's lanes are first releases: exit 3 stops like
 `release-check.sh`'s; exit 0 or 1 gives one line per gate (`✓` in place, `✗` missing, `?`
@@ -263,6 +270,10 @@ when it is empty. A `?` line is a web step and gets its answer here:
   does with it. Apple's must be **published**, by the Admin role (ASC18).
 - **Content rating and the age rating:** from what the features show and what the person
   using the app can do with others (messaging, user content, web access, purchases).
+- **EU regulated medical device (ASC37):** from what the app claims, in its description and
+  its features: an app that does not diagnose, treat or measure anything medical, or says
+  it is "not a medical measurement", answers **No**. It is asked of every app and blocks
+  the submission until answered.
 - **Target audience, app access, ads, category, price and availability, agreements:** from
   the intents, the features (a sign-in scenario means app access needs the reviewer's
   credentials, GP8), the libraries (an ad library means ads, and on Play the Advertising
@@ -279,9 +290,18 @@ and prepares that open submission with the version in it, without submitting it
 (`release-stores.sh --no-submit`, which reuses an open submission rather than creating a
 second one, ASC31), and the checklist's *After the release* hands the person that click,
 per product: reload the product's page first, its state badge can be stale; and canceling
-the submission drops the product from it, so it needs the click again. An incomplete product (`✗`,
-MISSING_METADATA) has to be completed before the yes. The Play section's *After the
-release* is the draft production release, sent for review from the console.
+the submission drops the product from it, so it needs the click again. A first
+auto-renewable subscription goes to review with its subscription group, and the group's
+page has its own **Add for Review** (ASC36): the hand-over names that click too, and
+*Before your yes* asks for the group's display name in every locale its subscriptions have,
+since the group's localizations lock once its subscriptions sit in a draft. An incomplete
+product (`✗`, MISSING_METADATA) has to be completed before the yes.
+
+An `export compliance` `✗` means that platform's build declares none: review refuses it
+as a submission item (ASC8). It is no web step with an answer to prepare: the declaration
+is the owner's, in that target's build settings for the next build, or answered on the
+build's page in App Store Connect; the release never sets it. The Play section's *After
+the release* is the draft production release, sent for review from the console.
 
 ## 6. Commit, ask once, release
 
@@ -306,7 +326,8 @@ after the release (the Add for Review clicks, the Play review); and the one ques
 "The web steps in `distribution/store/first-release.md` are done, and v<X.Y.Z> goes out?"
 — **A:** yes, **B:** not yet. When products wait for a first review, the question adds
 "The build is attached and the review submission prepared but not submitted; your Add for
-Review on each product's page joins it and submits it."
+Review on each product's page, and on a first subscription's group page, joins it and
+submits it."
 
 On yes to a first release, before anything leaves the machine:
 
@@ -315,8 +336,8 @@ On yes to a first release, before anything leaves the machine:
    store details` and push.
 2. Run `distribution/first-release-check.sh --version <X.Y.Z>` again, with the same lane
    options. Stop with "nothing was sent" on exit 3, and on any `✗` among the gates the push
-   does not set: `version`, `in-app purchases`, `subscriptions`, `price`, `availability`,
-   `EULA link`. A `✗` on a gate the push sets from the files — `content rights`,
+   does not set: `version`, `export compliance`, `in-app purchases`, `subscriptions`,
+   `price`, `availability`, `EULA link`. A `✗` on a gate the push sets from the files — `content rights`,
    `category`, `age rating`, `defaultLanguage`, `contact`, `listings` — is expected on an
    app never pushed, and exit 1 for those alone is no stop.
 3. Stop the same way when a checklist `✗` that lives in a file is still empty there: the
@@ -357,10 +378,31 @@ is promoted before Apple is submitted, so by failure point:
   Play unchanged (the edit is deleted).
 - step 2, on the Apple side: Play production already carries the build (a staged draft on
   a first release), with the old listing; the Apple version may have its build, and
-  What's New or its prepared submission, but is not submitted.
+  What's New or its prepared submission, but is not submitted. An Apple platform whose
+  version already sits in a review submission is done and left alone, so a re-run after
+  the cause is fixed goes on with the next platform (ASC31); a draft of it is submitted
+  there on a run without `--no-submit`. When that version carries an older build than the
+  newest processed one, the run stops with nothing published: withdrawing it (below,
+  ASC38) or removing it from the draft in App Store Connect comes first.
 - step 3 (Play texts): both stores have the release; Play still shows the old listing and
-  screenshots, so run step 3 again once the cause is fixed. On "not yet", stop: the commit
-stays, and the next run reuses the written files.
+  screenshots, so run step 3 again once the cause is fixed.
+
+When a first release reached review without something review cannot pass without — its
+first subscriptions and their group (ASC36): the version's submission `WAITING_FOR_REVIEW`
+while `first-release-check.sh` still shows a subscription waiting for a first review —
+withdrawing is the fix, and it leaves the machine. Ask once: "Withdraw the <platform>
+submission from App Review so the subscriptions can join a new one?" — **A:** withdraw,
+**B:** leave it. Only on A: when `distribution/lib/asc.sh` defines no `asc_review_cancel`,
+copy `stacks/common/distribution/lib/asc.sh` from the plugin root over it; then run
+`bash -c '. distribution/lib/common.sh && load_config && . distribution/lib/asc.sh &&
+ASSUME_YES=1 asc_review_cancel <IOS or MAC_OS>'`, which sends `PATCH
+/reviewSubmissions/<id>` with `canceled: true` and checks the state reads `CANCELING` or
+`COMPLETE` (ASC38). The version is editable again with its build; run step 2 again with
+`--no-submit`, which prepares a fresh submission (the cancelled one is spent), and hand
+the person the Add for Review clicks of the products and the group. Anything the metadata
+can fix is no reason to withdraw: it stays in the queue (ASC27), and a sibling platform's
+submission keeps its place. On "not yet", stop: the commit stays, and the next run reuses
+the written files.
 
 ## 7. Report
 
@@ -371,6 +413,6 @@ first review). On a first release: every line of `distribution/store/first-relea
 that still carries ✗ or `?`, and where it is done (App Store Connect, the Play Console, or
 the file and field), then the hand-over: each product's Add for Review when the
 submission was left open (reload the page first; a canceled submission needs the click
-again), and the Play review of the draft release last. Every screen whose
+again) and a first subscription's group Add for Review (ASC36), and the Play review of the draft release last. Every screen whose
 screenshot was rendered from shared code only, or not rendered, and why. Then you are
 done.

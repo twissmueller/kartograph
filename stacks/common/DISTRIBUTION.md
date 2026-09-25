@@ -44,10 +44,10 @@ distribution/
 | `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags |
 | `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ios | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
 | `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
-| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots] [--version X.Y.Z] [--yes]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; `--version` first makes sure that Apple version is editable, creating it (confirmed, unless `--yes`) when none is, and stops — `--dry-run` too — when an editable version with another number exists, which App Store Connect would not let it create beside (ASC29); creates the JSON templates when missing; states what only the web UI can do |
+| `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots] [--version X.Y.Z] [--yes]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; `--version` first makes sure that Apple version is editable, creating it (confirmed, unless `--yes`) when none is, and stops — `--dry-run` too — when an editable version with another number exists, which App Store Connect would not let it create beside, naming both numbers (ASC29), or when the versions cannot be read; creates nothing for a version already in a review submission (ASC31); creates the JSON templates when missing; states what only the web UI can do |
 | `release-check.sh [--apple] [--play]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the newest processed TestFlight build per Apple platform against the highest version ever on sale (the states of `ASC_SHIPPED_STATES`, so an app removed from sale is not a first release), the internal track's highest versionCode against production's; prints one line per lane and `release X.Y.Z` (the first Apple platform's); exit 0 when every lane is ahead, 1 when a new build is needed first, 2 when no store lane ships, 3 when a store could not be read |
-| `first-release-check.sh [--apple] [--play] [--version X.Y.Z]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the first-release gates the store APIs can show (Apple: content rights, category, age rating, price, availability, the editable version against X.Y.Z, in-app purchases and subscriptions: `?` when one waits for its first review (the hand-over after the attach, ASC24), `✗` when one is still incomplete (MISSING_METADATA), the EULA link in each description when a subscription is sold; Play: defaultLanguage, contact details, a listing per locale, read in one edit that is deleted, so nothing persists) plus one `?` line per gate only the web UI holds; one line per gate, `<lane> ✓\|✗\|? <gate>: <detail>`; exit 0 when nothing is ✗, 1 when something is, 2 when no store lane ships, 3 when a store could not be read |
-| `release-stores.sh [--apple] [--play] [--rollout F] [--no-submit] --notes FILE` | ✓ | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production (an app never published gets a draft production release, sent for review from the console); Apple: attaches the processed build to the editable version, sets What's New only when a version has ever been on sale on that platform (Apple refuses it on a first release), submits for review — with `--no-submit` it prepares the review submission exactly as the normal path does (reuses the open one, else creates it, and adds the version item; never a second submission for a version already in one, ASC31) but does not mark it submitted, so the person's **Add for Review** on each in-app purchase's page joins it to that open submission and submits the whole thing (ASC24); `--no-submit` leaves Play unaffected |
+| `first-release-check.sh [--apple] [--play] [--version X.Y.Z]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the first-release gates the store APIs can show (Apple: content rights, category, age rating, price, availability, the editable version against X.Y.Z, in-app purchases and subscriptions: `?` when one waits for its first review (the hand-over after the attach, ASC24), `✗` when one is still incomplete (MISSING_METADATA), the EULA link in each description when a subscription is sold; per Apple platform the export compliance the build for X.Y.Z declares, `✗` when it declares none (ASC8); a version already in a review submission counts as in place (ASC31); Play: defaultLanguage, contact details, a listing per locale, read in one edit that is deleted, so nothing persists) plus one `?` line per gate only the web UI holds (among them the EU regulated-medical-device declaration, ASC37, and for a first subscription its group's own Add for Review, ASC36); the age rating's optional nulls include `gracRatingClassificationNumber` (ASC11); one line per gate, `<lane> ✓\|✗\|? <gate>: <detail>`; exit 0 when nothing is ✗, 1 when something is, 2 when no store lane ships, 3 when a store could not be read |
+| `release-stores.sh [--apple] [--play] [--rollout F] [--no-submit] --notes FILE` | ✓ | ✓ | ✓ | play only | – | – | Play: promotes the internal track to production (an app never published gets a draft production release, sent for review from the console); Apple: attaches the processed build to the editable version, sets What's New only when a version has ever been on sale on that platform (Apple refuses it on a first release), submits for review; a version already in a review submission (READY_FOR_REVIEW, WAITING_FOR_REVIEW, IN_REVIEW) is never created or attached again (ASC31): when it carries another build than the newest processed one the run stops, naming both (withdraw it, ASC38, or remove it from the draft first; nothing was published); otherwise a READY_FOR_REVIEW draft is submitted on a run without `--no-submit` (the open draft reused), and every other case counts as done for its platform and the run goes on with the next — with `--no-submit` it prepares the review submission exactly as the normal path does (reuses the open one, else creates it, and adds the version item; never a second submission for a version already in one, ASC31) but does not mark it submitted, so the person's **Add for Review** on each in-app purchase's page joins it to that open submission and submits the whole thing (ASC24); `--no-submit` leaves Play unaffected |
 | `deploy.sh [backend\|frontend\|all]` | – | – | – | – | ✓ | – | backend to Fly, frontend to Vercel, each followed by a live health check |
 
 A script whose lane the project does not ship (per `LANES` in `config.sh`) says so and exits 2.
@@ -174,25 +174,44 @@ device_run [UDID]                      build Debug against id=UDID with per-devi
 ```
 asc_token                              ES256 JWT, 20 min, raw r‖s signature (DER breaks it); cached for the process
 asc_get PATH [QUERY]                   asc_post PATH JSON   asc_patch PATH JSON   asc_delete PATH
+                                       on HTTP >= 400: each error's title and detail, then every errors[].meta.associatedErrors code and
+                                       detail per resource (ASC20), on stderr; the status is left in ASC_HTTP_STATUS when the verb is not
+                                       called inside a command substitution
 asc_build_latest PLATFORM [VERSION]    prints the id of the newest build with processingState VALID, optionally for a marketing version
 asc_build_wait PLATFORM VERSION BUILD  poll until processed (deadline ASC_WAIT_SECONDS, default 1800); prints the build id
-asc_export_compliance BUILD_ID         usesNonExemptEncryption false
+asc_export_compliance BUILD_ID [PLATFORM [NUMBER]]
+                                       usesNonExemptEncryption false; a 2xx means the target's Info.plist lacks ITSAppUsesNonExemptEncryption and
+                                       is warned as set for that build only (ASC8); only a 409 (ASC_HTTP_STATUS) reads as already set from the
+                                       key; any other status is warned with it; never aborts the run
 asc_beta_group_ensure                  find or create $TESTFLIGHT_GROUP (internal)
 asc_beta_group_add BUILD_ID
 asc_beta_localization BUILD_ID LOCALE [DESCRIPTION] [WHATS_NEW]   app-level description and feedback email; the optional what's-new goes on the build
-asc_version_exists PLATFORM VERSION    true when an editable version already carries exactly VERSION; never creates
+asc_version_exists PLATFORM VERSION    true when an editable version already carries exactly VERSION; never creates; 1 when none does,
+                                       2 when the versions cannot be read
 asc_version_editable PLATFORM [X.Y.Z]  the version in an editable state, created with versionString when absent
-asc_version_attach VERSION_ID BUILD_ID
+asc_version_editable_string PLATFORM   the versionString of the version in an editable state; empty when none; non-zero only when the
+                                       versions cannot be read (names the other number in the ASC29 stop)
+asc_version_in_submission PLATFORM VERSION
+                                       the state when the version carrying exactly VERSION already sits in a review submission
+                                       (ASC_IN_SUBMISSION_STATES: READY_FOR_REVIEW, WAITING_FOR_REVIEW, IN_REVIEW); empty otherwise; non-zero
+                                       only when the versions cannot be read (ASC31)
+asc_version_carries PLATFORM VERSION BUILD_ID
+                                       0 when the version carrying VERSION has BUILD_ID attached; 1 when another build (or none) is, warning
+                                       "build N is attached, the newest is M"; 2 when it cannot be read
+asc_version_attach VERSION_ID BUILD_ID a 409 from a version in ASC_IN_SUBMISSION_STATES is locked, not a failure: logged "left alone" (ASC27)
 asc_version_whats_new VERSION_ID LOCALE TEXT
 asc_version_on_sale PLATFORM           the highest versionString ever on sale on PLATFORM (a state in ASC_SHIPPED_STATES: READY_FOR_SALE, READY_FOR_DISTRIBUTION,
                                        DEVELOPER_REMOVED_FROM_SALE, REMOVED_FROM_SALE, REPLACED_WITH_NEW_VERSION), compared numerically, so the
                                        order of the response does not matter; empty when none — a first release; non-zero only when the versions
                                        cannot be read. release-check.sh and first-release-check.sh inline the same states (they use only asc_get)
 asc_subscriptions_pending              subscriptions at READY_TO_SUBMIT not attached to a submission; non-empty blocks a review submission (Guideline 2.1(b))
-asc_review_prepare PLATFORM [X.Y.Z]    reuse the open review submission (READY_FOR_REVIEW, UNRESOLVED_ISSUES) or create one, add the version item unless it is
+asc_review_prepare PLATFORM [X.Y.Z]    the version is the one READY_FOR_REVIEW in the open draft (optionally X.Y.Z), else the editable one; reuse the open review submission (READY_FOR_REVIEW, UNRESOLVED_ISSUES) or create one, add the version item unless it is
                                        already there (ASC31); refuses, writing nothing, when the version already sits in a submission
                                        WAITING_FOR_REVIEW or IN_REVIEW ("already submitted; nothing to prepare"); prints the submission id; never marks it submitted
 asc_review_submit PLATFORM [X.Y.Z]     asc_review_prepare, then submit; refuses when asc_subscriptions_pending is non-empty
+asc_review_cancel PLATFORM             withdraw the platform's submission WAITING_FOR_REVIEW: confirm_typed withdraw (ASSUME_YES skips it),
+                                       PATCH canceled true, verified CANCELING or COMPLETE; the version returns editable with its build
+                                       (ASC38); refuses, writing nothing, when no submission waits for review
 ```
 
 ### `play.sh`
