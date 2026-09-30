@@ -13,8 +13,9 @@ related: [<earlier kartograph/ documents this revision follows up — or an empt
 # <title>
 
 <!-- The person's words verbatim in numbered blocks, starting and ending with the person.
-     An AI block only when the words were genuinely ambiguous: one question and its
-     options. Every change cites the person's block it comes from. validate-revision.js
+     An AI block after each try-out round ('> Tried: …' lines, then the question
+     "Another change, or keep it?"), or when the words were genuinely ambiguous: one
+     question and its options. Every change cites the person's blocks it comes from. validate-revision.js
      checks all of that. -->
 
 ## Conversation

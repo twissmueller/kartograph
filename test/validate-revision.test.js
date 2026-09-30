@@ -98,6 +98,13 @@ test("the conversation starts and ends with the person and alternates", () => {
   assert.ok(has(errs(swap("**Question:** How long", "Let me explain.\n**Question:** How long")), /every line is/));
 });
 
+test("a try-out round is an AI block of '> Tried:' lines and the keep question", () => {
+  const tried = valid.replace(/### 2 — AI\n[\s\S]*?### 3 — Person\n\nA\.\n/, "### 2 — AI\n\n> Tried: ProjectsScreen archives at once, no dialog\n> Tried: ProjectsScreen shows Undo in the message after archiving\n**Question:** Another change, or keep it?\n\n### 3 — Person\n\nKeep it.\n");
+  assert.deepEqual(errs(tried), []);
+  assert.ok(has(errs(tried.replace("**Question:** Another change, or keep it?\n", "")), /exactly one '\*\*Question:\*\*' line/));
+  assert.ok(has(errs(tried.replace("> Tried: ProjectsScreen archives", "> Changed: ProjectsScreen archives")), /every line is/));
+});
+
 test("affected lines have their shapes and name the capability of every feature", () => {
   assert.ok(has(errs(swap("- Capability: `features/project-archiving/capability.md`\n", "")), /at least one '- Capability:'/));
   assert.ok(has(errs(swap("- Feature: `" + F + "`", "- Feature: archive-project.feature")), /'## Affected' lines are/));

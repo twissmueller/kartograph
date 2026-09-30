@@ -39,6 +39,7 @@ export const CHANGE = new RegExp(`^- \\*\\*(${CHANGE_KINDS.join("|")}):\\*\\* \`
 const CITATION = /\[turns? (\d+(?:, ?\d+)*)\]/g;
 const AI_LINES = [
   ["lookup", /^> Looked up: \S/],
+  ["tried", /^> Tried: \S/],
   ["reasoning", /^Reasoning \(shortened\): \S/],
   ["question", /^\*\*Question:\*\* \S/],
   ["option", /^- \*\*[^*]+:\*\* \S/],
@@ -118,7 +119,7 @@ function checkAi(block, err) {
       continue;
     }
     const kind = AI_LINES.find(([, re]) => re.test(line))?.[0];
-    if (!kind) { err(`${where}: every line is '> Looked up: …', 'Reasoning (shortened): …', '**Question:** …' or an option '- **A:** …'; got: ${line.trim()}`); prev = null; continue; }
+    if (!kind) { err(`${where}: every line is '> Looked up: …', '> Tried: …', 'Reasoning (shortened): …', '**Question:** …' or an option '- **A:** …'; got: ${line.trim()}`); prev = null; continue; }
     if (kind === "question") count.question++;
     if (kind === "reasoning") count.reasoning++;
     if (kind === "option" && /\(recommended\)/i.test(line)) count.recommended++;

@@ -21,7 +21,7 @@ skills that build on each other through plain files in your repository:
 | **`kartograph-domain`** | ring 2 of the plan | use case implementations, rules, ports, one test per scenario |
 | **`kartograph-adapters`** | ring 3 of the plan | repositories, database, API client, platform capabilities, server |
 | **`kartograph-walk`** | any ring's result, and you watching | `walks/<date>-<capability>.md`, your verdicts |
-| **`kartograph-revise`** | what you want changed, after a walk or anytime | `kartograph/<date>-<slug>.revision.md`, then the features, the concepts, a superseding plan and the rings already built, one commit each |
+| **`kartograph-revise`** | what you want changed, after a walk or anytime | the change tried in the code, round after round, uncommitted; once you keep it, `kartograph/<date>-<slug>.revision.md`, then the features, the concepts, a superseding plan and the rings already built, one commit each |
 | **`kartograph-deliver`** | the built app, the stack's delivery scripts | `distribution/` on first use; then a device, TestFlight, Play, the stores or a host |
 | **`kartograph-release`** | the tested build on TestFlight and Play internal, what changed since the last release | release notes, store texts and screenshots under `distribution/`; the build in App Store review and on Play production; the tag |
 | **`kartograph-migrate`** | the project and `migrations/` | the project moved onto the plugin's current layout, one commit |
@@ -287,8 +287,11 @@ surface proves. Committed as `walk: <capability>`, pushed. Feature files stay un
 ## `kartograph-revise` — change it, and everything follows
 
 Building the screens first is meant to make you say "change this and that". Say it, after
-a walk or anytime, and this skill carries it through everything in one run, one commit per
-step. It records your words verbatim in `kartograph/<date>-<slug>.revision.md`, with what
+a walk or anytime, and this skill first just tries it: it changes the code you are looking
+at, nothing else, and asks "another change, or keep it?". Change it again as often as you
+like, say "back" to undo a round or "drop it" to throw the try-out away; no document is
+touched and nothing is committed until you keep it. Then it carries the kept version
+through everything in one run, one commit per step. It records your words verbatim in `kartograph/<date>-<slug>.revision.md`, with what
 they affect and each change (changed, added, removed) citing the words it comes from; it
 asks only when the words can honestly be read two ways. Then it changes exactly the
 affected scenarios, each marked `# Changed by` the revision; updates the concepts whose
@@ -463,7 +466,8 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
   a fake in production, and never touch the plan's content.
 - All drive. Converse ends every message with the next question or the written file;
   intent, map, knowledge, features, plan, screens, domain and adapters ask nothing at all;
-  walk asks once per scenario; revise asks only when your words are ambiguous; release asks
+  walk asks once per scenario; revise asks "another change, or keep it?" after each try-out
+  round and otherwise only when your words are ambiguous; release asks
   once, before anything leaves the machine.
 - Every file has a fixed structure, and each skill ships a validator it runs before
   committing:

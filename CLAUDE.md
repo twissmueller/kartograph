@@ -112,7 +112,8 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
   an open question, a stub, or friction in the written file. Walk is interactive by design,
   but asks exactly once per scenario, never after trivial steps. Plan and walk need an
   argument; the three ring skills fall back to the newest planned plan. Intent and map
-  fall back to the newest conversation or intent without a successor. Revise asks only
+  fall back to the newest conversation or intent without a successor. Revise asks "another
+  change, or keep it?" after each try-out round, otherwise only
   when the person's words can be read two ways, one question per message, recorded as a
   block. Release asks exactly once, after it has written and committed everything, before
   anything leaves the machine.
@@ -354,8 +355,15 @@ Rules for editing them:
 
 ## Rules the revise and release skills must keep
 
-- **Revise records first.** The person's words verbatim in numbered blocks, the first and
-  last the person's; every change cites a person block of the revision itself. `sources`
+- **Revise tries first.** While the person tries, each round changes only the code of the
+  rings already built, uncommitted, compiled, no test and no document, and ends with
+  "another change, or keep it?"; "back" reverts a round, "drop it" the whole try-out and
+  records nothing. It starts only on a clean working tree. On "keep it" the rounds become
+  the revision's blocks (an AI block of `> Tried: …` lines and that question per round),
+  the plan takes its code from the tried code, and the rings' own rules then apply to it:
+  tests are written, a test passing at once is reported, never weakened.
+- **Revise then records the kept version.** The person's words verbatim in numbered
+  blocks, the first and last the person's; every change cites a person block of the revision itself. `sources`
   names the intents of the affected capabilities; `status` goes `recorded` → `applied`.
 - **Revise changes exactly what was said.** Untouched scenarios stay byte for byte; each
   changed or added one gets `# Changed by kartograph/<file>.revision.md` directly above it
