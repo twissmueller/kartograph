@@ -1174,3 +1174,45 @@ test("asc_export_compliance says what happened: a 2xx is a missing Info.plist ke
   assert.match(r.stderr, /export compliance not set \(HTTP 500\)/);
   assert.doesNotMatch(r.stderr, /already set/);
 });
+
+// longpath's Mac app has its own Config.xcconfig; without MAC_VERSION_FILE every release
+// needed a manual Mac bump. Reads stay on VERSION_FILE; writes go to both; unset, nothing changes.
+test("MAC_VERSION_FILE receives every version and build write; unset, only VERSION_FILE changes", () => {
+  const dir = mkdtempSync(join(tmpdir(), "karto-macvf-"));
+  try {
+    const ios = join(dir, "ios.xcconfig"), mac = join(dir, "mac.xcconfig");
+    const reset = () => {
+      writeFileSync(ios, "MARKETING_VERSION = 1.4.0\nCURRENT_PROJECT_VERSION = 7\n");
+      writeFileSync(mac, "MARKETING_VERSION = 1.3.0\nCURRENT_PROJECT_VERSION = 5\nOTHER = x\n");
+    };
+    const run = (call, env) => sh(`. '${lib("xcode.sh")}'; ${call}`, env);
+
+    reset();
+    let r = run(`version_write 1.5.0; build_write 8; version_files; version_read; build_read`, { VERSION_FILE: ios, MAC_VERSION_FILE: mac });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, `${ios}\n${mac}\n1.5.0\n8\n`);
+    assert.equal(readFileSync(mac, "utf8"), "MARKETING_VERSION = 1.5.0\nCURRENT_PROJECT_VERSION = 8\nOTHER = x\n");
+    assert.match(r.stderr, new RegExp(`version 1\\.5\\.0 written to ${ios} ${mac}`));
+
+    for (const unset of [{}, { MAC_VERSION_FILE: "" }, { MAC_VERSION_FILE: ios }]) {
+      reset();
+      r = run(`version_write 1.5.0; build_write 8; version_files`, { VERSION_FILE: ios, MAC_VERSION_FILE: undefined, ...unset });
+      assert.equal(r.status, 0, r.stderr);
+      assert.equal(r.stdout, `${ios}\n`);
+      assert.equal(readFileSync(ios, "utf8"), "MARKETING_VERSION = 1.5.0\nCURRENT_PROJECT_VERSION = 8\n");
+      assert.equal(readFileSync(mac, "utf8"), "MARKETING_VERSION = 1.3.0\nCURRENT_PROJECT_VERSION = 5\nOTHER = x\n");
+    }
+
+    // a missing or YAML MAC_VERSION_FILE stops before VERSION_FILE is touched
+    for (const bad of [join(dir, "absent.xcconfig"), join(dir, "project.yml")]) {
+      reset();
+      if (bad.endsWith(".yml")) writeFileSync(bad, "MARKETING_VERSION: \"1.0.0\"\n");
+      r = run(`version_write 1.5.0`, { VERSION_FILE: ios, MAC_VERSION_FILE: bad });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /MAC_VERSION_FILE/);
+      assert.equal(readFileSync(ios, "utf8"), "MARKETING_VERSION = 1.4.0\nCURRENT_PROJECT_VERSION = 7\n");
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

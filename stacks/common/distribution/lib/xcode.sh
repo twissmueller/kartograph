@@ -18,6 +18,11 @@ set -euo pipefail
 #                      xcodegen (then XCODEGEN=yes, and xcode_regenerate runs first).
 # Both are read with awk/sed and written back with a python3 regex, so the number the
 # upload consumed lands in the diff instead of being invented at build time.
+#
+# $MAC_VERSION_FILE (optional, an .xcconfig) is the Mac app's own version file, for a Mac
+# app that is a separate project with its own configuration. Reads come from $VERSION_FILE;
+# every write goes to both, so the Mac build never ships with the previous version or build
+# number. Empty, unset or equal to $VERSION_FILE, it changes nothing.
 # ---------------------------------------------------------------------------
 
 _vf_kind() {
@@ -43,10 +48,35 @@ _vf_read() {
   esac
 }
 
+# MAC_VERSION_FILE when it is set and not VERSION_FILE, checked; else nothing.
+_vf_mac_file() {
+  [ -n "${MAC_VERSION_FILE:-}" ] || return 0
+  [ "$MAC_VERSION_FILE" != "${VERSION_FILE:-}" ] || return 0
+  [ -f "$MAC_VERSION_FILE" ] || die "MAC_VERSION_FILE not found: $MAC_VERSION_FILE"
+  case "$MAC_VERSION_FILE" in *.yml|*.yaml) die "MAC_VERSION_FILE must be an .xcconfig: $MAC_VERSION_FILE" ;; esac
+  printf '%s\n' "$MAC_VERSION_FILE"
+}
+
+# The files a version or build write goes to, one per line: VERSION_FILE, then
+# MAC_VERSION_FILE when set.
+version_files() {
+  require_var VERSION_FILE
+  printf '%s\n' "$VERSION_FILE"
+  _vf_mac_file
+}
+
+# Checks both files before touching either, so a bad MAC_VERSION_FILE never leaves the two
+# out of step.
 _vf_write() {
-  local key="$1" value="$2" kind
+  local key="$1" value="$2" kind mac
   kind="$(_vf_kind)"
-  python3 - "$VERSION_FILE" "$key" "$value" "$kind" <<'PY'
+  mac="$(_vf_mac_file)"
+  _vf_write_one "$VERSION_FILE" "$key" "$value" "$kind"
+  [ -z "$mac" ] || _vf_write_one "$mac" "$key" "$value" xcconfig
+}
+
+_vf_write_one() {
+  python3 - "$1" "$2" "$3" "$4" <<'PY'
 import re, sys
 path, key, value, kind = sys.argv[1:5]
 text = open(path, encoding="utf-8").read()
@@ -73,14 +103,14 @@ build_read()   { _vf_read CURRENT_PROJECT_VERSION; }
 build_write() {
   local n="${1:?build_write N}"
   _vf_write CURRENT_PROJECT_VERSION "$n"
-  log "build number $n written to $VERSION_FILE"
+  log "build number $n written to $(version_files | paste -sd' ' -)"
 }
 
 version_write() {
   local v="${1:?version_write X.Y.Z}"
   semver_valid "$v" || die "not a semver: '$v'"
   _vf_write MARKETING_VERSION "$v"
-  log "version $v written to $VERSION_FILE"
+  log "version $v written to $(version_files | paste -sd' ' -)"
 }
 
 # xcodegen turns project.yml into the .xcodeproj. Everything below assumes the project

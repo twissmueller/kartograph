@@ -9,6 +9,8 @@
 #      vX.Y.Z tag, with empty play_short and asc_short sections to fill;
 #   3. writes the version into every lane's file and raises the build numbers
 #      (CURRENT_PROJECT_VERSION, versionCode) by one, so the numbers land in the diff;
+#      the Apple values go to VERSION_FILE and, when set, MAC_VERSION_FILE (the Mac app's
+#      own .xcconfig), so iOS and Mac always carry the same version and build number;
 #   4. with --tag, commits those files and tags vX.Y.Z (annotated).
 # The build numbers rise here once; deploy-testflight.sh and deploy-play-internal.sh do not
 # bump again unless asked. Store texts stay in distribution/store; this script never uploads.
@@ -50,7 +52,7 @@ log "release notes: $notes"
 # 3. versions and build numbers
 changed=()
 if [ "$apple" = 1 ]; then
-  version_write "$next"; changed+=("$VERSION_FILE")
+  version_write "$next"; while IFS= read -r f; do changed+=("$f"); done < <(version_files)
   if [ "$bump_build" = 1 ]; then b="$(build_read)"; build_write $((b + 1)); log "CURRENT_PROJECT_VERSION $b → $((b + 1))"; fi
 fi
 if [ "$android" = 1 ]; then

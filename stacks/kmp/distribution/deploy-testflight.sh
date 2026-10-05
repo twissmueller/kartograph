@@ -7,8 +7,9 @@
 #   mac  exports a .pkg to disk, validates it with altool (a rejected validation costs no
 #        build number; App Store Connect never releases a number it accepted), then uploads.
 # The build number is CURRENT_PROJECT_VERSION in VERSION_FILE: bumped by one and written
-# back before archiving unless --no-bump or --build N. Signing is manual with the profile
-# named in config.sh (created through the API when absent), else automatic.
+# back (to MAC_VERSION_FILE as well, when set) before archiving unless --no-bump or
+# --build N. Signing is manual with the profile named in config.sh (created through the
+# API when absent), else automatic.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/lib/common.sh"
@@ -32,7 +33,7 @@ require_var APPLE_BUNDLE_ID ASC_APP_ID ASC_KEY_ID ASC_ISSUER_ID VERSION_FILE
 [ -f "$ASC_KEY_PATH" ] || die "API key file not found at $ASC_KEY_PATH"
 require_cmd xcodebuild xcrun
 
-if [ "$bump" = 1 ]; then b="$(build_read)"; build="$((b + 1))"; build_write "$build"; log "build number $b → $build (written to $VERSION_FILE)"; fi
+if [ "$bump" = 1 ]; then b="$(build_read)"; build="$((b + 1))"; build_write "$build"; log "build number $b → $build"; fi
 [ -n "$build" ] || build="$(build_read)"
 version="$(version_read)"
 log "$APP_NAME $version ($build), platform $platform"

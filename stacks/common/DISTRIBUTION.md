@@ -88,6 +88,7 @@ IOS_SCHEME=""
 MAC_PROJECT=""                   # empty when the Mac app is the same project
 MAC_SCHEME=""
 VERSION_FILE=""                  # the file holding MARKETING_VERSION and CURRENT_PROJECT_VERSION: an .xcconfig or project.yml
+MAC_VERSION_FILE=""              # optional: the Mac app's own .xcconfig when MAC_PROJECT has its own configuration
 XCODEGEN="no"                    # yes when the Xcode project is generated from project.yml
 IOS_PROFILE_NAME=""              # empty → automatic signing; else manual with this App Store profile
 MAC_PROFILE_NAME=""
@@ -153,7 +154,8 @@ kotlin_build_lib                       source kotlin-toolchain.sh when STACK=kmp
 version_read                           MARKETING_VERSION from $VERSION_FILE (xcconfig or project.yml)
 build_read                             CURRENT_PROJECT_VERSION
 build_write N                          write it back so the number lands in the diff
-version_write X.Y.Z
+version_write X.Y.Z                    also written to $MAC_VERSION_FILE when set (build_write likewise); reads stay on $VERSION_FILE
+version_files                          the files a version/build write goes to, one per line: $VERSION_FILE, then $MAC_VERSION_FILE when set
 xcode_regenerate                       xcodegen generate when XCODEGEN=yes
 xcode_archive LANE [ARCHIVE] [BUILD]   ios|mac; prints the archive path (default build/<lane>/<App>-<stamp>.xcarchive); API-key flags; only CURRENT_PROJECT_VERSION may be overridden on the CLI, never signing
 xcode_export_upload ARCHIVE LANE       ExportOptions with destination=upload; manual signing when *_PROFILE_NAME is set, else automatic with -allowProvisioningUpdates

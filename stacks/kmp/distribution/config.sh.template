@@ -20,6 +20,7 @@ IOS_SCHEME=""
 MAC_PROJECT=""                   # empty when the Mac app lives in the same project
 MAC_SCHEME=""
 VERSION_FILE=""                  # the file holding MARKETING_VERSION and CURRENT_PROJECT_VERSION: an .xcconfig or project.yml
+MAC_VERSION_FILE=""              # the Mac app's own .xcconfig when MAC_PROJECT has its own configuration; every version/build write goes to VERSION_FILE and this one; empty when the Mac app reads VERSION_FILE
 XCODEGEN="no"                    # yes when the Xcode project is generated from project.yml
 IOS_PROFILE_NAME=""              # empty → automatic signing; else manual signing with this App Store profile (created by the API when absent)
 MAC_PROFILE_NAME=""

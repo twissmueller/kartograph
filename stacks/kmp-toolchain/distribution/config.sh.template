@@ -20,6 +20,7 @@ IOS_SCHEME="app"                 # the Toolchain generates one target and one sc
 MAC_PROJECT=""                   # unused: the desktop app is the JVM desktop lane, not a Mac app
 MAC_SCHEME=""
 VERSION_FILE=""                  # the .xcconfig holding MARKETING_VERSION and CURRENT_PROJECT_VERSION, set as the app target's base configuration (see the stack's STACK.md, Delivery)
+MAC_VERSION_FILE=""              # unused: the desktop app is the JVM desktop lane, not a Mac app
 XCODEGEN="no"                    # the Toolchain owns module.xcodeproj; never xcodegen
 IOS_PROFILE_NAME=""              # empty → automatic signing; else manual signing with this App Store profile (created by the API when absent)
 MAC_PROFILE_NAME=""
