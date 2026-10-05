@@ -894,6 +894,42 @@ test("xcode_profile_install writes the profile as <uuid>.<extension> into both d
   }
 });
 
+// The same bug end to end: ensure_profile on a lane whose App Store profile already exists and is
+// ACTIVE, with asc_get stubbed. The old piped-heredoc install died here with JSONDecodeError.
+test("ensure_profile installs an existing ACTIVE profile read through asc_get", () => {
+  const home = mkdtempSync(join(tmpdir(), "karto-ensure-profile-"));
+  try {
+    const project = join(home, "Demo.xcodeproj");
+    mkdirSync(project);
+    const content = Buffer.from("existing profile bytes");
+    const uuid = "5678ABCD-0000-4000-8000-00000000CAFE";
+    const list = JSON.stringify({ data: [
+      { id: "other", attributes: { name: "Something Else", profileType: "MAC_APP_STORE", profileState: "ACTIVE" } },
+      { id: "prof-1", attributes: { name: "Demo Mac App Store", profileType: "MAC_APP_STORE", profileState: "ACTIVE" } },
+    ] });
+    const one = JSON.stringify({ data: { id: "prof-1", attributes: {
+      name: "Demo Mac App Store", profileState: "ACTIVE", expirationDate: "2027-10-05T10:00:00.000+0000",
+      uuid, profileContent: content.toString("base64"),
+    } } });
+    const r = sh(`. '${lib("xcode.sh")}'; . '${lib("asc.sh")}'
+      asc_get() { case "$1" in /profiles) printf '%s' "$LIST" ;; /profiles/prof-1) printf '%s' "$ONE" ;; *) echo "unexpected GET $1" >&2; return 1 ;; esac; }
+      asc_post() { echo "unexpected POST $1" >&2; return 1; }
+      asc_delete() { echo "unexpected DELETE $1" >&2; return 1; }
+      ensure_profile mac`, {
+      HOME: home, LIST: list, ONE: one, MAC_SCHEME: "Demo", MAC_PROJECT: project,
+      MAC_PROFILE_NAME: "Demo Mac App Store", APPLE_BUNDLE_ID: "com.example.demo",
+    });
+    assert.equal(r.status, 0, r.stderr);
+    assert.doesNotMatch(r.stderr, /JSONDecodeError|unexpected/);
+    assert.match(r.stderr, /profile already exists and is ACTIVE/);
+    for (const dir of ["Library/MobileDevice/Provisioning Profiles", "Library/Developer/Xcode/UserData/Provisioning Profiles"]) {
+      assert.deepEqual(readFileSync(join(home, dir, `${uuid}.provisionprofile`)), content);
+    }
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
 // --- Beatrep's first App Store release (2026-09): ASC8, ASC11, ASC20, ASC27, ASC29, ASC31,
 // ASC36, ASC37, ASC38. Every store call is stubbed; nothing reaches App Store Connect.
 
