@@ -3,7 +3,7 @@
 #
 # Builds the signed release bundle and uploads it to the Play internal testing track inside
 # one edit, committed last; a failure part-way leaves the live listing untouched. The
-# versionCode in ANDROID_BUILD_FILE is raised by one and written back before the build
+# versionCode (ANDROID_BUILD_FILE, or the gradle.properties it reads) is raised by one and written back before the build
 # unless --no-bump or --version-code N. Release notes come from the notes file's
 # play_short section when given. A second edit reads the track back and verifies the
 # versionCode landed.
@@ -29,7 +29,7 @@ require_var PLAY_PACKAGE_NAME ANDROID_BUILD_FILE KEYSTORE_PROPERTIES
 android_release_check   # the build can run and sign, before a versionCode is written
 
 read -r name current <<<"$(android_version_read)"
-if [ "$bump" = 1 ]; then code=$((current + 1)); android_version_write "$name" "$code"; log "versionCode $current → $code (written to $ANDROID_BUILD_FILE)"; fi
+if [ "$bump" = 1 ]; then code=$((current + 1)); android_version_write "$name" "$code"; log "versionCode $current → $code (written to $(android_version_files | paste -sd' ' -))"; fi
 [ -n "$code" ] || code="$current"
 [ "$code" = "$current" ] || [ "$bump" = 1 ] || { android_version_write "$name" "$code"; log "versionCode set to $code"; }
 aab="$(android_bundle_release)"

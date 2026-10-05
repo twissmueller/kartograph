@@ -289,11 +289,12 @@ toolchain_desktop_run() {
 }
 
 # ---------- the Kotlin build interface (see DISTRIBUTION.md) ----------
-# The entry scripts call these six through kotlin_build_lib; gradle.sh defines the same.
+# The entry scripts call these seven through kotlin_build_lib; gradle.sh defines the same.
 
 android_release_check()  { toolchain_release_check; }
 android_version_read()   { toolchain_version_read; }
 android_version_write()  { toolchain_version_write "$@"; }
+android_version_files()  { printf '%s\n' "$ANDROID_BUILD_FILE"; }  # module.yaml holds both fields
 android_bundle_release() { toolchain_bundle_release; }
 emulator_run()           { toolchain_emulator_run; }
 desktop_run()            { toolchain_desktop_run; }

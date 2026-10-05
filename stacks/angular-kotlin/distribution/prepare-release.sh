@@ -11,7 +11,9 @@
 #      (CURRENT_PROJECT_VERSION, versionCode) by one, so the numbers land in the diff;
 #      the Apple values go to VERSION_FILE and, when set, MAC_VERSION_FILE (the Mac app's
 #      own .xcconfig), so iOS and Mac always carry the same version and build number;
-#   4. with --tag, commits those files and tags vX.Y.Z (annotated).
+#   4. with --tag, commits those files and tags vX.Y.Z (annotated). The Android files are the
+#      ones android_version_write actually changes (gradle.properties when the build file
+#      reads the version through findProperty), never just ANDROID_BUILD_FILE.
 # The build numbers rise here once; deploy-testflight.sh and deploy-play-internal.sh do not
 # bump again unless asked. Store texts stay in distribution/store; this script never uploads.
 set -euo pipefail
@@ -58,7 +60,7 @@ fi
 if [ "$android" = 1 ]; then
   read -r _name code <<<"$(android_version_read)"
   newcode="$code"; [ "$bump_build" = 1 ] && newcode=$((code + 1))
-  android_version_write "$next" "$newcode"; changed+=("$ANDROID_BUILD_FILE")
+  android_version_write "$next" "$newcode"; while IFS= read -r f; do changed+=("$f"); done < <(android_version_files)
   log "versionName $next, versionCode $code → $newcode"
 fi
 if [ -f "$PROJECT_ROOT/package.json" ] && { has_lane frontend || has_lane web; }; then

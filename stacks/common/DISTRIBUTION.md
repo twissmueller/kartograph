@@ -41,7 +41,7 @@ distribution/
 |---|---|---|---|---|---|---|---|
 | `run-local.sh <lane>` | desktop, ios, android, docker | desktop, ios, android, docker | macos, ios | android | docker | docker | builds and starts the app on that lane for development |
 | `run-device.sh [udid]` | ios | ios | ios | – | – | – | installs and launches the debug build on a paired iPhone or iPad over the cable |
-| `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags |
+| `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags; `--tag` commits exactly the files the writes changed (`version_files`, `android_version_files`) |
 | `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ios | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
 | `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
 | `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots] [--version X.Y.Z] [--yes]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; `--version` first makes sure that Apple version is editable, creating it (confirmed, unless `--yes`) when none is, and stops — `--dry-run` too — when an editable version with another number exists, which App Store Connect would not let it create beside, naming both numbers (ASC29), or when the versions cannot be read; creates nothing for a version already in a review submission (ASC31); creates the JSON templates when missing; states what only the web UI can do |
@@ -58,7 +58,7 @@ that ships it. Where the build system matters (the Android and desktop lanes of
 `kotlin_build_lib`, which sources `kotlin-toolchain.sh` when `STACK="kmp-toolchain"` and
 `gradle.sh` otherwise, and then only the **Kotlin build interface** both libraries define:
 `android_release_check`, `android_version_read`, `android_version_write NAME CODE`,
-`android_bundle_release`, `emulator_run`, `desktop_run`. `android_release_check` runs
+`android_version_files`, `android_bundle_release`, `emulator_run`, `desktop_run`. `android_release_check` runs
 before any version is written, so a configuration that cannot build never bumps a number.
 A bundle counts as signed only when `jarsigner -verify` prints `jar verified.`: it exits 0
 on an unsigned jar too. The iOS lanes are `xcode.sh` for every stack; on
@@ -102,7 +102,7 @@ PLAY_SERVICE_ACCOUNT="$HOME/.google-play/service-account.json"
 GRADLE_DIR=""                    # directory holding gradlew (Gradle stacks)
 KOTLIN_DIR=""                    # directory holding the kotlin wrapper and project.yaml (kmp-toolchain)
 ANDROID_MODULE=":androidApp"     # a Gradle path; on kmp-toolchain the module name, androidApp
-ANDROID_BUILD_FILE=""            # the file holding versionCode and versionName: build.gradle.kts, or the Android module.yaml on kmp-toolchain
+ANDROID_BUILD_FILE=""            # the file declaring versionCode and versionName: build.gradle.kts (literals, or findProperty from $GRADLE_DIR/gradle.properties), or the Android module.yaml on kmp-toolchain
 KEYSTORE_PROPERTIES=""           # gitignored file with storeFile, storePassword, keyAlias, keyPassword
 EMULATOR=""                      # AVD name; empty → the first one listed
 
@@ -236,6 +236,8 @@ play_verify TRACK VERSION_CODE         second edit that reads the track back and
 ```
 gradle_version_read                    versionName and versionCode from $ANDROID_BUILD_FILE (prints "NAME CODE")
 gradle_version_write NAME CODE
+gradle_version_files                   the files gradle_version_write changes, one per line: $ANDROID_BUILD_FILE when it holds a literal
+                                       versionName/versionCode, $GRADLE_DIR/gradle.properties when one is read via findProperty("...")
 gradle_bundle_release                  :module:bundleRelease with $KEYSTORE_PROPERTIES present, prints the AAB path; jarsigner must say "jar verified."
 gradle_run TASK...                     ./gradlew in $GRADLE_DIR
 gradle_release_check                   GRADLE_DIR set and its gradlew executable
@@ -244,6 +246,7 @@ desktop_run                            $DESKTOP_MODULE:run
 android_release_check                  the Kotlin build interface: gradle_release_check
 android_version_read                   gradle_version_read
 android_version_write NAME CODE        gradle_version_write
+android_version_files                  gradle_version_files
 android_bundle_release                 gradle_bundle_release
 ```
 
@@ -264,6 +267,7 @@ toolchain_desktop_run                  kotlin run -m $DESKTOP_MODULE (Compose Ho
 android_release_check                  the Kotlin build interface: toolchain_release_check
 android_version_read                   toolchain_version_read
 android_version_write NAME CODE        toolchain_version_write
+android_version_files                  $ANDROID_BUILD_FILE (the module.yaml holds both fields)
 android_bundle_release                 toolchain_bundle_release
 emulator_run                           toolchain_emulator_run
 desktop_run                            toolchain_desktop_run

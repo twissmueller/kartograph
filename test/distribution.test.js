@@ -125,7 +125,7 @@ const sh = (script, env = {}) =>
 
 test("kotlin_build_lib picks kotlin-toolchain.sh for kmp-toolchain and gradle.sh otherwise", () => {
   for (const [stack, own, other] of [["kmp-toolchain", "toolchain_run", "gradle_run"], ["kmp", "gradle_run", "toolchain_run"], ["android-compose", "gradle_run", "toolchain_run"]]) {
-    const r = sh(`STACK=${stack}; kotlin_build_lib; declare -F ${own} >/dev/null; ! declare -F ${other} >/dev/null; for f in android_release_check android_version_read android_version_write android_bundle_release emulator_run desktop_run; do declare -F $f >/dev/null; done`);
+    const r = sh(`STACK=${stack}; kotlin_build_lib; declare -F ${own} >/dev/null; ! declare -F ${other} >/dev/null; for f in android_release_check android_version_read android_version_write android_version_files android_bundle_release emulator_run desktop_run; do declare -F $f >/dev/null; done`);
     assert.equal(r.status, 0, `${stack}: ${r.stderr}`);
   }
 });
@@ -1212,6 +1212,79 @@ test("MAC_VERSION_FILE receives every version and build write; unset, only VERSI
       assert.match(r.stderr, /MAC_VERSION_FILE/);
       assert.equal(readFileSync(ios, "utf8"), "MARKETING_VERSION = 1.4.0\nCURRENT_PROJECT_VERSION = 7\n");
     }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// longpath's build.gradle.kts reads versionName/versionCode via findProperty, so the bump
+// lands in gradle.properties; prepare-release.sh --tag used to commit only the build file.
+test("android_version_files names the file android_version_write changes: build file, gradle.properties, or module.yaml", () => {
+  const dir = mkdtempSync(join(tmpdir(), "karto-avf-"));
+  try {
+    const build = join(dir, "build.gradle.kts"), props = join(dir, "gradle.properties"), yaml = join(dir, "module.yaml");
+    const gradle = (call) => sh(`. '${lib("gradle.sh")}'; ${call}`, { ANDROID_BUILD_FILE: build, GRADLE_DIR: dir });
+
+    // literals: the build file only, and gradle.properties stays untouched
+    writeFileSync(build, 'android {\n    defaultConfig {\n        versionCode = 3\n        versionName = "1.0.0"\n    }\n}\n');
+    writeFileSync(props, "org.gradle.jvmargs=-Xmx2g\n");
+    let r = gradle("android_version_write 1.1.0 4; android_version_files");
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, `${build}\n`);
+    assert.match(readFileSync(build, "utf8"), /versionCode = 4\n        versionName = "1\.1\.0"/);
+    assert.equal(readFileSync(props, "utf8"), "org.gradle.jvmargs=-Xmx2g\n");
+
+    // findProperty: gradle.properties only, and the build file stays untouched
+    const viaProps = 'android {\n    defaultConfig {\n        versionCode = (findProperty("app.versionCode") as String).toInt()\n        versionName = findProperty("app.versionName") as String\n    }\n}\n';
+    writeFileSync(build, viaProps);
+    writeFileSync(props, "app.versionName=1.0.0\napp.versionCode=3\n");
+    r = gradle("android_version_write 1.1.0 4; android_version_files");
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, `${props}\n`);
+    assert.equal(readFileSync(build, "utf8"), viaProps);
+    assert.equal(readFileSync(props, "utf8"), "app.versionName=1.1.0\napp.versionCode=4\n");
+
+    // one of each: both files
+    writeFileSync(build, 'android {\n    defaultConfig {\n        versionCode = 3\n        versionName = findProperty("app.versionName") as String\n    }\n}\n');
+    assert.equal(gradle("android_version_files").stdout, `${build}\n${props}\n`);
+
+    // kmp-toolchain: the module.yaml holds both fields
+    writeFileSync(yaml, 'settings:\n  android:\n    versionCode: 3\n    versionName: "1.0.0"\n');
+    r = sh(`${toolchain} android_version_files`, { ANDROID_BUILD_FILE: yaml });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout, `${yaml}\n`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("prepare-release.sh --tag commits the gradle.properties a findProperty build writes the version to", () => {
+  const dir = mkdtempSync(join(tmpdir(), "karto-prt-"));
+  try {
+    const dist = join(dir, "distribution");
+    mkdirSync(join(dist, "lib"), { recursive: true });
+    for (const f of readdirSync(join(root, "stacks/common/distribution/lib"))) {
+      if (f.endsWith(".sh") || f.endsWith(".py")) writeFileSync(join(dist, "lib", f), readFileSync(lib(f)));
+    }
+    writeFileSync(join(dist, "prepare-release.sh"), readFileSync(join(root, "stacks/kmp/distribution/prepare-release.sh")), { mode: 0o755 });
+    mkdirSync(join(dir, "app"));
+    const build = 'android {\n    defaultConfig {\n        versionCode = (findProperty("app.versionCode") as String).toInt()\n        versionName = findProperty("app.versionName") as String\n    }\n}\n';
+    writeFileSync(join(dir, "app", "build.gradle.kts"), build);
+    writeFileSync(join(dir, "gradle.properties"), "app.versionName=1.0.0\napp.versionCode=3\n");
+    writeFileSync(join(dist, "config.sh"), `APP_NAME="Demo"\nSTACK="kmp"\nLANES="android"\nGRADLE_DIR="."\nANDROID_BUILD_FILE="app/build.gradle.kts"\n`);
+    const git = (...a) => execFileSync("git", ["-C", dir, ...a], { encoding: "utf8" });
+    git("init", "-q");
+    git("-c", "user.name=t", "-c", "user.email=t@example.org", "add", "-A");
+    git("-c", "user.name=t", "-c", "user.email=t@example.org", "commit", "-q", "-m", "feat: first");
+    const r = spawnSync("bash", [join(dist, "prepare-release.sh"), "minor", "--tag"], {
+      encoding: "utf8", cwd: dir,
+      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.org", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.org" },
+    });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(git("status", "--porcelain"), "");
+    assert.match(git("show", "--name-only", "--format=", "v1.1.0"), /^gradle\.properties$/m);
+    assert.equal(git("show", "v1.1.0:gradle.properties"), "app.versionName=1.1.0\napp.versionCode=4\n");
+    assert.equal(readFileSync(join(dir, "app", "build.gradle.kts"), "utf8"), build);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

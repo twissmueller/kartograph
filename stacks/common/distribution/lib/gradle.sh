@@ -183,6 +183,21 @@ if props_updates:
 PY
 }
 
+# gradle_version_files: the files gradle_version_write changes, one per line, so a caller
+# can commit exactly those. The build file when it holds a literal, gradle.properties when
+# versionName or versionCode is read through findProperty("...").
+gradle_version_files() {
+  require_var ANDROID_BUILD_FILE GRADLE_DIR
+  [ -f "$ANDROID_BUILD_FILE" ] || die "no build file at $ANDROID_BUILD_FILE"
+  local literal=0 props=0 line
+  while IFS= read -r line; do
+    case "$line" in *findProperty*) props=1 ;; *) literal=1 ;; esac
+  done < <(grep -E '^[[:space:]]*version(Name|Code)[[:space:]]*(=|\.set\(|\()' "$ANDROID_BUILD_FILE")
+  [ "$literal" = 1 ] && printf '%s\n' "$ANDROID_BUILD_FILE"
+  [ "$props" = 1 ] && printf '%s\n' "$GRADLE_DIR/gradle.properties"
+  return 0
+}
+
 # ---------- the release bundle ----------
 
 # gradle_bundle_release: build the signed AAB, verify the signature, archive it under
@@ -272,9 +287,10 @@ desktop_run() {
 
 # ---------- the Kotlin build interface (see DISTRIBUTION.md) ----------
 # The entry scripts call these through kotlin_build_lib; kotlin-toolchain.sh defines the
-# same six (emulator_run and desktop_run above are already two of them).
+# same seven (emulator_run and desktop_run above are already two of them).
 
 android_release_check()  { gradle_release_check; }
 android_version_read()   { gradle_version_read; }
 android_version_write()  { gradle_version_write "$@"; }
+android_version_files()  { gradle_version_files; }
 android_bundle_release() { gradle_bundle_release; }
