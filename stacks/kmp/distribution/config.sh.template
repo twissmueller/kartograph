@@ -43,3 +43,14 @@ WEB_MODULE=":webApp"
 SERVER_MODULE=":server"
 COMPOSE_FILE=""                  # docker compose file for the local server stack, when the project has one
 HEALTH_URL=""                    # health endpoint polled after compose up
+
+# Hooks — optional shell functions the scripts call when this file defines them
+# post_archive_hook PLATFORM ARCHIVE — deploy-testflight.sh calls it right after archiving
+# (PLATFORM is ios or mac, ARCHIVE the .xcarchive path), before export, validation and upload;
+# a non-zero status stops the run before anything leaves the machine. Use it to refuse an
+# archive the store would accept but that is broken, e.g. a Mac app signed without its
+# sandbox network entitlement:
+# post_archive_hook() {
+#   [ "$1" = mac ] || return 0
+#   "$PROJECT_ROOT/scripts/check-mac-entitlements.sh" "$2"
+# }

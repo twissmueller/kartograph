@@ -10,6 +10,7 @@
 # back (to MAC_VERSION_FILE as well, when set) before archiving unless --no-bump or
 # --build N. Signing is manual with the profile named in config.sh (created through the
 # API when absent), else automatic.
+# Hook: post_archive_hook PLATFORM ARCHIVE, when config.sh defines it, runs after archiving.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/lib/common.sh"
@@ -41,6 +42,9 @@ xcode_regenerate
 ensure_profile "$platform"
 archive="$BUILD_DIR/$platform/$APP_NAME-$version-$build.xcarchive"
 xcode_archive "$platform" "$archive" "$build"
+# Project hook: config.sh may define post_archive_hook PLATFORM ARCHIVE to check the archive
+# before anything is exported or uploaded; a non-zero status stops the run.
+if declare -F post_archive_hook >/dev/null; then post_archive_hook "$platform" "$archive"; fi
 
 if [ "$platform" = mac ]; then
   pkg="$(xcode_export_pkg "$archive" "$BUILD_DIR/mac/export-$build")"

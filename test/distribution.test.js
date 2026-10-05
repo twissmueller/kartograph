@@ -1325,3 +1325,81 @@ test("prepare-release.sh --tag commits the gradle.properties a findProperty buil
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// deploy-testflight.sh against stubbed libraries: every build and store call logs itself, so
+// the place of post_archive_hook (after archiving, before export or upload) is visible.
+const deployTestflight = (stack, hook = "") => {
+  const dir = tmp("deploy-testflight-");
+  const dist = join(dir, "distribution");
+  const bin = join(dir, "bin");
+  mkdirSync(dist);
+  mkdirSync(bin);
+  for (const c of ["xcodebuild", "xcrun"]) writeFileSync(join(bin, c), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  execFileSync("cp", ["-R", join(root, "stacks/common/distribution/lib"), join(dist, "lib")]);
+  execFileSync("cp", [join(root, "stacks", stack, "distribution/deploy-testflight.sh"), join(dist, "/")]);
+  writeFileSync(join(dir, "key.p8"), "k");
+  writeFileSync(join(dist, "config.sh"), `APP_NAME="Demo"\nLANES="ios mac"\nLOCALES="en-US"\nAPPLE_BUNDLE_ID=org.example.demo\nASC_APP_ID=1\nASC_KEY_ID=k\nASC_ISSUER_ID=i\nASC_KEY_PATH="${join(dir, "key.p8")}"\nVERSION_FILE=v.xcconfig\nTESTFLIGHT_GROUP=g\n${hook}\n`);
+  writeFileSync(join(dist, "lib/xcode.sh"), `build_read() { echo 7; }
+build_write() { echo "BUILD_WRITE $1" >&2; }
+version_read() { echo 1.0.0; }
+xcode_regenerate() { :; }
+ensure_profile() { :; }
+xcode_archive() { echo "ARCHIVE $1 $2" >&2; }
+xcode_export_pkg() { echo "EXPORT $1" >&2; echo "$2/Demo.pkg"; }
+xcode_export_upload() { echo "EXPORT_UPLOAD $1" >&2; }
+altool_validate() { echo "VALIDATE $1" >&2; }
+altool_upload() { echo "UPLOAD $1" >&2; }
+`);
+  writeFileSync(join(dist, "lib/asc.sh"), `asc_build_wait() { echo build-1; }
+asc_export_compliance() { :; }
+asc_beta_group_ensure() { :; }
+asc_beta_group_add() { echo "GROUP_ADD $1" >&2; }
+asc_beta_localization() { :; }
+`);
+  const run = (platform) =>
+    spawnSync("bash", [join(dist, "deploy-testflight.sh"), "--platform", platform, "--no-bump", "--yes"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+  return { dir, run };
+};
+const calls = (stderr) => stderr.split("\n").filter((l) => /^[A-Z_]+ /.test(l)).map((l) => l.split(" ")[0]);
+
+test("deploy-testflight.sh calls a defined post_archive_hook with platform and archive, after archiving and before export", () => {
+  for (const stack of ["apple-swift", "kmp", "kmp-toolchain"]) {
+    const { run } = deployTestflight(stack, 'post_archive_hook() { echo "HOOK $1 $2" >&2; }');
+    for (const platform of ["mac", "ios"]) {
+      const r = run(platform);
+      assert.equal(r.status, 0, `${stack} ${platform}: ${r.stderr}`);
+      const c = calls(r.stderr);
+      assert.deepEqual(c.slice(0, 3), ["ARCHIVE", "HOOK", platform === "mac" ? "EXPORT" : "EXPORT_UPLOAD"], `${stack} ${platform}: ${c}`);
+      assert.match(r.stderr, new RegExp(`^HOOK ${platform} \\S+/build/${platform}/Demo-1\\.0\\.0-7\\.xcarchive$`, "m"));
+    }
+  }
+});
+
+test("a failing post_archive_hook stops deploy-testflight.sh before anything is exported or uploaded", () => {
+  const { run } = deployTestflight("apple-swift", 'post_archive_hook() { [ "$1" = mac ] || return 0; echo "HOOK refuses $2" >&2; return 1; }');
+  const r = run("mac");
+  assert.notEqual(r.status, 0);
+  assert.deepEqual(calls(r.stderr), ["ARCHIVE", "HOOK"]);
+  const ios = run("ios");
+  assert.equal(ios.status, 0, ios.stderr);
+  assert.ok(calls(ios.stderr).includes("EXPORT_UPLOAD"));
+});
+
+test("without post_archive_hook deploy-testflight.sh runs exactly as before", () => {
+  const { run } = deployTestflight("apple-swift");
+  const mac = run("mac");
+  assert.equal(mac.status, 0, mac.stderr);
+  assert.deepEqual(calls(mac.stderr), ["ARCHIVE", "EXPORT", "VALIDATE", "UPLOAD", "GROUP_ADD"]);
+  const ios = run("ios");
+  assert.equal(ios.status, 0, ios.stderr);
+  assert.deepEqual(calls(ios.stderr), ["ARCHIVE", "EXPORT_UPLOAD", "GROUP_ADD"]);
+});
+
+test("the contract and every Apple-lane config template document post_archive_hook", () => {
+  assert.match(readFileSync(join(root, "stacks/common/DISTRIBUTION.md"), "utf8"), /### Config hooks[\s\S]*`post_archive_hook`/);
+  for (const stack of ["apple-swift", "kmp", "kmp-toolchain"]) {
+    const tpl = readFileSync(join(root, "stacks", stack, "distribution/config.sh.template"), "utf8");
+    assert.match(tpl, /^# post_archive_hook\(\) \{$/m, `${stack}: commented-out example`);
+    assert.doesNotMatch(tpl, /^post_archive_hook/m, `${stack}: the template must not define the hook`);
+  }
+});

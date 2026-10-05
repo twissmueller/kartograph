@@ -42,7 +42,7 @@ distribution/
 | `run-local.sh <lane>` | desktop, ios, android, docker | desktop, ios, android, docker | macos, ios | android | docker | docker | builds and starts the app on that lane for development |
 | `run-device.sh [udid]` | ios | ios | ios | – | – | – | installs and launches the debug build on a paired iPhone or iPad over the cable |
 | `prepare-release.sh <major\|minor\|patch\|X.Y.Z> [--tag]` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | writes `release-notes/vX.Y.Z.md` from the commits since the last release, bumps every lane's version and build number, optionally tags; `--tag` commits exactly the files the writes changed (`version_files`, `android_version_files`) |
-| `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ios | ✓ | – | – | – | archives, exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
+| `deploy-testflight.sh [--platform ios\|mac] [--build N] [--no-bump]` | ✓ | ios | ✓ | – | – | – | archives, runs `post_archive_hook` when `config.sh` defines it (see *Config hooks*), exports, uploads, configures the internal TestFlight group; the Mac platform validates a `.pkg` first |
 | `deploy-play-internal.sh [--version-code N] [--notes FILE]` | ✓ | ✓ | – | ✓ | – | – | builds the release bundle and uploads it to the internal track in one edit |
 | `push-store-metadata.sh [--apple] [--play] [--dry-run] [--screenshots] [--version X.Y.Z] [--yes]` | ✓ | ✓ | ✓ | play only | – | – | pushes listing texts and screenshots; `--version` first makes sure that Apple version is editable, creating it (confirmed, unless `--yes`) when none is, and stops — `--dry-run` too — when an editable version with another number exists, which App Store Connect would not let it create beside, naming both numbers (ASC29), or when the versions cannot be read; creates nothing for a version already in a review submission (ASC31); creates the JSON templates when missing; states what only the web UI can do |
 | `release-check.sh [--apple] [--play]` | ✓ | ✓ | ✓ | play only | – | – | reads, never writes: the newest processed TestFlight build per Apple platform against the highest version ever on sale (the states of `ASC_SHIPPED_STATES`, so an app removed from sale is not a first release), the internal track's highest versionCode against production's; prints one line per lane and `release X.Y.Z` (the first Apple platform's); exit 0 when every lane is ahead, 1 when a new build is needed first, 2 when no store lane ships, 3 when a store could not be read |
@@ -118,6 +118,26 @@ FLY_APP=""
 FRONTEND_DIR=""                  # directory holding the Angular project
 PROD_URL=""                      # public URL checked after a frontend deploy
 HEALTH_URL=""                    # backend health endpoint checked after a deploy
+```
+
+### Config hooks
+
+`config.sh` may also define shell functions that an entry script calls at a fixed point, only
+when the function is defined (`declare -F`); an undefined hook changes nothing. A hook is the
+project's own code: it stays in `config.sh` (or a script it calls), so the entry scripts and
+`lib/` remain byte-identical to the stack's and a template refresh keeps the project's checks.
+
+| hook | called by | when | arguments | a non-zero status |
+|---|---|---|---|---|
+| `post_archive_hook` | `deploy-testflight.sh` | right after `xcode_archive`, before export, validation and upload | `PLATFORM ARCHIVE`: `ios` or `mac`, and the `.xcarchive` path | stops the run; nothing is exported or uploaded |
+
+```bash
+# e.g. refuse a Mac archive signed without the sandbox or com.apple.security.network.client,
+# which App Store validation accepts and which ships an app without network
+post_archive_hook() {
+  [ "$1" = mac ] || return 0
+  "$PROJECT_ROOT/scripts/check-mac-entitlements.sh" "$2"
+}
 ```
 
 ## Library API
