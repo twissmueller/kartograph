@@ -3,11 +3,12 @@
 #
 # Releases what TestFlight and the internal track already carry:
 #   play   promotes the versionCodes on the internal track to production in one edit,
-#          with the notes file's play_short section as release notes; --rollout 0.1 starts
+#          with the notes file's play_short section as release notes (per locale, see
+#          below); --rollout 0.1 starts
 #          a staged rollout (10 %), raise it later with a higher fraction.
 #   apple  finds the newest processed build for the version, attaches it to the editable
 #          App Store version (created when absent, released after approval), sets What's
-#          New from the notes file's asc_short section per locale, and submits for review.
+#          New per locale from the notes file, and submits for review.
 #          On a first release (nothing on sale on that platform yet) What's New is left
 #          out: Apple refuses it there, since there is nothing for it to be new against.
 #          Refuses while a subscription waits at READY_TO_SUBMIT unattached (Guideline 2.1(b)).
@@ -25,6 +26,10 @@
 #          A locked version's build is left alone, never a failure (ASC27).
 #   play   on an app that was never published, Play accepts only a draft production
 #          release; it is staged, and sent for review from the Play Console.
+# Notes per locale: "### asc_short de-DE" (and "### play_short de-DE") is that locale's own
+# text, in its language; a locale of LOCALES without its own section, or with an empty one,
+# gets the shared "### asc_short" (or "### play_short"). prepare-release.sh seeds one section
+# per locale when LOCALES names more than one.
 # Nothing is rebuilt: the artefact that was tested is the artefact that ships.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -100,7 +105,7 @@ if [ "$apple" = 1 ]; then
     asc_version_attach "$version_id" "$build_id"
     if [ -n "$on_sale" ]; then
       for locale in $LOCALES; do
-        asc_version_whats_new "$version_id" "$locale" "$(notes_slice "$notes" asc_short 4000)"
+        asc_version_whats_new "$version_id" "$locale" "$(notes_slice "$notes" "asc_short $locale" 4000)"
       done
       log "App Store ($platform): $APP_NAME $version has its build and What's New"
     else

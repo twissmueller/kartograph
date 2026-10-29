@@ -126,7 +126,7 @@ commits_since() {
 # notes_write 1.5.0 [REF]: seeds release-notes/v1.5.0.md from the commits since REF.
 # Subjects starting with fix go under Fixed, feat under New, everything else under Changed.
 notes_write() {
-  local version="$1" ref="${2:-}" file fixed="" new="" changed="" line
+  local version="$1" ref="${2:-}" file fixed="" new="" changed="" line locale locales="${LOCALES:-}"
   file="$NOTES_DIR/v$version.md"
   mkdir -p "$NOTES_DIR"
   if [ -f "$file" ]; then log "release notes exist: $file (left untouched)"; printf '%s\n' "$file"; return 0; fi
@@ -151,12 +151,21 @@ notes_write() {
     printf '### play_short\n\n\n'
     printf '<!-- asc_short: at most 4000 characters, plain text, no platform names -->\n'
     printf '### asc_short\n\n\n'
+    # One section per store locale when there are several: "### asc_short de-DE" is that
+    # locale's What's New, an empty or missing one falls back to the shared section above.
+    if [ "$(printf '%s\n' $locales | wc -l)" -gt 1 ]; then
+      printf '<!-- per locale, in that language; left empty, the locale gets the shared section above -->\n'
+      for locale in $locales; do printf '### play_short %s\n\n\n' "$locale"; done
+      for locale in $locales; do printf '### asc_short %s\n\n\n' "$locale"; done
+    fi
   } >"$file"
   printf '%s\n' "$file"
 }
 
 # notes_slice FILE lane [CAP]: the text under "### <lane>" (play_short, asc_short, web, desktop, server),
-# the whole file when the heading is absent, truncated to CAP characters.
+# the whole file when the heading is absent, truncated to CAP characters. A lane with a locale,
+# "asc_short de-DE", is that locale's own section; when it is missing or empty the shared
+# "### asc_short" is used, so notes without per-locale sections read exactly as before.
 notes_slice() {
   local file="$1" lane="$2" cap="${3:-0}"
   [ -f "$file" ] || die "release notes not found: $file"
@@ -164,13 +173,29 @@ notes_slice() {
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
 lane, cap = sys.argv[2], int(sys.argv[3])
-m = re.search(r"^### " + re.escape(lane) + r"\s*$\n(.*?)(?=^##|\Z)", text, re.S | re.M)
-out = (m.group(1) if m else text).strip()
-out = re.sub(r"<!--.*?-->", "", out, flags=re.S).strip()
+def section(name):
+    m = re.search(r"^### " + re.escape(name) + r"\s*$\n(.*?)(?=^##|\Z)", text, re.S | re.M)
+    return None if m is None else re.sub(r"<!--.*?-->", "", m.group(1), flags=re.S).strip()
+out = section(lane)
+if not out and " " in lane:
+    lane = lane.split()[0]
+    out = section(lane)
+if out is None:
+    out = re.sub(r"<!--.*?-->", "", text, flags=re.S).strip()
 if cap and len(out) > cap:
     sys.stderr.write(f"! {lane} is {len(out)} characters, cap is {cap}; truncating\n")
     out = out[:cap].rstrip()
 print(out)
+PY
+}
+
+# notes_has_section FILE "lane locale": whether the notes carry that locale's own, non-empty section.
+notes_has_section() {
+  python3 - "$1" "$2" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+m = re.search(r"^### " + re.escape(sys.argv[2]) + r"\s*$\n(.*?)(?=^##|\Z)", text, re.S | re.M)
+sys.exit(0 if m and re.sub(r"<!--.*?-->", "", m.group(1), flags=re.S).strip() else 1)
 PY
 }
 

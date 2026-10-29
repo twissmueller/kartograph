@@ -164,6 +164,8 @@ last_release_tag                       newest vX.Y.Z tag, or empty
 commits_since REF                      one line per commit subject since REF (or all)
 notes_write VERSION [REF]              write release-notes/vVERSION.md with Fixed / New / Changed sections seeded from commits
 notes_slice FILE lane [CAP]            print the lane's section (play_short, asc_short, web, desktop, server) or the whole file, truncated at CAP
+                                       "asc_short de-DE" is a locale's own section, falling back to the shared one when missing or empty
+notes_has_section FILE "lane locale"   whether the notes carry that locale's own, non-empty section
 json_get FILE|- EXPR                   python3 one-liner: print value at dotted path
 kotlin_build_lib                       source kotlin-toolchain.sh when STACK=kmp-toolchain, else gradle.sh
 ```

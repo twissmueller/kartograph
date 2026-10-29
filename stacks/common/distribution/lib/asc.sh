@@ -638,6 +638,17 @@ asc_review_submit() {
   esac
 }
 
+# _asc_submission_holds SUBMISSION_ID VERSION_ID — whether the version is an item of the
+# review submission. /reviewSubmissions/{id}/items leaves relationships.appStoreVersion
+# without data unless include names it, so a check without include never matched and a
+# prepared draft got its version POSTed a second time (HTTP 409 "already added").
+_asc_submission_holds() {
+  local submission="${1:?_asc_submission_holds SUBMISSION_ID VERSION_ID}" version="${2:?_asc_submission_holds SUBMISSION_ID VERSION_ID}"
+  asc_get "/reviewSubmissions/$submission/items" "include=appStoreVersion&limit=50" | _asc_py 'want = sys.argv[2]
+sys.exit(0 if any(((i.get("relationships", {}).get("appStoreVersion") or {}).get("data") or {}).get("id") == want
+                  for i in d.get("data", [])) else 1)' "$version"
+}
+
 # asc_review_prepare PLATFORM [X.Y.Z] — steps 1 and 2 of asc_review_submit, never step 3:
 # the open submission with the version in it, not submitted. Prints the submission's id.
 # An in-app purchase's first review is added from its own page, whose Add for Review joins
@@ -648,7 +659,7 @@ asc_review_submit() {
 # review is refused: already submitted, nothing to prepare.
 asc_review_prepare() {
   local platform="${1:?asc_review_prepare PLATFORM [X.Y.Z]}" version_string="${2:-}"
-  local app version_id build answer submission items payload
+  local app version_id build answer submission payload
   app="$(_asc_app)"
 
   # The version the open draft already holds (READY_FOR_REVIEW after --no-submit) comes
@@ -681,9 +692,7 @@ for v in d.get("data", []):
 for s in d.get("data", []):
     if s["attributes"].get("state") in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
         print(s["id"])'); do
-    if asc_get "/reviewSubmissions/$sent/items" "limit=50" | _asc_py 'want = sys.argv[2]
-sys.exit(0 if any(((i.get("relationships", {}).get("appStoreVersion") or {}).get("data") or {}).get("id") == want
-                  for i in d.get("data", [])) else 1)' "$version_id"; then
+    if _asc_submission_holds "$sent" "$version_id"; then
       warn "the $platform version is in submission $sent, already submitted; nothing to prepare"
       return 1
     fi
@@ -706,28 +715,25 @@ print(json.dumps({"data": {"type": "reviewSubmissions",
     [ -n "$submission" ] || die "could not create a review submission for $platform"
   fi
 
-  items="$(asc_get "/reviewSubmissions/$submission/items" "limit=50" \
-    | _asc_py '
-for i in d.get("data", []):
-    rel = i.get("relationships", {})
-    for key in ("appStoreVersion", "subscription"):
-        data = (rel.get(key) or {}).get("data")
-        if data:
-            print(data.get("id", ""))')" || items=""
-  items="$(printf '%s' "$items" | tr '\n' ' ')"
-  case " $items " in
-    *" $version_id "*) log "the version is already attached to the submission" ;;
-    *)
-      payload="$(python3 -c '
+  if _asc_submission_holds "$submission" "$version_id"; then
+    log "the version is already attached to the submission"
+  else
+    payload="$(python3 -c '
 import json, sys
 print(json.dumps({"data": {"type": "reviewSubmissionItems",
   "relationships": {"reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sys.argv[1]}},
                     "appStoreVersion": {"data": {"type": "appStoreVersions", "id": sys.argv[2]}}}}}))
 ' "$submission" "$version_id")"
-      asc_post /reviewSubmissionItems "$payload" >/dev/null || die "could not attach the version to the submission"
+    ASC_HTTP_STATUS=""
+    if asc_post /reviewSubmissionItems "$payload" >/dev/null; then
       log "version attached to the submission"
-      ;;
-  esac
+    elif [ "$ASC_HTTP_STATUS" = 409 ] && _asc_submission_holds "$submission" "$version_id"; then
+      # "already added to this reviewSubmission": the item is there, which is all this step wants.
+      log "the version was already attached to the submission (HTTP 409 above is that); going on"
+    else
+      die "could not attach the version to the submission"
+    fi
+  fi
   printf '%s\n' "$submission"
 }
 

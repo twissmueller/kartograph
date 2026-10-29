@@ -160,7 +160,10 @@ person has to do or will find moved; a minor release has at least one line under
 `## New`; a patch release may have only `## Fixed`. Then fill `### play_short` (at most 500
 characters) and `### asc_short` (at most 4000) under `## Store text`: plain text, no
 headings, the most noticeable change first, in the language of the first locale in
-`LOCALES`, since `release-stores.sh` sets the same text for every locale.
+`LOCALES`. When `LOCALES` names more than one, fill `### play_short <locale>` and
+`### asc_short <locale>` for each other locale too, the same text in that locale's
+language: `release-stores.sh` gives each locale its own section and falls back to the
+shared one for a locale whose section is missing or empty.
 
 When every store lane is a first release, the notes introduce the app instead: create the
 file with the same command without a previous tag, and write `## New` as what the app does,
@@ -314,7 +317,7 @@ or no upstream: skip and say so).
 
 Then show one summary: per lane the version and build from step 1 and where it goes (App
 Store review, Play production, full rollout unless the person named a fraction); the
-`play_short` and `asc_short` texts verbatim; per locale the sentences added to the
+`play_short` and `asc_short` texts verbatim, each locale's own sections among them; per locale the sentences added to the
 descriptions and the new promotional text; the screenshot files replaced, added and
 removed. Ask once: "Release v<X.Y.Z> to the stores now?" — **A (recommended):** yes,
 **B:** not yet.

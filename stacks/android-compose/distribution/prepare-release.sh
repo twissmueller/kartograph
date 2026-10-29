@@ -6,7 +6,9 @@
 #      Android build file: build.gradle.kts, or module.yaml on the Kotlin Toolchain) or
 #      takes X.Y.Z as given;
 #   2. writes distribution/release-notes/vX.Y.Z.md seeded from the commits since the last
-#      vX.Y.Z tag, with empty play_short and asc_short sections to fill;
+#      vX.Y.Z tag, with empty play_short and asc_short sections to fill (and one of each
+#      per entry of LOCALES when there are several, "### asc_short de-DE"; left empty, a
+#      locale gets the shared section);
 #   3. writes the version into every lane's file and raises the build numbers
 #      (CURRENT_PROJECT_VERSION, versionCode) by one, so the numbers land in the diff;
 #      the Apple values go to VERSION_FILE and, when set, MAC_VERSION_FILE (the Mac app's

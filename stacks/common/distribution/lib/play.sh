@@ -220,12 +220,6 @@ play_upload_bundle() {
 # ---------- tracks ----------
 
 # The first entry of $LOCALES, in Play's language format.
-_play_default_locale() {
-  local first
-  first="$(printf '%s\n' "${LOCALES:-en-US}" | awk '{print $1}')"
-  play_locale "$first"
-}
-
 # play_locale en_us | en | en-US → en-US. Play wants language-REGION.
 play_locale() {
   local raw lang region
@@ -254,6 +248,27 @@ _play_rollout_valid() {
     || die "the rollout fraction must be above 0 and at most 1 (0.2 means 20% of users), got '$fraction'"
 }
 
+# _play_release_notes NOTES_FILE [LOCALE]: the releaseNotes list as JSON. The first locale
+# (LOCALE, else the first of LOCALES) gets its own play_short section or the shared one; every
+# other entry of LOCALES joins only with a section of its own ("### play_short de-DE"), so
+# notes without per-locale sections give the same single entry as before.
+_play_release_notes() {
+  local file="$1" first="${2:-}" entry locale text list=""
+  [ -n "$first" ] || first="$(printf '%s\n' "${LOCALES:-en-US}" | awk '{print $1}')"
+  for entry in "$first" ${LOCALES:-}; do
+    locale="$(play_locale "$entry")"
+    case " $list " in *" $locale "*) continue ;; esac
+    if [ -n "$list" ] && ! notes_has_section "$file" "play_short $entry"; then continue; fi
+    text="$(notes_slice "$file" "play_short $entry" "$PLAY_RELEASE_NOTES_CAP")"
+    [ -n "$text" ] || continue
+    list="$list $locale"
+    printf '%s\0%s\0' "$locale" "$text"
+  done | python3 -c '
+import json, sys
+parts = sys.stdin.buffer.read().decode("utf-8").split("\0")[:-1]
+print(json.dumps([{"language": l, "text": t} for l, t in zip(parts[0::2], parts[1::2])]))'
+}
+
 # play_track_set EDIT_ID TRACK VERSION_CODE [ROLLOUT] [NOTES_FILE] [LOCALE]
 # completed, or inProgress with a userFraction when a rollout is given. Release notes come
 # from the notes file's play_short section, capped at Play's 500 characters.
@@ -269,14 +284,12 @@ play_track_set() {
   local notes=""
   if [ -n "$notes_file" ]; then
     [ -f "$notes_file" ] || die "release notes not found: $notes_file"
-    notes="$(notes_slice "$notes_file" play_short "$PLAY_RELEASE_NOTES_CAP")"
-    [ -n "$locale" ] || locale="$(_play_default_locale)"
+    notes="$(_play_release_notes "$notes_file" "$locale")"
   fi
-  [ -n "$locale" ] && locale="$(play_locale "$locale")"
 
   local body
   body="$(PLAY_B_TRACK="$track" PLAY_B_CODE="$code" PLAY_B_ROLLOUT="$rollout" \
-          PLAY_B_NOTES="$notes" PLAY_B_LOCALE="$locale" python3 - <<'PY'
+          PLAY_B_NOTES="$notes" python3 - <<'PY'
 import json, os
 release = {"versionCodes": [os.environ["PLAY_B_CODE"]]}
 rollout = os.environ.get("PLAY_B_ROLLOUT", "").strip()
@@ -285,9 +298,9 @@ if rollout:
     release["userFraction"] = float(rollout)
 else:
     release["status"] = "completed"
-notes = os.environ.get("PLAY_B_NOTES", "").strip()
+notes = json.loads(os.environ.get("PLAY_B_NOTES") or "[]")
 if notes:
-    release["releaseNotes"] = [{"language": os.environ["PLAY_B_LOCALE"] or "en-US", "text": notes}]
+    release["releaseNotes"] = notes
 print(json.dumps({"track": os.environ["PLAY_B_TRACK"], "releases": [release]}))
 PY
 )"
@@ -338,13 +351,14 @@ play_track_versions() {
 
 # ---------- promotion ----------
 
-# _play_promote_body TARGET_TRACK ROLLOUT NOTES LOCALE FORCED_STATUS SOURCE_TRACK_JSON
+# _play_promote_body TARGET_TRACK ROLLOUT NOTES_JSON FORCED_STATUS SOURCE_TRACK_JSON (NOTES_JSON from _play_release_notes)
 # Prints the target track body carrying the source's own versionCodes — a promotion ships
 # the exact artifact that was tested, never a fresh build of the same source.
 _play_promote_body() {
-  python3 - "$1" "$2" "$3" "$4" "$5" "$6" <<'PY'
+  python3 - "$1" "$2" "$3" "$4" "$5" <<'PY'
 import json, sys
-track, rollout, notes, locale, forced, source = sys.argv[1:7]
+track, rollout, notes, forced, source = sys.argv[1:6]
+notes = json.loads(notes or "[]")
 try:
     data = json.loads(source)
 except Exception:
@@ -368,8 +382,8 @@ elif rollout.strip():
     out["userFraction"] = float(rollout)
 else:
     out["status"] = "completed"
-if notes.strip():
-    out["releaseNotes"] = [{"language": locale or "en-US", "text": notes.strip()}]
+if notes:
+    out["releaseNotes"] = notes
 elif best.get("releaseNotes"):
     out["releaseNotes"] = best["releaseNotes"]
 print(json.dumps({"track": track, "releases": [out]}))
@@ -382,11 +396,10 @@ play_promote() {
   [ -n "$from" ] && [ -n "$to" ] || die "play_promote needs a source track and a target track"
   _play_rollout_valid "$rollout"
 
-  local notes="" locale=""
+  local notes=""
   if [ -n "$notes_file" ]; then
     [ -f "$notes_file" ] || die "release notes not found: $notes_file"
-    notes="$(notes_slice "$notes_file" play_short "$PLAY_RELEASE_NOTES_CAP")"
-    locale="$(_play_default_locale)"
+    notes="$(_play_release_notes "$notes_file")"
   fi
 
   local edit src body out
@@ -396,7 +409,7 @@ play_promote() {
     play_edit_delete "$edit"
     die "could not read the '$from' track"
   fi
-  if ! body="$(_play_promote_body "$to" "$rollout" "$notes" "$locale" "" "$src")"; then
+  if ! body="$(_play_promote_body "$to" "$rollout" "$notes" "" "$src")"; then
     play_edit_delete "$edit"
     die "no completed release on the '$from' track to promote — upload a bundle there first"
   fi
@@ -415,7 +428,7 @@ play_promote() {
       # Say which of the two happened rather than failing with a swallowed error.
       warn "the app has never been published — staging a draft release instead"
       edit="$(play_edit_open)"
-      if ! body="$(_play_promote_body "$to" "" "$notes" "$locale" draft "$src")"; then
+      if ! body="$(_play_promote_body "$to" "" "$notes" draft "$src")"; then
         play_edit_delete "$edit"; die "could not build the draft release"
       fi
       if ! play_api PUT "/edits/$edit/tracks/$to" "$body" >/dev/null; then

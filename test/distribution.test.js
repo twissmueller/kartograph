@@ -514,7 +514,7 @@ test("asc_version_on_sale prints the highest version on sale, nothing on a first
 
 // release-stores.sh against stubbed libraries: every store call is a function that logs what
 // it was asked to do, so the order and the What's New decision are visible without an API.
-const releaseStores = (stack = "kmp", { lanes = "ios", args = ["--apple"] } = {}) => {
+const releaseStores = (stack = "kmp", { lanes = "ios", args = ["--apple"], notes = "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n" } = {}) => {
   const dir = tmp("release-stores-");
   const dist = join(dir, "distribution");
   mkdirSync(dist);
@@ -536,7 +536,7 @@ asc_review_prepare() { echo "PREPARE $1" >&2; echo submission-1; }
 asc_version_carries() { case "\${CARRIES:-0}" in 0) return 0 ;; 1) echo "! build 27 is attached, the newest is 28" >&2; return 1 ;; *) return 2 ;; esac; }
 asc_version_in_submission() { [ "\${IN_SUBMISSION_FAIL:-}" = 1 ] && { echo "HTTP 500" >&2; return 1; }; case "$1" in IOS) printf '%s\\n' "\${IN_SUBMISSION_IOS:-}" ;; *) printf '%s\\n' "\${IN_SUBMISSION_MAC:-}" ;; esac; }
 `);
-  writeFileSync(join(dist, "notes.md"), "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n");
+  writeFileSync(join(dist, "notes.md"), notes);
   return (env = {}) => spawnSync("bash", [join(dist, "release-stores.sh"), ...args, ...(env.EXTRA ? [env.EXTRA] : []), "--notes", join(dist, "notes.md"), "--version", "1.3.0", "--yes"], { encoding: "utf8", env: { ...process.env, ...env } });
 };
 
@@ -546,6 +546,56 @@ test("release-stores.sh on a follow-up release sets What's New per locale, then 
   const calls = r.stderr.split("\n").filter((l) => /^(BUILD|EDITABLE|ATTACH|WHATSNEW|SUBMIT) /.test(l));
   assert.deepEqual(calls, ["BUILD IOS 1.3.0", "EDITABLE IOS 1.3.0", "ATTACH version-1 build-1", "WHATSNEW version-1 en-US Apple text.", "WHATSNEW version-1 de-DE Apple text.", "SUBMIT IOS"]);
   assert.match(r.stderr, /has its build and What's New/);
+});
+
+test("release-stores.sh gives each locale its own What's New from '### asc_short <locale>', the shared text where a locale has none", () => {
+  const notes = "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n\n### asc_short en-US\n\n\n### asc_short de-DE\n\nApple-Text.\n";
+  for (const stack of ["kmp", "kmp-toolchain", "apple-swift", "android-compose"]) {
+    const r = releaseStores(stack, { notes })({ ON_SALE: "1.2.0" });
+    assert.equal(r.status, 0, `${stack}: ${r.stderr}`);
+    const whatsNew = r.stderr.split("\n").filter((l) => l.startsWith("WHATSNEW "));
+    assert.deepEqual(whatsNew, ["WHATSNEW version-1 en-US Apple text.", "WHATSNEW version-1 de-DE Apple-Text."], stack);
+  }
+});
+
+test("notes_slice reads a locale's own section and falls back to the shared one, then to the whole file", () => {
+  const dir = tmp("notes-");
+  const file = join(dir, "notes.md");
+  writeFileSync(file, "# v1.3.0\n\n## Store text\n\n### play_short\n\nPlay text.\n\n### asc_short\n\nApple text.\n\n<!-- per locale -->\n### asc_short fr-FR\n\n<!-- empty -->\n\n### asc_short de-DE\n\nApple-Text.\n");
+  const slice = (lane) => sh(`notes_slice '${file}' '${lane}'`).stdout.trim();
+  assert.equal(slice("asc_short"), "Apple text.");
+  assert.equal(slice("asc_short de-DE"), "Apple-Text.");
+  assert.equal(slice("asc_short fr-FR"), "Apple text.");
+  assert.equal(slice("asc_short ja-JP"), "Apple text.");
+  assert.equal(slice("play_short de-DE"), "Play text.");
+  assert.equal(sh(`notes_has_section '${file}' 'asc_short de-DE'`).status, 0);
+  assert.notEqual(sh(`notes_has_section '${file}' 'asc_short fr-FR'`).status, 0);
+  assert.notEqual(sh(`notes_has_section '${file}' 'asc_short ja-JP'`).status, 0);
+});
+
+test("notes_write seeds a play_short and asc_short section per locale when LOCALES names several, and none for one", () => {
+  for (const [locales, expected] of [["en-US de-DE", ["play_short", "asc_short", "play_short en-US", "play_short de-DE", "asc_short en-US", "asc_short de-DE"]], ["en-US", ["play_short", "asc_short"]]]) {
+    const dir = tmp("notes-write-");
+    execFileSync("git", ["init", "-q", dir]);
+    const r = sh(`PROJECT_ROOT='${dir}' NOTES_DIR='${dir}/notes' LOCALES='${locales}' notes_write 1.3.0 >/dev/null`);
+    assert.equal(r.status, 0, r.stderr);
+    const text = readFileSync(join(dir, "notes/v1.3.0.md"), "utf8");
+    assert.deepEqual([...text.matchAll(/^### (.+)$/gm)].map((m) => m[1]), expected, locales);
+    // freshly seeded, every locale falls back to the (still empty) shared text
+    assert.equal(sh(`notes_slice '${join(dir, "notes/v1.3.0.md")}' 'asc_short de-DE'`).stdout.trim(), "");
+  }
+});
+
+test("Play release notes carry one entry per locale with its own play_short section, the first locale always", () => {
+  const dir = tmp("play-notes-");
+  const file = join(dir, "notes.md");
+  const notes = (body) => (writeFileSync(file, body), JSON.parse(sh(`. '${lib("play.sh")}'; LOCALES="en-US de-DE fr-FR"; _play_release_notes '${file}'`).stdout));
+  assert.deepEqual(notes("## Store text\n\n### play_short\n\nPlay text.\n"), [{ language: "en-US", text: "Play text." }]);
+  assert.deepEqual(notes("## Store text\n\n### play_short\n\nPlay text.\n\n### play_short en-US\n\n\n### play_short de-DE\n\nSpiel-Text \"neu\".\n"),
+    [{ language: "en-US", text: "Play text." }, { language: "de-DE", text: "Spiel-Text \"neu\"." }]);
+  const body = sh(`. '${lib("play.sh")}'; LOCALES="en-US de-DE"; _play_promote_body production "" "$(_play_release_notes '${file}')" "" '{"releases":[{"status":"completed","versionCodes":["41"]}]}'`);
+  assert.equal(body.status, 0, body.stderr);
+  assert.deepEqual(JSON.parse(body.stdout).releases[0].releaseNotes.map((n) => n.language), ["en-US", "de-DE"]);
 });
 
 test("release-stores.sh on a first release sets no What's New, which Apple refuses, and still submits", () => {
@@ -818,7 +868,11 @@ const reviewCalls = (fn, submissions, items = []) => {
       case "$1" in
         /appStoreVersions/version-1/build) printf '%s' '{"data":{"attributes":{"version":"41"}}}' ;;
         /reviewSubmissions) printf '%s' '${JSON.stringify({ data: submissions })}' ;;
-        */items) printf '%s' '${JSON.stringify({ data: items })}' ;;
+        # like the live API: an item names its version only when include asks for it
+        */items) case "$2" in
+          *include=appStoreVersion*) printf '%s' '${JSON.stringify({ data: items })}' ;;
+          *) printf '%s' '${JSON.stringify({ data: items.map((i) => ({ ...i, relationships: { appStoreVersion: { links: {} } } })) })}' ;;
+        esac ;;
         */subscriptionGroups) printf '%s' '{"data":[],"included":[]}' ;;
       esac
     }
@@ -842,6 +896,37 @@ test("asc_review_prepare reuses an open submission that already holds the versio
   assert.equal(r.status, 0, r.stderr);
   assert.equal(r.stdout.trim(), "submission-open");
   assert.deepEqual(r.writes, []);
+});
+
+test("release-stores.sh --no-submit, then without it: the prepared draft is submitted as it is, no second item, no 409", () => {
+  const open = [{ id: "submission-open", attributes: { state: "READY_FOR_REVIEW" } }];
+  const r = reviewCalls("asc_review_submit", open, [{ relationships: { appStoreVersion: { data: { id: "version-1" } } } }]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /GET \/reviewSubmissions\/submission-open\/items/);
+  assert.match(r.stderr, /already attached to the submission/);
+  assert.equal(r.writes.length, 1, r.stderr);
+  assert.match(r.writes[0], /^PATCH \/reviewSubmissions\/submission-open .*"submitted":true/);
+});
+
+test("asc_review_prepare takes a 409 'already added' as attached when the submission does hold the version, and fails on any other refusal", () => {
+  const run = (heldAfter) => sh(`${asc}
+    asc_version_editable() { echo version-1; }
+    asc_get() {
+      case "$1" in
+        /appStoreVersions/version-1/build) printf '%s' '{"data":{"attributes":{"version":"41"}}}' ;;
+        /reviewSubmissions) printf '%s' '{"data":[{"id":"submission-open","attributes":{"state":"READY_FOR_REVIEW"}}]}' ;;
+        */items) if [ -f "$MARK" ] && [ ${heldAfter} = 1 ]; then printf '%s' '{"data":[{"relationships":{"appStoreVersion":{"data":{"id":"version-1"}}}}]}'; else printf '%s' '{"data":[]}'; fi ;;
+      esac
+    }
+    asc_post() { echo "POST $1" >&2; touch "$MARK"; ASC_HTTP_STATUS=409; return 1; }
+    MARK="$(mktemp -u)"; ASC_APP_ID=1 asc_review_prepare IOS 1.3.0`);
+  let r = run(1);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "submission-open");
+  assert.match(r.stderr, /already attached .*409/);
+  r = run(0);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /could not attach the version/);
 });
 
 test("asc_review_submit makes the same calls as before: prepare, then the submitted PATCH", () => {
