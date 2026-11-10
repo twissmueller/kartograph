@@ -31,7 +31,8 @@ question covers both. A release to a lane already on sale runs exactly as before
   `--version`, `distribution/release-stores.sh` and `distribution/lib/asc.sh` when they
   predate what step 1 names, the screenshot renderer in the app's test code
   together with the one seam and the build-file lines the stack's `screenshots.md` names,
-  and the tag `v<X.Y.Z>`. Never `kartograph/`, `features/`, `knowledge/`, `plans/`, `walks/`,
+  the tag `v<X.Y.Z>`, and in relay only the closing of this project's items marked
+  `release: next` that this release carries (step 6). Never `kartograph/`, `features/`, `knowledge/`, `plans/`, `walks/`,
   `distribution/config.sh` or another delivery script.
 - **Positive and factual.** Say what is new and what works better, as the person using the
   app notices it. A fix is what now works ("Syncing resumes after the connection returns"),
@@ -49,6 +50,9 @@ question covers both. A release to a lane already on sale runs exactly as before
   code, the build files, the project's files or a store read, and names where. What none
   of them shows is marked for the person, never filled in: a phone number, a price, an age
   group, a URL that does not answer 200.
+- **Nothing marked for the release is forgotten.** Every relay item of this project marked
+  `release: next` is named in the summary, carried or not, with the evidence; only carried
+  ones are closed, and only after the release went out.
 - **Never print a secret.** The store APIs need the network; if the runtime's sandbox
   blocks it, say so and hand the person the command.
 
@@ -140,6 +144,18 @@ Read the range: `git log --no-merges --format='%h %s' <previous>..<end>`, and
 revisions and feature files added or changed, reading each of those files. What a person
 using the app notices counts: new and changed scenarios, fixes whose subject names a
 behaviour. Chores, refactors, tests, documentation and build changes do not.
+
+Then the items that wait for this release: `relay release <project>` (the project is the
+folder name under `~/projects`; through MCP, `relay_release` with `project`) lists every
+unfinished relay item of the project marked `release: next`, and the same commits since the
+previous tag split into user-facing and internal. Read each item (`relay show <id>`). An
+item is **carried** when the range shows its work: a commit or a changed file under
+`distribution/store/`, `features/` or the code that does what the item asks; name that
+commit or file as the evidence. An item whose work is not in the range, or needs a step
+outside the repository that the scripts below do not do (a preview already uploaded in App
+Store Connect goes out with the version, so it is carried; a console step nobody did is
+not), is **not carried** and stays marked. Never guess: no evidence, not carried. When
+`relay` is not installed, say so in the summary and go on; nothing is closed then.
 
 On a first release, read what the app is rather than what changed: every capability and
 feature file under `features/`, the intents and revisions under `kartograph/`, and the
@@ -319,7 +335,8 @@ Then show one summary: per lane the version and build from step 1 and where it g
 Store review, Play production, full rollout unless the person named a fraction); the
 `play_short` and `asc_short` texts verbatim, each locale's own sections among them; per locale the sentences added to the
 descriptions and the new promotional text; the screenshot files replaced, added and
-removed. Ask once: "Release v<X.Y.Z> to the stores now?" — **A (recommended):** yes,
+removed; the items marked `release: next` from step 2, each with **carried** and its
+evidence or **not carried** and why, and none when there are none. Ask once: "Release v<X.Y.Z> to the stores now?" — **A (recommended):** yes,
 **B:** not yet.
 
 On a first release the summary shows instead the full texts per locale, every screenshot,
@@ -371,6 +388,9 @@ review from the console (the checklist's *After the release*).
 
 When every step succeeded and no `v<X.Y.Z>` tag exists, tag the release commit
 `git tag -a v<X.Y.Z> -m "v<X.Y.Z>"` and push the tag; an existing tag stays where it is.
+Then close each carried item: `relay done <id> --shipped v<X.Y.Z>` (through MCP,
+`relay_done` with `shipped`), which archives it with `release: v<X.Y.Z>`. Items not carried
+stay marked `release: next` for the next release. On a failure nothing is closed.
 A failure: show the script's last lines and say, per store, what already went out and
 what did not; nothing after it runs and nothing is tagged. Inside `release-stores.sh` Play
 is promoted before Apple is submitted, so by failure point:
@@ -410,7 +430,8 @@ the written files.
 ## 7. Report
 
 What is where: per Apple platform the version in review, on Play the versionCode in
-production and its rollout, the tag. The delivery scripts refreshed in step 1, if any.
+production and its rollout, the tag, the relay items closed as shipped and the ones still
+marked for the next release. The delivery scripts refreshed in step 1, if any.
 What the scripts said only the web UI can do (App Privacy, Data safety, a subscription's
 first review). On a first release: every line of `distribution/store/first-release.md`
 that still carries ✗ or `?`, and where it is done (App Store Connect, the Play Console, or
