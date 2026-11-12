@@ -50,6 +50,8 @@ project tell it:
   `screenshots.md`), commits, asks once, then pushes the listings, releases and tags. On a
   lane with nothing on sale it prepares the first release: the whole listing, every key
   screen, and `distribution/store/first-release.md` with the web-only steps and answers.
+  It lists the project's relay items marked `release: next` with evidence of whether the
+  release carries them, and after tagging closes the carried ones with `relay done --shipped`.
 - `kartograph-migrate` brings a project's Kartograph files onto this plugin's layout, in
   one step and one commit, whatever version the project comes from.
 

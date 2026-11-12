@@ -347,6 +347,11 @@ and the screenshots in one summary, and asks once. After your yes it pushes the 
 and screenshots, submits the App Store version for review and promotes Play internal to
 production, tags the release, and says what is left for the web UI.
 
+When the project uses relay, the summary also names every item marked `release: next`
+(`relay release <project>`), each carried or not carried with the commit or file that shows
+it. After the tag the carried items are closed as shipped (`relay done <id> --shipped
+v<version>`); the others stay marked for the next release.
+
 The first release works the same way, prepared from scratch. When a store sells nothing
 yet, the build tested on TestFlight or Play internal is still required; the skill then
 writes the whole listing for every locale from the features, intents and knowledge
