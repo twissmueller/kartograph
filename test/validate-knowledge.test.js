@@ -178,3 +178,19 @@ test("missing index.md or log.md is an error", (t) => {
   const dir = bundle(t, { withIndex: false });
   assert.ok(validateBundle(dir).errors.some((e) => /index.md: missing/.test(e)));
 });
+
+// STE-lite (writing/STE.md): warnings only, English only, quotes skipped.
+test("STE-lite: a long sentence or 'will' in an English concept is a warning, never an error", () => {
+  const r = validateConcept(concept({ description: "Mark one watering task of the day as done, and the app will then show it as done on every device of the gardener, also while the phone is offline." }), { path: "commands/water-plant.md" });
+  assert.deepEqual(r.errors, []);
+  assert.ok(r.warnings.some((w) => /STE W4: \d+ words in one sentence \(maximum 25\)/.test(w)), r.warnings.join("\n"));
+  assert.ok(r.warnings.some((w) => /STE W8: use the present tense, not "will"/.test(w)));
+});
+
+test("STE-lite: quotes from the intent and German concepts do not warn", () => {
+  const quoted = concept({ sections: "" }).replace("> A task ticked offline shows as done after reconnecting", "> A task that I tick while I am offline will show as done after the phone reconnects to the network again later today");
+  assert.deepEqual(validateConcept(quoted, { path: "commands/water-plant.md" }).warnings, []);
+  const de = concept({ description: "Eine Gießaufgabe des Tages wird als erledigt markiert, auch wenn das Telefon nicht mit dem Netz verbunden ist und die Daten später kommen." })
+    .replace("Mark one watering task of the day as done, also while offline.", "Eine Gießaufgabe wird als erledigt markiert, auch ohne Netz.");
+  assert.deepEqual(validateConcept(de, { path: "commands/water-plant.md" }).warnings, []);
+});

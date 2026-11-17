@@ -21,6 +21,9 @@ write, commit, push, report. **Fully automated: ask nothing, wait for nothing.**
   it comes from: `[turn 8]`, or `[turns 8, 12]`.
 - No questions, no review, no confirmation. Run to the end and report.
 - Write in the language of the conversation.
+- **Plain English (STE-lite).** In English, your own descriptive text (summary, entries,
+  `description`) follows `STE.md` in the `writing/` directory at the plugin root, two levels above this file's directory: 25 words or less in a sentence, present tense, active
+  voice. The person's words that you quote stay as they said them.
 
 ## 0. Version gate
 

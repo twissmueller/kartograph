@@ -15,7 +15,9 @@ related: [<earlier kartograph/ documents the conversation follows up — or an e
 <!-- Section headings stay exactly as written here, in this order, whatever the language of
      the content. Every entry under Goals, Intended outcomes, Non-goals, Constraints and
      Decisions ends with the person's block it comes from: [turn 3] or [turns 3, 5].
-     validate-intent.js checks both, so no intent drifts from this shape. -->
+     validate-intent.js checks both, so no intent drifts from this shape.
+     English text of your own follows STE-lite (writing/STE.md at the plugin root):
+     25 words or less in a sentence; quotes stay word for word. -->
 
 ## Summary
 

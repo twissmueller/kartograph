@@ -56,3 +56,15 @@ test("revise and release are stack-neutral: every stack word comes from the proj
     assert.equal(m, null, `${s} names '${m?.[0]}'`);
   }
 });
+
+test("the STE-lite rules at writing/STE.md are cited by every skill that writes text for people, and shipped", () => {
+  assert.ok(existsSync(new URL("writing/STE.md", root)));
+  const STE_SKILLS = ["kartograph-deliver", "kartograph-features", "kartograph-intent", "kartograph-knowledge", "kartograph-map", "kartograph-release"];
+  const oc = read("opencode/index.js");
+  for (const s of STE_SKILLS) {
+    assert.match(read(`skills/${s}/SKILL.md`), /`STE\.md` in the `writing\/` directory at the plugin root, two levels above this file's directory/, s);
+    const tool = oc.slice(oc.indexOf(`skill: "${s}"`), oc.indexOf("}),", oc.indexOf(`skill: "${s}"`)));
+    assert.match(tool, /rootFiles: \["writing\/STE\.md"\]/, `${s}: opencode tool lacks writing/STE.md`);
+  }
+  assert.ok(JSON.parse(read("package.json")).files.includes("writing/"), "package.json files lacks writing/");
+});

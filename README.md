@@ -440,7 +440,8 @@ the same `SKILL.md`. Add the npm package to
 
 OpenCode also reads skills straight from `~/.agents/skills/`, and Codex picks them up from
 the same place; a copy of a single `skills/kartograph-*` directory works for every skill
-except plan and deliver, which need the plugin's `stacks/` directory beside it, and
+except plan and deliver, which need the plugin's `stacks/` directory beside it (intent, map,
+knowledge, features, deliver and release also cite `writing/STE.md` at the plugin root), and
 migrate, which needs the plugin's `scripts/` and `migrations/` directories beside it.
 Every other skill's version gate simply skips when `migrations/` is not there.
 
@@ -465,6 +466,10 @@ runtime-specific tool. Drop the `skills/` directories wherever your agent looks 
   moves on.
 - None invents. What was not said is an assumption, an open question, a stub, or
   friction; never a guessed rule, a guessed outcome, or a placeholder in a plan.
+- The English text the skills write for people follows STE-lite (`writing/STE.md`):
+  short sentences, simple verbs, present tense, active voice, one action per step and per
+  When. The person's quoted words and text in other languages stay as they are. The
+  features and knowledge validators report a broken rule as a warning, never as an error.
 - None writes a `verified` stamp or claims a feature is approved, implemented or tested.
   In a walk, only your answer becomes a verdict.
 - Screens, domain and adapters never edit a feature file, never weaken a test, never ship

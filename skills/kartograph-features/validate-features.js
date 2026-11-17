@@ -147,7 +147,66 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
   }
   const ph = PLACEHOLDER.exec(text);
   if (ph) err(`still holds a template placeholder: ${ph[0]}`);
-  return { errors, intents, revisions, listed, listedCapabilities };
+  // STE-lite: the prose of capability.md, as warnings (comments, headings and source lines skipped).
+  const warnings = [];
+  const capProse = text.replace(/<!--[\s\S]*?-->/g, "").split(/\r?\n/)
+    .map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !/^- (Intent|Revision):/.test(l));
+  if (steIsEnglish(capProse.join(" "))) for (const l of capProse) for (const w of steWarnings(l.replace(/^[-*]\s+/, ""))) warnings.push(`${path}: ${w}`);
+  return { errors, warnings, intents, revisions, listed, listedCapabilities };
+}
+
+// ---------------------------------------------------------------------------
+// STE-lite (`writing/STE.md` at the plugin root). Warnings only, never errors, so a
+// project written before the rules still passes; text that is not English is skipped.
+// The same block is in validate-features.js and validate-knowledge.js (self-contained).
+// ---------------------------------------------------------------------------
+const STE_EN = /\b(the|and|is|are|of|to|with|when|then|a|an|it|in|for)\b/gi;
+const STE_DE = /\b(der|die|das|und|ist|sind|nicht|ein|eine|mit|wenn|dann|wird|werden|für|auf|den|dem|des|zu|im)\b/gi;
+// -ing words that are not -ing forms, or are technical names.
+const STE_ING_OK = new Set(["thing", "things", "nothing", "something", "anything", "everything", "string", "strings",
+  "during", "bring", "ring", "rings", "spring", "king", "morning", "evening", "ceiling", "sibling", "pudding", "wedding",
+  "setting", "settings", "building", "buildings", "meeting", "meetings", "billing", "logging", "pricing", "listing",
+  "listings", "onboarding", "heading", "headings", "warning", "warnings", "rating", "ratings", "booking", "bookings",
+  "recording", "recordings", "training", "painting", "drawing", "drawings", "clothing", "parking", "packaging",
+  "shipping", "mapping", "spacing", "padding", "staging", "testing", "routing", "tracking", "streaming", "landing",
+  "pending", "ending", "beginning", "evening", "awning", "lightning", "offspring", "darling", "sling", "swing", "wing", "wings", "sing", "king"]);
+
+/** True when a text reads as English rather than German (the projects' two languages). */
+export function steIsEnglish(text) {
+  const en = (text.match(STE_EN) || []).length;
+  const de = (text.match(STE_DE) || []).length;
+  return en > 0 && en >= de;
+}
+
+function steClean(text) {
+  return text
+    .replace(/`[^`]*`/g, "X")                     // code spans count as one word
+    .replace(/"[^"\n]*"|“[^”\n]*”/g, "X")          // quoted UI strings and quotes stay as they are
+    .replace(/<[^>\n]+>/g, "X")                    // outline parameters
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")       // link text only
+    .replace(/\[\^[^\]]+\]/g, "")                  // footnote references
+    .replace(/[*_]/g, "");
+}
+
+/**
+ * The STE-lite warnings for one piece of English prose.
+ * kind "step": W4 20 words, W8 -ing forms, "will" and "should". kind "text": W4 25 words, W8 "will".
+ */
+export function steWarnings(text, { kind = "text" } = {}) {
+  const out = [];
+  const max = kind === "step" ? 20 : 25;
+  const clean = steClean(text);
+  for (const s of clean.split(/(?<=[.!?:;])\s+/)) {
+    const words = s.split(/\s+/).filter(Boolean).length;
+    if (words > max) out.push(`STE W4: ${words} words in one sentence (maximum ${max}): "${s.split(/\s+/).slice(0, 8).join(" ")} …"`);
+  }
+  if (/\bwill\b/i.test(clean)) out.push(`STE W8: use the present tense, not "will": "${text.trim().slice(0, 60)}"`);
+  if (kind === "step") {
+    if (/\bshould\b/i.test(clean)) out.push(`STE W8: use the present tense, not "should": "${text.trim().slice(0, 60)}"`);
+    const ing = [...clean.matchAll(/\b([A-Za-z]{2,}ing)\b/g)].map((m) => m[1]).filter((w) => !STE_ING_OK.has(w.toLowerCase()));
+    if (ing.length) out.push(`STE W8: no -ing form ("${ing[0]}"): "${text.trim().slice(0, 60)}"`);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +214,8 @@ export function validateCapability(text, { path = "capability.md", featureFiles 
 // ---------------------------------------------------------------------------
 export function validateFeature(text, { path = "x.feature", capabilityDir } = {}) {
   const errors = []; const err = (m) => errors.push(`${path}: ${m}`);
+  // STE-lite: prose (Feature and Rule descriptions, Rule: lines) and steps, checked after the parse.
+  const prose = []; const steps = []; const whenActions = [];
   const lines = text.split(/\r?\n/);
   const intents = []; const revisions = [];
   let d = DIALECTS.en;
@@ -197,6 +258,7 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
   const closeBlock = () => {
     if (!cur) return;
     if (cur.type === "scenario") {
+      if (cur.whens > 1) whenActions.push(cur.name);
       // Given/Then scenarios are valid Gherkin (a state that must hold); an observable result is not optional.
       if (!cur.steps.includes("then")) err(`scenario '${cur.name}' has no Then step`);
       if (cur.outline && !cur.examples) err(`scenario outline '${cur.name}' has no 'Examples:'`);
@@ -227,7 +289,7 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
     }
     if (block(t, d.feature) !== null) continue;
     let m;
-    if ((m = block(t, d.rule)) !== null) { closeRule(); closeBlock(); rule = { name: m, scenarios: 0 }; continue; }
+    if ((m = block(t, d.rule)) !== null) { closeRule(); closeBlock(); rule = { name: m, scenarios: 0 }; prose.push(m); continue; }
     if (block(t, d.background) !== null) { closeBlock(); cur = { type: "background", steps: [] }; continue; }
     const outline = block(t, d.outline); const scenario = outline === null ? block(t, d.scenario) : null;
     if (outline !== null || scenario !== null) {
@@ -235,16 +297,24 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
       const name = outline ?? scenario;
       if (rule) rule.scenarios++;
       if (names.has(name)) err(`scenario name '${name}' is used twice`); names.add(name);
-      scenarios++; cur = { type: "scenario", name, outline: outline !== null, steps: [], examples: false };
+      scenarios++; cur = { type: "scenario", name, outline: outline !== null, steps: [], examples: false, whens: 0, inWhen: false };
       continue;
     }
     if (block(t, d.examples) !== null) { if (cur && cur.type === "scenario") cur.examples = true; expectHeader = true; continue; }
     if (t.startsWith("|")) { if (expectHeader) { for (const c of t.split("|").slice(1, -1)) headerCells.add(c.trim()); expectHeader = false; } continue; }
     if (t.startsWith('"""') || t.startsWith("```")) { inDocString = t.slice(0, 3); continue; }
     // Outside a background or scenario every line is description, even one starting like a step.
-    if (!cur) continue;
+    if (!cur) { prose.push(t); continue; }
     const kind = stepKind(t, d);
-    if (kind) { cur.steps.push(kind); continue; }
+    if (kind) {
+      cur.steps.push(kind);
+      steps.push(t.replace(/^\S+\s+/, ""));
+      // One action or event per When (STE W5): a When and each And/But that follows it count.
+      if (kind === "when") { cur.inWhen = true; cur.whens = (cur.whens || 0) + 1; }
+      else if ((kind === "and" || kind === "but") && cur.inWhen) cur.whens++;
+      else cur.inWhen = false;
+      continue;
+    }
     if (cur.steps.length === 0) continue; // background or scenario description before its first step
     err(`unexpected line: ${t}`);
   }
@@ -256,7 +326,14 @@ export function validateFeature(text, { path = "x.feature", capabilityDir } = {}
   for (const ph of text.matchAll(/<([A-Za-z][^>\n]* [^>\n]*)>/g)) {
     if (!headerCells.has(ph[1])) { err(`still holds a template placeholder: ${ph[0]}`); break; }
   }
-  return { errors, intents, revisions };
+  const warnings = [];
+  const english = (!lang || lang[1] === "en") && steIsEnglish([...steps, ...prose].join(" "));
+  if (english) {
+    for (const p of new Set(prose)) for (const w of steWarnings(p)) warnings.push(`${path}: ${w}`);
+    for (const s of new Set(steps)) for (const w of steWarnings(s, { kind: "step" })) warnings.push(`${path}: ${w}`);
+    for (const n of whenActions) warnings.push(`${path}: STE W5: scenario '${n}' has more than one action in its When steps; one action or event per When`);
+  }
+  return { errors, warnings, intents, revisions };
 }
 
 // ---------------------------------------------------------------------------
@@ -281,14 +358,14 @@ export function validateCapabilityDir(dir, { projectRoot, relPath } = {}) {
   if (!entries.includes("capability.md")) errors.push(`${rel("capability.md")}: missing`);
   else {
     const r = validateCapability(readFileSync(join(dir, "capability.md"), "utf8"), { path: rel("capability.md"), featureFiles, subCapabilities });
-    errors.push(...r.errors); capIntents = r.intents; capRevisions = r.revisions;
+    errors.push(...r.errors); warnings.push(...r.warnings); capIntents = r.intents; capRevisions = r.revisions;
   }
   const allIntents = new Set(capIntents);
   const allRevisions = new Set(capRevisions);
   for (const f of featureFiles) {
     if (!SLUG.test(f.replace(/\.feature$/, ""))) errors.push(`${rel(f)}: feature filename must be a lowercase hyphenated slug`);
     const r = validateFeature(readFileSync(join(dir, f), "utf8"), { path: rel(f), capabilityDir: relPathOrName });
-    errors.push(...r.errors);
+    errors.push(...r.errors); warnings.push(...r.warnings);
     for (const p of r.intents) { allIntents.add(p); if (!capIntents.includes(p)) errors.push(`${rel(f)}: source intent '${p}' is not listed under '## Sources' in capability.md`); }
     for (const p of new Set(r.revisions)) { allRevisions.add(p); if (!capRevisions.includes(p)) errors.push(`${rel(f)}: '# Changed by ${p}' is not listed as '- Revision:' under '## Sources' in capability.md`); }
   }

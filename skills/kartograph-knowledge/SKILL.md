@@ -23,6 +23,9 @@ write, commit, push, report. **Fully automated: ask nothing, wait for nothing.**
 - Never rewrite an existing definition; a contradiction is recorded, not resolved.
 - No questions, no review, no confirmation. Run to the end and report.
 - The bundle is written in the intent's language.
+- **Plain English (STE-lite).** In an English bundle, `description` and the body of a
+  concept follow `STE.md` in the `writing/` directory at the plugin root, two levels above this file's directory: descriptive sentences of 25 words or less, one meaning for each
+  word. Quotes from the intent stay word for word.
 
 ## 0. Version gate
 
@@ -91,7 +94,7 @@ thing, prefer alias over a second file.
 
 Write each concept from `concept-template.md` in this file's directory. Frontmatter:
 `type`, `title`, `description`, `status: draft` for new files, `aliases_to_avoid`,
-`generated: { by: kartograph-knowledge/3.6.0, at: <ISO 8601> }`, and `sources` with one
+`generated: { by: kartograph-knowledge/3.7.0, at: <ISO 8601> }`, and `sources` with one
 entry pointing at the intent (`resource: ../kartograph/<file>.intent.md`, `id` used for footnotes).
 Links between concepts are bundle-relative (`/events/plant-watered.md`); a link to a
 concept not yet written is allowed. Slugs are lowercase hyphenated.

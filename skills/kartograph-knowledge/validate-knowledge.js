@@ -147,6 +147,60 @@ const hasContent = (lines) => lines.some((l) => l.trim() !== "");
 const isList = (v) => Array.isArray(v);
 const isStrList = (v) => isList(v) && v.every((x) => typeof x === "string" && x.trim() !== "");
 
+// ---------------------------------------------------------------------------
+// STE-lite (`writing/STE.md` at the plugin root). Warnings only, never errors, so a
+// project written before the rules still passes; text that is not English is skipped.
+// The same block is in validate-features.js and validate-knowledge.js (self-contained).
+// ---------------------------------------------------------------------------
+const STE_EN = /\b(the|and|is|are|of|to|with|when|then|a|an|it|in|for)\b/gi;
+const STE_DE = /\b(der|die|das|und|ist|sind|nicht|ein|eine|mit|wenn|dann|wird|werden|für|auf|den|dem|des|zu|im)\b/gi;
+// -ing words that are not -ing forms, or are technical names.
+const STE_ING_OK = new Set(["thing", "things", "nothing", "something", "anything", "everything", "string", "strings",
+  "during", "bring", "ring", "rings", "spring", "king", "morning", "evening", "ceiling", "sibling", "pudding", "wedding",
+  "setting", "settings", "building", "buildings", "meeting", "meetings", "billing", "logging", "pricing", "listing",
+  "listings", "onboarding", "heading", "headings", "warning", "warnings", "rating", "ratings", "booking", "bookings",
+  "recording", "recordings", "training", "painting", "drawing", "drawings", "clothing", "parking", "packaging",
+  "shipping", "mapping", "spacing", "padding", "staging", "testing", "routing", "tracking", "streaming", "landing",
+  "pending", "ending", "beginning", "evening", "awning", "lightning", "offspring", "darling", "sling", "swing", "wing", "wings", "sing", "king"]);
+
+/** True when a text reads as English rather than German (the projects' two languages). */
+export function steIsEnglish(text) {
+  const en = (text.match(STE_EN) || []).length;
+  const de = (text.match(STE_DE) || []).length;
+  return en > 0 && en >= de;
+}
+
+function steClean(text) {
+  return text
+    .replace(/`[^`]*`/g, "X")                     // code spans count as one word
+    .replace(/"[^"\n]*"|“[^”\n]*”/g, "X")          // quoted UI strings and quotes stay as they are
+    .replace(/<[^>\n]+>/g, "X")                    // outline parameters
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")       // link text only
+    .replace(/\[\^[^\]]+\]/g, "")                  // footnote references
+    .replace(/[*_]/g, "");
+}
+
+/**
+ * The STE-lite warnings for one piece of English prose.
+ * kind "step": W4 20 words, W8 -ing forms, "will" and "should". kind "text": W4 25 words, W8 "will".
+ */
+export function steWarnings(text, { kind = "text" } = {}) {
+  const out = [];
+  const max = kind === "step" ? 20 : 25;
+  const clean = steClean(text);
+  for (const s of clean.split(/(?<=[.!?:;])\s+/)) {
+    const words = s.split(/\s+/).filter(Boolean).length;
+    if (words > max) out.push(`STE W4: ${words} words in one sentence (maximum ${max}): "${s.split(/\s+/).slice(0, 8).join(" ")} …"`);
+  }
+  if (/\bwill\b/i.test(clean)) out.push(`STE W8: use the present tense, not "will": "${text.trim().slice(0, 60)}"`);
+  if (kind === "step") {
+    if (/\bshould\b/i.test(clean)) out.push(`STE W8: use the present tense, not "should": "${text.trim().slice(0, 60)}"`);
+    const ing = [...clean.matchAll(/\b([A-Za-z]{2,}ing)\b/g)].map((m) => m[1]).filter((w) => !STE_ING_OK.has(w.toLowerCase()));
+    if (ing.length) out.push(`STE W8: no -ing form ("${ing[0]}"): "${text.trim().slice(0, 60)}"`);
+  }
+  return out;
+}
+
 export function validateConcept(text, { path = "concept.md" } = {}) {
   const errors = []; const warnings = [];
   const err = (m) => errors.push(`${path}: ${m}`);
@@ -234,6 +288,18 @@ export function validateConcept(text, { path = "concept.md" } = {}) {
     links.push(target);
   }
   if (PLACEHOLDER.test(body)) err(`body still holds a template placeholder: ${PLACEHOLDER.exec(body)[0]}`);
+
+  // STE-lite: description and body prose of an English concept, as warnings. Quotes (the
+  // '# From the intent' section, '>' lines), footnote definitions and comments are skipped.
+  const steProse = [typeof fm.description === "string" ? fm.description : ""];
+  for (const s of sections) {
+    if (s.name === "From the intent" || s.name === "Collision") continue;
+    for (const l of s.lines.join("\n").replace(/<!--[\s\S]*?-->/g, "").split(/\r?\n/)) {
+      const t = l.trim();
+      if (t && !t.startsWith(">") && !t.startsWith("#") && !/^\[\^[^\]]+\]:/.test(t)) steProse.push(t.replace(/^[-*]\s+/, ""));
+    }
+  }
+  if (fm.description !== STUB_DESCRIPTION && steIsEnglish(steProse.join(" "))) for (const p of new Set(steProse)) for (const w of steWarnings(p)) warn(w);
 
   return { errors, warnings, fm, links };
 }

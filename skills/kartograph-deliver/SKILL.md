@@ -27,6 +27,8 @@ upload, promote, submit or deploy without the person saying so, once, in chat.
   lines; a wrong or empty value in `config.sh` is the one thing you may fix, and you say so.
 - **The scripts are the truth about the lanes.** A lane missing from `LANES` in `config.sh`
   is not shipped; do not invent a way around it.
+- **Plain English (STE-lite).** English text you write for a store or a reviewer (store
+  JSON, release notes, review notes) follows `STE.md` in the `writing/` directory at the plugin root, two levels above this file's directory. Text in another language does not.
 - The App Store Connect and Play APIs need the network; if the runtime's sandbox blocks
   them, say so and let the person run the printed command themselves.
 

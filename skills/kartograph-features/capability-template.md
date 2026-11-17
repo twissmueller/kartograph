@@ -1,6 +1,8 @@
 # Capability: <meaningful name>
 
 <One or two sentences: the lasting ability this capability represents.>
+<!-- English text follows STE-lite (writing/STE.md at the plugin root): sentences of 25
+     words or less, present tense, active voice, no -ing forms. -->
 
 ## Sources
 - Intent: `kartograph/<YYYY-MM-DD-HHMM-slug>.intent.md`

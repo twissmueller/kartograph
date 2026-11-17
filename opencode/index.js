@@ -18,7 +18,12 @@ async function readSkillFile(skill, name) {
   return readFile(fileURLToPath(new URL(`${skill}/${name}`, skillsDir)), "utf8");
 }
 
-function skillTool({ skill, files, description, args, opening, extraNote = "" }) {
+// Files at the plugin root that several skills cite (the shared writing rules).
+async function readRootFile(name) {
+  return readFile(fileURLToPath(new URL(`../${name}`, import.meta.url)), "utf8");
+}
+
+function skillTool({ skill, files, rootFiles = [], description, args, opening, extraNote = "" }) {
   return tool({
     description,
     args,
@@ -27,10 +32,13 @@ function skillTool({ skill, files, description, args, opening, extraNote = "" })
       const extras = await Promise.all(
         files.map(async (f) => `\n\n---\n\nThe ${f} the instructions refer to:\n\n${await readSkillFile(skill, f)}`),
       );
+      const shared = await Promise.all(
+        rootFiles.map(async (f) => `\n\n---\n\nThe ${f} at the plugin root (${pluginRoot}) the instructions refer to:\n\n${await readRootFile(f)}`),
+      );
       const dir = fileURLToPath(new URL(`${skill}/`, skillsDir));
       return (
         `${opening(a)}Follow these instructions for the rest of this conversation. ` +
-        `"This file's directory" in them is: ${dir}${extraNote}\n\n${body}${extras.join("")}`
+        `"This file's directory" in them is: ${dir}${extraNote}\n\n${body}${extras.join("")}${shared.join("")}`
       );
     },
   });
@@ -65,6 +73,7 @@ export const KartographPlugin = async () => ({
     kartograph_intent: skillTool({
       skill: "kartograph-intent",
       files: ["intent-template.md"],
+      rootFiles: ["writing/STE.md"],
       description:
         "Use when a conversation has been recorded under kartograph/ and no intent has been " +
         "derived from it yet. Returns the instructions to follow for the rest of the conversation.",
@@ -74,6 +83,7 @@ export const KartographPlugin = async () => ({
     kartograph_map: skillTool({
       skill: "kartograph-map",
       files: ["mapping-template.md"],
+      rootFiles: ["writing/STE.md"],
       description:
         "Use when an intent has been derived under kartograph/ and has not yet been held against " +
         "what the project already has — features and git history. Returns the instructions to " +
@@ -84,6 +94,7 @@ export const KartographPlugin = async () => ({
     kartograph_knowledge: skillTool({
       skill: "kartograph-knowledge",
       files: ["concept-template.md"],
+      rootFiles: ["writing/STE.md"],
       description:
         "Use when an intent under kartograph/ has been mapped and its concepts have not yet been " +
         "recorded in the project's knowledge/ bundle, or when the person asks to extract, update, " +
@@ -95,6 +106,7 @@ export const KartographPlugin = async () => ({
     kartograph_features: skillTool({
       skill: "kartograph-features",
       files: ["capability-template.md", "example.md"],
+      rootFiles: ["writing/STE.md"],
       description:
         "Use when an intent under kartograph/ has been mapped and the behaviour it asks for is not " +
         "yet specified as capabilities and Gherkin features under features/, or when the person asks " +
@@ -165,6 +177,7 @@ export const KartographPlugin = async () => ({
     kartograph_deliver: skillTool({
       skill: "kartograph-deliver",
       files: [],
+      rootFiles: ["writing/STE.md"],
       description:
         "Use when the person wants the app running locally (Mac, iOS simulator, Android emulator, " +
         "or the docker stack), on their own iPhone or iPad, on TestFlight or Play internal testing, " +
@@ -179,6 +192,7 @@ export const KartographPlugin = async () => ({
     kartograph_release: skillTool({
       skill: "kartograph-release",
       files: ["first-release-template.md"],
+      rootFiles: ["writing/STE.md"],
       description:
         "Use when a build that was tested on TestFlight or on Play internal testing should go to " +
         "the App Store and Google Play, whether as the app's first store release or as an update, " +

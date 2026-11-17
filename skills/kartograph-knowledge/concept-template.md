@@ -5,7 +5,7 @@ description: <one sentence that defines it, in the intent's language>
 status: draft
 aliases_to_avoid: [<words people use for this that must not become new concepts>]
 tags: []
-generated: { by: kartograph-knowledge/3.6.0, at: <YYYY-MM-DDTHH:MM:SSZ> }
+generated: { by: kartograph-knowledge/3.7.0, at: <YYYY-MM-DDTHH:MM:SSZ> }
 sources:
   - id: <intent-file-slug>
     resource: ../kartograph/<YYYY-MM-DD-HHMM-slug>.intent.md
@@ -13,6 +13,9 @@ sources:
 ---
 
 # Definition
+
+<!-- English text follows STE-lite (writing/STE.md at the plugin root): sentences of 25
+     words or less, one meaning for each word. Quotes stay word for word. -->
 
 <The description, expanded to a short paragraph only where one sentence is not enough.
 Nothing the intent did not say. If the meaning hangs on an open question from the intent,

@@ -342,3 +342,62 @@ test("a legacy '# Changed by intents/<file>.md: text' or 'kartograph/<file>.inte
   const badPath = revisedFeature.replace(`# Changed by ${REVISION}`, "# Changed by the owner");
   assert.ok(validateFeature(badPath, FOPTS).errors.some((e) => /must name kartograph\/YYYY-MM-DD-HHMM-<slug>\.revision\.md/.test(e)));
 });
+
+// STE-lite (writing/STE.md): warnings only, English only.
+const steFeature = (steps, header = "") => `${header}# Source intent: ${INTENT}
+# Capability: features/project-archiving/capability.md
+Feature: Archive a project
+  Owners take a project out of the overview.
+
+  Scenario: An owner archives a project
+${steps}
+`;
+
+test("STE-lite: -ing forms, 'will', long steps and two actions in one When are warnings, never errors", () => {
+  const r = validateFeature(steFeature(`    Given Alice is archiving the project "Atlas"
+    When Alice archives "Atlas"
+    And Alice opens the overview
+    Then the overview will show no project with the name of the archived project and no other project that Alice owned before today`), { capabilityDir: "project-archiving" });
+  assert.deepEqual(r.errors, []);
+  assert.ok(r.warnings.some((w) => /STE W8: no -ing form \("archiving"\)/.test(w)), r.warnings.join("\n"));
+  assert.ok(r.warnings.some((w) => /STE W8: use the present tense, not "will"/.test(w)));
+  assert.ok(r.warnings.some((w) => /STE W4: \d+ words in one sentence \(maximum 20\)/.test(w)));
+  assert.ok(r.warnings.some((w) => /STE W5: scenario 'An owner archives a project'/.test(w)));
+});
+
+test("STE-lite: quoted strings, outline parameters and technical -ing names do not warn", () => {
+  const r = validateFeature(steFeature(`    Given the settings show "Loading the list"
+    When Alice opens the billing page
+    Then the page shows "Nothing pending"`), { capabilityDir: "project-archiving" });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.warnings, []);
+});
+
+test("STE-lite: a German file is skipped, with or without a language header", () => {
+  const de = `    Angenommen Alice besitzt das Projekt "Atlas"
+    Wenn Alice das Projekt archiviert und danach die Übersicht öffnet und dann das Projekt sucht und wieder schließt
+    Dann wird das Projekt nicht mehr in der Übersicht angezeigt`;
+  const withHeader = validateFeature(`# language: de\n${steFeature(de).replace("Feature:", "Funktionalität:").replace("Scenario:", "Szenario:")}`, { capabilityDir: "project-archiving" });
+  assert.deepEqual(withHeader.errors, []);
+  assert.deepEqual(withHeader.warnings, []);
+  const proseOnly = validateFeature(steFeature(`    Given Alice besitzt das Projekt "Atlas" und es ist nicht archiviert
+    When Alice das Projekt archiviert
+    Then wird das Projekt nicht mehr in der Übersicht angezeigt, und die Liste ist für den Nutzer leer`), { capabilityDir: "project-archiving" });
+  assert.deepEqual(proseOnly.warnings, []);
+});
+
+test("STE-lite: capability.md prose over 25 words warns; validateCapabilityDir passes the warnings on", (t) => {
+  const long = capability.replace("Owners can take a project out of the active overview without deleting it.",
+    "Owners can take a project out of the active overview without deleting it, and the project stays where it was, with all its tasks, notes, members and files, for later.");
+  const r = validateCapability(long, OPTS);
+  assert.deepEqual(r.errors, []);
+  assert.ok(r.warnings.some((w) => /capability\.md: STE W4: \d+ words in one sentence \(maximum 25\)/.test(w)), r.warnings.join("\n"));
+  const dir = mkdtempSync(join(tmpdir(), "kg-ste-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const cap = join(dir, "project-archiving"); mkdirSync(cap);
+  writeFileSync(join(cap, "capability.md"), long);
+  writeFileSync(join(cap, "archive-project.feature"), feature);
+  const d = validateCapabilityDir(cap);
+  assert.deepEqual(d.errors, []);
+  assert.ok(d.warnings.some((w) => /STE W4/.test(w)));
+});

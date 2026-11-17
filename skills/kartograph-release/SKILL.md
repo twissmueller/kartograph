@@ -35,9 +35,13 @@ question covers both. A release to a lane already on sale runs exactly as before
   `release: next` that this release carries (step 6). Never `kartograph/`, `features/`, `knowledge/`, `plans/`, `walks/`,
   `distribution/config.sh` or another delivery script.
 - **Positive and factual.** Say what is new and what works better, as the person using the
-  app notices it. A fix is what now works ("Syncing resumes after the connection returns"),
+  app notices it. A fix is what now works ("Sync starts again when the connection returns"),
   never "a bad bug has been fixed". No superlatives, nothing the commits and features do not
   show.
+- **Plain English (STE-lite).** The English release notes, store texts, review notes and
+  `first-release.md` follow `STE.md` in the `writing/` directory at the plugin root, two levels above this file's directory: one change or one action in one sentence, present tense,
+  active voice, no -ing forms, a maximum of 20 words for a step and 25 for a description.
+  Store limits and the rules above come first. Text in another language does not follow it.
 - **Never name another platform** in any store text: no Android, Google Play, Play Store,
   Windows or Linux in anything Apple reads; no iOS, iPhone, iPad, Mac or App Store in
   anything Play shows. The notes are written platform-neutral, once, for both.

@@ -12,7 +12,9 @@ related: [<earlier kartograph/ documents the research leaned on — or an empty 
 
 <!-- Every intended outcome of the intent appears in exactly one of the four groups, in
      bold and word for word as the intent states it, without its turn citation. An empty
-     group is 'None identified.'. validate-mapping.js checks all of that. -->
+     group is 'None identified.'. validate-mapping.js checks all of that.
+     English text of your own follows STE-lite (writing/STE.md at the plugin root):
+     25 words or less in a sentence. -->
 
 ## Done
 

@@ -23,6 +23,9 @@ push, report. **Fully automated: ask nothing, wait for nothing.**
   conversation has to settle.
 - No questions, no review, no confirmation. Run to the end and report.
 - Write in the intent's language.
+- **Plain English (STE-lite).** In English, your own descriptive text (`description`,
+  `Missing:`, `Open question:`) follows `STE.md` in the `writing/` directory at the plugin root, two levels above this file's directory: 25 words or less in a sentence. The
+  outcomes you copy from the intent stay word for word.
 
 ## 0. Version gate
 

@@ -80,6 +80,7 @@ stacks/<stack>/screenshots.md               how kartograph-release builds the st
 stacks/<stack>/distribution/                the stack's delivery entry scripts and config.sh.template
 stacks/common/distribution/lib/             the shared delivery libraries (bash + stdlib python)
 stacks/common/DISTRIBUTION.md               the delivery contract: layout, config keys, library API
+writing/STE.md                              STE-lite writing rules (W1–W10) for generated English text
 test/*.test.js                              node:test suite for the validators (`npm test`)
 .claude-plugin/plugin.json                  Claude Code manifest  (lists each skill directory)
 .claude-plugin/marketplace.json             Claude Code marketplace, source "./"
@@ -122,6 +123,12 @@ carry a copy of the skill text. `package.json` exists only to publish that modul
 - **Frontmatter is the contract.** `name` is the slash name and the Codex skill folder.
   `description` states *when* to use the skill, never *how* it works — a description that
   summarises the process makes agents skip the body.
+- **Generated English text follows `writing/STE.md`** (STE-lite, from the user's knowledge
+  repo atom P10). Intent, map, knowledge, features, deliver and release cite it as "`STE.md`
+  in the `writing/` directory at the plugin root, two levels above this file's directory"
+  and list it in `rootFiles` in `opencode/index.js`; `test/skills.test.js` checks both.
+  Exempt: the person's verbatim words and non-English text. The features and knowledge
+  validators report STE breaks as warnings only, never errors, and skip non-English files.
 - **Adding a skill** means: a directory under `skills/`, an entry in
   `.claude-plugin/plugin.json`'s `skills` list (Codex needs nothing, it scans `./skills/`), a
   tool in `opencode/index.js` (list its supporting files in `files`), and a row in the

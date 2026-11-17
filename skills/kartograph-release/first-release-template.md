@@ -12,6 +12,9 @@ under *After the release* come once the scripts have run. A failure is reported 
 Play is promoted before the App Store version is submitted, so you learn what each store
 already has.
 
+<!-- English text in this file follows STE-lite: writing/STE.md at the plugin root.
+     One action in each step, imperative, 20 words or less. -->
+
 ## App Store — <platforms>
 
 ### Before your yes: in App Store Connect
